@@ -21,4 +21,4 @@ The website intentionally avoids claiming that every problem requires a humanoid
 - `assets/rovatics-logo.png` — Existing logo
 
 ## Before launch
-Replace the sample `hello@rovatics.com` address, verify all claims against actual capabilities, and review legal/privacy copy for the business jurisdiction.
+Replace the sample `info@rovatics.com` address, verify all claims against actual capabilities, and review legal/privacy copy for the business jurisdiction.

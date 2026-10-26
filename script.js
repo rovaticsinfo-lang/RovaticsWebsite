@@ -18,8 +18,8 @@ document.querySelectorAll('[data-contact-form]').forEach(form => {
       data.get('message')
     );
     // Replace this address with the company's monitored email before launch.
-    window.location.href = 'mailto:hello@rovatics.com?subject=' + subject + '&body=' + body;
+    window.location.href = 'mailto:info@rovatics.com?subject=' + subject + '&body=' + body;
     const status = form.querySelector('[data-form-status]');
-    if (status) status.textContent = 'Your email app should open with the message prepared. If it does not, email hello@rovatics.com directly.';
+    if (status) status.textContent = 'Your email app should open with the message prepared. If it does not, email info@rovatics.com directly.';
   });
 });

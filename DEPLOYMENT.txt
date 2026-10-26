@@ -3,7 +3,7 @@ Rovatics website — updated positioning
 Deploy all files preserving the folder structure. The site remains a static website.
 
 Before launch:
-1. Replace hello@rovatics.com with the official monitored company email in contact.html, privacy.html, script.js, and the footer.
+1. Replace info@rovatics.com with the official monitored company email in contact.html, privacy.html, script.js, and the footer.
 2. Verify that the described robotics, simulation, AI, testing, and deployment capabilities match actual services.
 3. Review privacy/legal wording for the applicable jurisdiction.
 4. Test navigation, mobile menu, contact mailto behaviour, and all links.
