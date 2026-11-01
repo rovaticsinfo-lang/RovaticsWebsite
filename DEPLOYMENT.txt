@@ -7,3 +7,4 @@ Before launch:
 2. Verify that the described robotics, simulation, AI, testing, and deployment capabilities match actual services.
 3. Review privacy/legal wording for the applicable jurisdiction.
 4. Test navigation, mobile menu, contact mailto behaviour, and all links.
+  
