@@ -11,6 +11,7 @@ document.querySelectorAll('[data-contact-form]').forEach(form => {
     const data = new FormData(form);
     const subject = encodeURIComponent('Rovatics physical-world automation enquiry: ' + (data.get('topic') || 'Physical-world automation'));
     const body = encodeURIComponent(
+      'Hello you got the mail from\n\n' +
       'Name: ' + data.get('name') + '\\n' +
       'Email: ' + data.get('email') + '\\n' +
       'Organisation: ' + (data.get('organisation') || 'Not provided') + '\\n' +
