@@ -1,26 +1,83 @@
+// 1. Mobile navigation menu
 const toggle = document.querySelector('.menu-toggle');
 const links = document.querySelector('.nav-links');
-if (toggle && links) toggle.addEventListener('click', () => {
-  const opened = links.classList.toggle('open');
-  toggle.setAttribute('aria-expanded', String(opened));
-});
-document.querySelectorAll('[data-year]').forEach(el => el.textContent = new Date().getFullYear());
-document.querySelectorAll('[data-contact-form]').forEach(form => {
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const data = new FormData(form);
-    const subject = encodeURIComponent('Rovatics physical-world automation enquiry: ' + (data.get('topic') || 'Physical-world automation'));
-    const body = encodeURIComponent(
-      'Hello you got the mail from\n\n' +
-      'Name: ' + data.get('name') + '\\n' +
-      'Email: ' + data.get('email') + '\\n' +
-      'Organisation: ' + (data.get('organisation') || 'Not provided') + '\\n' +
-      'Topic: ' + (data.get('topic') || 'Physical-world automation') + '\\n\\n' +
-      data.get('message')
-    );
-    // Replace this address with the company's monitored email before launch.
-    window.location.href = 'mailto:info@rovatics.com?subject=' + subject + '&body=' + body;
-    const status = form.querySelector('[data-form-status]');
-    if (status) status.textContent = 'Your email app should open with the message prepared. If it does not, email info@rovatics.com directly.';
+
+if (toggle && links) {
+  toggle.addEventListener('click', () => {
+    const opened = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(opened));
   });
+}
+
+// 2. Automatically update the footer year
+document.querySelectorAll('[data-year]').forEach(el => {
+  el.textContent = new Date().getFullYear();
+});
+
+// 3. Contact form - Send email using EmailJS
+document.querySelectorAll('[data-contact-form]').forEach(form => {
+
+  form.addEventListener('submit', async (e) => {
+
+    e.preventDefault();
+
+    const data = new FormData(form);
+    const status = form.querySelector('[data-form-status]');
+    const button = form.querySelector('button[type="submit"]');
+
+    // Collect the information entered by the visitor
+    const templateParams = {
+      name: data.get('name'),
+      email: data.get('email'),
+      organisation: data.get('organisation') || 'Not provided',
+      topic: data.get('topic') || 'Physical-world automation',
+      message: data.get('message')
+    };
+
+    try {
+
+      // Show sending status
+      if (button) button.disabled = true;
+
+      if (status) {
+        status.textContent = 'Sending your enquiry...';
+      }
+
+      // Send the email through EmailJS
+      await emailjs.send(
+        'info@Rovatics.com',
+        'template_m1y2fgr',
+        templateParams,
+        {
+          publicKey: 'j2knO97ZmvK7tzKmm'
+        }
+      );
+
+      // If email is sent successfully
+      if (status) {
+        status.textContent = 'Your enquiry has been sent successfully!';
+      }
+
+      // Clear the form after successful submission
+      form.reset();
+
+    } catch (error) {
+
+      // If email sending fails
+      console.error('Email sending failed:', error);
+
+      if (status) {
+        status.textContent =
+          'Unable to send your enquiry. Please try again later.';
+      }
+
+    } finally {
+
+      // Enable the button again
+      if (button) button.disabled = false;
+
+    }
+
+  });
+
 });
