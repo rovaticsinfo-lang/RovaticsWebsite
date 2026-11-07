@@ -42,10 +42,9 @@
 
  -->
 
- Here is the full `contact.html`, ready to copy and paste:
+ 
 
-```html
-<!doctype html>
+ <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -88,7 +87,7 @@
         <div class="contact-item"><small>Useful information</small><strong>Task description · Environment · Current human effort · Desired outcome</strong></div>
       </div>
 
-      <form class="form-card" data-contact-form method="post" action="#">
+      <form id="contactForm" class="form-card" data-contact-form method="post" action="#">
         <h2 style="font:600 1.45rem 'Space Grotesk';margin:0 0 22px">Describe the problem</h2>
         <div class="form-grid">
           <div class="field">
@@ -120,8 +119,8 @@
             <textarea id="message" name="message" required placeholder="Describe the task, current human workflow, environment, constraints, and what you want to automate…"></textarea>
           </div>
         </div>
-        <button class="btn btn-primary" type="submit">Send the problem ↗</button>
-        <p class="notice" data-form-status role="status" aria-live="polite">Your message goes directly to our team. We’ll reply by email.</p>
+        <button id="sendBtn" class="btn btn-primary" type="submit">Send the problem ↗</button>
+        <p id="formStatus" class="notice" data-form-status role="status" aria-live="polite">Your message goes directly to our team. We’ll reply by email.</p>
       </form>
     </div>
   </section>
@@ -143,11 +142,73 @@
   </div>
 </footer>
 
-<!-- EmailJS SDK must load BEFORE script.js -->
+<!-- EmailJS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@5/dist/email.min.js"></script>
-<script src="script.js"></script>
+
+<!-- Site script (cache-busted so browsers fetch the newest copy) -->
+<script src="script.js?v=20261107"></script>
+
+<!-- Contact form logic lives here, so an old cached script.js cannot override it -->
+<script>
+window.addEventListener('load', function () {
+  var SERVICE_ID  = 'service_qserjji';
+  var TEMPLATE_ID = 'template_m1y2fgr';
+  var PUBLIC_KEY  = 'j2knO97ZmvK7tzKmm';
+
+  var oldForm = document.getElementById('contactForm');
+  if (!oldForm) return;
+
+  // Replace the form with a clean copy: this removes any old handler
+  // (for example a cached mailto: handler) that might open Outlook.
+  var form = oldForm.cloneNode(true);
+  oldForm.parentNode.replaceChild(form, oldForm);
+
+  var status = form.querySelector('#formStatus');
+  var button = form.querySelector('#sendBtn');
+
+  function setStatus(text, color) {
+    status.textContent = text;
+    status.style.color = color || '';
+  }
+
+  if (typeof emailjs !== 'undefined') {
+    emailjs.init({ publicKey: PUBLIC_KEY });
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();          // never navigate or open a mail app
+    e.stopPropagation();
+
+    if (typeof emailjs === 'undefined') {
+      setStatus('Email service could not load. Please refresh the page and try again.', '#ff6b6b');
+      return;
+    }
+
+    var data = new FormData(form);
+    var templateParams = {
+      name: data.get('name'),
+      email: data.get('email'),
+      organisation: data.get('organisation') || 'Not provided',
+      topic: data.get('topic') || 'Physical-world automation',
+      message: data.get('message')
+    };
+
+    try {
+      button.disabled = true;
+      setStatus('Sending your enquiry...', '');
+
+      await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams, { publicKey: PUBLIC_KEY });
+
+      form.reset();              // clear all fields
+      setStatus('Your enquiry has been sent successfully!', '#3ddc97');
+    } catch (err) {
+      console.error('EmailJS error:', err);
+      setStatus('Unable to send your enquiry. Please try again later.', '#ff6b6b');
+    } finally {
+      button.disabled = false;
+    }
+  });
+});
+</script>
 </body>
 </html>
-```
-
-Save it as `contact.html` and keep the updated `script.js` next to it. After redeploying, hard refresh with `Ctrl + F5`.
