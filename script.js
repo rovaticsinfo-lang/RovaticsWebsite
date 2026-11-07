@@ -45,7 +45,7 @@ document.querySelectorAll('[data-contact-form]').forEach(form => {
 
       // Send the email through EmailJS
       await emailjs.send(
-        'info@Rovatics.com',
+        'service_qserjji',
         'template_m1y2fgr',
         templateParams,
         {
