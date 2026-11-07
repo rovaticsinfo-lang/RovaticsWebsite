@@ -83,186 +83,92 @@
 // });
 
 
+// ===============================
+// Rovatics site script
+// ===============================
 
-// ============================================
 // 1. Mobile navigation menu
-// ============================================
-
 const toggle = document.querySelector('.menu-toggle');
 const links = document.querySelector('.nav-links');
 
 if (toggle && links) {
-
-    toggle.addEventListener('click', () => {
-
-        const opened = links.classList.toggle('open');
-
-        toggle.setAttribute('aria-expanded', String(opened));
-
-    });
-
+  toggle.addEventListener('click', () => {
+    const opened = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(opened));
+  });
 }
 
-
-// ============================================
 // 2. Automatically update the footer year
-// ============================================
-
 document.querySelectorAll('[data-year]').forEach(el => {
-
-    el.textContent = new Date().getFullYear();
-
+  el.textContent = new Date().getFullYear();
 });
 
+// 3. Contact form: send directly with EmailJS (no Outlook / Gmail / mail app)
+const EMAILJS_SERVICE_ID  = 'service_qserjji';
+const EMAILJS_TEMPLATE_ID = 'template_m1y2fgr';
+const EMAILJS_PUBLIC_KEY  = 'j2knO97ZmvK7tzKmm';
 
-// ============================================
-// 3. Initialize EmailJS
-// ============================================
-
-const emailJS = window.emailjs;
-
-if (emailJS) {
-
-    emailJS.init({
-        publicKey: 'j2knO97ZmvK7tzKmm'
-    });
-
-} else {
-
-    console.error('EmailJS SDK failed to load.');
-
+// Initialise EmailJS once (the SDK <script> tag must load before this file)
+if (typeof emailjs !== 'undefined') {
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 }
 
-
-// ============================================
-// 4. Contact form - Direct email sending
-// ============================================
-
 document.querySelectorAll('[data-contact-form]').forEach(form => {
+  // Make sure the handler is attached only once per form
+  if (form.dataset.emailBound === 'true') return;
+  form.dataset.emailBound = 'true';
 
-    // Prevent duplicate event listeners
-    if (form.dataset.emailjsBound === 'true') {
-        return;
+  const status = form.querySelector('[data-form-status]');
+  const button = form.querySelector('button[type="submit"]');
+
+  const setStatus = (text, color) => {
+    if (!status) return;
+    status.textContent = text;
+    status.style.color = color || '';
+  };
+
+  form.addEventListener('submit', async (e) => {
+    // Stop the browser from navigating or opening any mail application
+    e.preventDefault();
+    e.stopPropagation();
+
+    // The EmailJS SDK must have loaded
+    if (typeof emailjs === 'undefined') {
+      console.error('EmailJS SDK not loaded. Check the <script> tag in contact.html.');
+      setStatus('Email service could not load. Please refresh the page and try again.', '#ff6b6b');
+      return;
     }
 
-    form.dataset.emailjsBound = 'true';
+    // Collect all form details
+    // (keys must match the {{variables}} in your EmailJS template)
+    const data = new FormData(form);
+    const templateParams = {
+      name: data.get('name'),
+      email: data.get('email'),
+      organisation: data.get('organisation') || 'Not provided',
+      topic: data.get('topic') || 'Physical-world automation',
+      message: data.get('message')
+    };
 
-    // Capture the submit event before other form handlers
-    form.addEventListener('submit', async (e) => {
+    try {
+      if (button) button.disabled = true;
+      setStatus('Sending your enquiry...', '');
 
-        // Prevent page redirect or default form submission
-        e.preventDefault();
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        { publicKey: EMAILJS_PUBLIC_KEY }
+      );
 
-        // Stop other submit handlers from running
-        e.stopImmediatePropagation();
-
-        const data = new FormData(form);
-
-        const status = form.querySelector('[data-form-status]');
-        const button = form.querySelector('button[type="submit"]');
-
-        // Collect visitor information
-        const templateParams = {
-
-            name: data.get('name'),
-
-            email: data.get('email'),
-
-            organisation:
-                data.get('organisation') || 'Not provided',
-
-            topic:
-                data.get('topic') || 'Physical-world automation',
-
-            message: data.get('message')
-
-        };
-
-        // Store original button text
-        const originalButtonText = button
-            ? button.textContent
-            : 'Send the problem ↗';
-
-        try {
-
-            // Check EmailJS availability
-            if (!emailJS) {
-
-                throw new Error('EmailJS SDK is not loaded.');
-
-            }
-
-            // Disable button while sending
-            if (button) {
-
-                button.disabled = true;
-                button.textContent = 'Sending...';
-
-            }
-
-            // Display sending message
-            if (status) {
-
-                status.textContent = 'Sending your enquiry...';
-
-            }
-
-            // Send email directly through EmailJS
-            // No Outlook, Gmail or mailto redirection
-
-            await emailJS.send(
-
-                'service_qserjji',
-
-                'template_m1y2fgr',
-
-                templateParams
-
-            );
-
-
-            // Email sent successfully
-            if (status) {
-
-                status.textContent =
-                    'Your enquiry has been sent successfully!';
-
-            }
-
-
-            // Clear all form fields after successful sending
-            form.reset();
-
-
-        } catch (error) {
-
-            // Display error in browser console
-            console.error('Email sending failed:', error);
-
-            // Display failure message
-            if (status) {
-
-                status.textContent =
-                    'Unable to send your enquiry. Please try again later.';
-
-            }
-
-            // Keep visitor information so they can retry
-
-
-        } finally {
-
-            // Enable button again
-            if (button) {
-
-                button.disabled = false;
-
-                button.textContent = originalButtonText;
-
-            }
-
-        }
-
-    }, true);
-
+      // Success: clear all fields and show a message
+      form.reset();
+      setStatus('Your enquiry has been sent successfully!', '#3ddc97');
+    } catch (error) {
+      console.error('EmailJS error:', error);
+      setStatus('Unable to send your enquiry. Please try again later.', '#ff6b6b');
+    } finally {
+      if (button) button.disabled = false;
+    }
+  });
 });
