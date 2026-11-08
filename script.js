@@ -83,6 +83,17 @@
 // });
 
 
+
+
+
+
+
+
+
+
+
+
+
 // ===============================
 // Rovatics site script
 // ===============================
@@ -104,9 +115,10 @@ document.querySelectorAll('[data-year]').forEach(el => {
 });
 
 // 3. Contact form: send directly with EmailJS (no Outlook / Gmail / mail app)
-const EMAILJS_SERVICE_ID  = 'service_qserjji';
-const EMAILJS_TEMPLATE_ID = 'template_m1y2fgr';
-const EMAILJS_PUBLIC_KEY  = 'j2knO97ZmvK7tzKmm';
+// >>> Paste the values from YOUR EmailJS dashboard here (the only place to edit) <<<
+const EMAILJS_SERVICE_ID  = 'service_gbvadn3';    // e.g. service_xxxxxxx
+const EMAILJS_TEMPLATE_ID = 'template_n7deo1b';   // e.g. template_xxxxxxx
+const EMAILJS_PUBLIC_KEY  = 'Tf-JoCePuVdlbJZRH';    // Account > General > Public Key
 
 // Initialise EmailJS once (the SDK <script> tag must load before this file)
 if (typeof emailjs !== 'undefined') {
