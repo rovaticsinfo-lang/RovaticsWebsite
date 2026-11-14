@@ -1,20 +1,19 @@
-# Rovatics Website Starter — Physical-World Robotics Positioning
+# Rovatics Website — Robotics & Game Development
 
-This static site presents Rovatics as a robotics solutions company focused on real-world physical problems.
+This static site presents Rovatics as a development studio for robotics, games, and interactive experiences.
 
-## Positioning
-Rovatics helps organisations identify physical work that can be automated, select the appropriate robotic architecture (industrial robots, mobile robots, manipulators, humanoids, or hybrid systems), simulate and stress-test the solution at scale, and validate it before deployment.
+## Services
+- Robotics development and automation
+- Game design and development
+- Interactive experiences and simulations
 
-## Core message
-**Bring us the physical problem. We engineer the robotic solution.**
-
-The website intentionally avoids claiming that every problem requires a humanoid. The right robot is selected based on task requirements.
+The website introduces these services and invites visitors to contact Rovatics with a project idea.
 
 ## Files
-- `index.html` — Main positioning and workflow
-- `about.html` — Mission, sectors, and company philosophy
-- `technology.html` — End-to-end robotics solution workflow
-- `contact.html` — Problem-focused enquiry form
+- `index.html` — Main positioning and service overview
+- `about.html` — Mission and project approach
+- `technology.html` — Robotics, game, and interactive development services
+- `contact.html` — Project enquiry form
 - `privacy.html` — Starter privacy notice
 - `styles.css` — Existing visual system
 - `script.js` — Navigation, year, and mailto contact form
