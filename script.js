@@ -14,6 +14,7 @@ document.querySelectorAll('[data-year]').forEach((el) => {
 
 const carousel = document.querySelector('[data-hero-carousel]');
 if (carousel) {
+  const track = carousel.querySelector('.hero-carousel-track');
   const slides = Array.from(carousel.querySelectorAll('.hero-slide'));
   const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
   const prevButton = carousel.querySelector('[data-carousel-prev]');
@@ -23,9 +24,14 @@ if (carousel) {
 
   const updateCarousel = (nextIndex) => {
     currentIndex = (nextIndex + slides.length) % slides.length;
+    track.style.transform = `translateX(-${currentIndex * 100}%)`;
 
     slides.forEach((slide, index) => {
-      slide.classList.toggle('active', index === currentIndex);
+      const isActive = index === currentIndex;
+      slide.classList.toggle('active', isActive);
+      slide.setAttribute('aria-hidden', String(!isActive));
+      slide.inert = !isActive;
+      if (!isActive) slide.querySelector('video')?.pause();
     });
 
     dots.forEach((dot, index) => {
