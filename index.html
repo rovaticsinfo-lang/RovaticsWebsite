@@ -7,6 +7,8 @@
 .visual-wrap{min-height:0;display:flex;padding-top:55px}
 .hero-video{display:block;width:100%;height:auto;min-height:340px;flex:1;object-fit:contain;border:1px solid rgba(151,220,255,.27);border-radius:24px;background:#020b1c;box-shadow:0 35px 90px rgba(0,0,0,.25)}
 @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:36px}.visual-wrap{padding-top:0}}
+.hero-carousel-nav{position:relative;display:flex;justify-content:flex-end;align-items:center;min-height:44px;padding:0 0 14px}
+.hero-carousel-nav .carousel-dots{position:absolute;left:50%;transform:translateX(-50%)}
 </style></head><body>
 <header class="site-header">
  <div class="container nav">
@@ -76,6 +78,7 @@
     </div>
   </div>
   </div>
+ </div>
 
   <div class="container hero-carousel-nav">
     <div class="carousel-dots" aria-label="Carousel navigation">
@@ -89,7 +92,7 @@
       <button class="carousel-btn" type="button" data-carousel-next aria-label="Next slide">›</button>
     </div>
   </div>
-</div></section>
+</section>
 
 <section class="section section-light"><div class="container">
  <div class="section-heading center"><span class="eyebrow">What we do</span><h2>Engineering for the real world and imagined ones.</h2><p>We help turn concepts into working products, whether you are building a robot to solve a real-world challenge or designing a game people will love to play.</p></div>

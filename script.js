@@ -14,11 +14,12 @@ document.querySelectorAll('[data-year]').forEach((el) => {
 
 const carousel = document.querySelector('[data-hero-carousel]');
 if (carousel) {
+  const carouselRegion = carousel.closest('.hero');
   const track = carousel.querySelector('.hero-carousel-track');
   const slides = Array.from(carousel.querySelectorAll('.hero-slide'));
-  const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
-  const prevButton = carousel.querySelector('[data-carousel-prev]');
-  const nextButton = carousel.querySelector('[data-carousel-next]');
+  const dots = Array.from(carouselRegion.querySelectorAll('.carousel-dot'));
+  const prevButton = carouselRegion.querySelector('[data-carousel-prev]');
+  const nextButton = carouselRegion.querySelector('[data-carousel-next]');
   let currentIndex = 0;
   let autoAdvance;
 
@@ -64,8 +65,8 @@ if (carousel) {
     });
   });
 
-  carousel.addEventListener('mouseenter', () => clearInterval(autoAdvance));
-  carousel.addEventListener('mouseleave', startAutoAdvance);
+  carouselRegion.addEventListener('mouseenter', () => clearInterval(autoAdvance));
+  carouselRegion.addEventListener('mouseleave', startAutoAdvance);
   updateCarousel(0);
   startAutoAdvance();
 }
