@@ -14,7 +14,7 @@ document.querySelectorAll('[data-year]').forEach((el) => {
 
 const carousel = document.querySelector('[data-hero-carousel]');
 if (carousel) {
-  const slides = Array.from(carousel.querySelectorAll('.carousel-slide'));
+  const slides = Array.from(carousel.querySelectorAll('.hero-slide'));
   const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
   const prevButton = carousel.querySelector('[data-carousel-prev]');
   const nextButton = carousel.querySelector('[data-carousel-next]');
