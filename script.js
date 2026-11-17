@@ -66,7 +66,7 @@ if (carousel) {
 
 const EMAILJS_SERVICE_ID = 'service_fzums1h';
 const EMAILJS_TEMPLATE_ID = 'template_1io9v3t';
-const EMAILJS_PUBLIC_KEY = 'Tf-JoCePuVdlbJZRH';
+const EMAILJS_PUBLIC_KEY = 'scFTZcS0Z2a7gVn5V';
 const CONTACT_RECIPIENT = 'rovatics.care@gmail.com';
 
 const contactForm = document.getElementById('contactForm');
