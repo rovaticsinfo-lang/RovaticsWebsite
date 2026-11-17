@@ -12,58 +12,6 @@ document.querySelectorAll('[data-year]').forEach((el) => {
   el.textContent = new Date().getFullYear();
 });
 
-const carousel = document.querySelector('[data-hero-carousel]');
-if (carousel) {
-  const slides = Array.from(carousel.querySelectorAll('.hero-slide'));
-  const dots = Array.from(carousel.querySelectorAll('.carousel-dot'));
-  const prevButton = carousel.querySelector('[data-carousel-prev]');
-  const nextButton = carousel.querySelector('[data-carousel-next]');
-  let currentIndex = 0;
-  let autoAdvance;
-
-  const updateCarousel = (nextIndex) => {
-    currentIndex = (nextIndex + slides.length) % slides.length;
-
-    slides.forEach((slide, index) => {
-      slide.classList.toggle('active', index === currentIndex);
-    });
-
-    dots.forEach((dot, index) => {
-      dot.classList.toggle('active', index === currentIndex);
-      dot.setAttribute('aria-selected', String(index === currentIndex));
-    });
-  };
-
-  const startAutoAdvance = () => {
-    clearInterval(autoAdvance);
-    autoAdvance = setInterval(() => {
-      updateCarousel(currentIndex + 1);
-    }, 4000);
-  };
-
-  prevButton?.addEventListener('click', () => {
-    updateCarousel(currentIndex - 1);
-    startAutoAdvance();
-  });
-
-  nextButton?.addEventListener('click', () => {
-    updateCarousel(currentIndex + 1);
-    startAutoAdvance();
-  });
-
-  dots.forEach((dot) => {
-    dot.addEventListener('click', () => {
-      updateCarousel(Number(dot.dataset.slideIndex));
-      startAutoAdvance();
-    });
-  });
-
-  carousel.addEventListener('mouseenter', () => clearInterval(autoAdvance));
-  carousel.addEventListener('mouseleave', startAutoAdvance);
-  updateCarousel(0);
-  startAutoAdvance();
-}
-
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
   const status = contactForm.querySelector('[data-form-status]');
