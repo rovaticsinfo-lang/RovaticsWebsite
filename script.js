@@ -65,7 +65,7 @@ if (carousel) {
 }
 
 const EMAILJS_SERVICE_ID = 'service_fzums1h';
-const EMAILJS_TEMPLATE_ID = 'template_n7deo1b';
+const EMAILJS_TEMPLATE_ID = 'template_1io9v3t';
 const EMAILJS_PUBLIC_KEY = 'Tf-JoCePuVdlbJZRH';
 const CONTACT_RECIPIENT = 'rovatics.care@gmail.com';
 
