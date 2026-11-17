@@ -71,20 +71,26 @@ if (carousel) {
   startAutoAdvance();
 }
 
+const EMAILJS_SERVICE_ID = 'service_gbvadn3';
+const EMAILJS_TEMPLATE_ID = 'template_n7deo1b';
+const EMAILJS_PUBLIC_KEY = 'Tf-JoCePuVdlbJZRH';
+const CONTACT_RECIPIENT = 'rovatics.care@gmail.com';
+
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
   const status = contactForm.querySelector('[data-form-status]');
   const sendButton = contactForm.querySelector('button[type="submit"]');
-
   const setStatus = (message, isError = false) => {
-    if (!status) return;
     status.textContent = message;
     status.style.color = isError ? '#ff8d8d' : '#b5e9ff';
   };
-
   const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
-  contactForm.addEventListener('submit', (event) => {
+  if (typeof emailjs !== 'undefined') {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  }
+
+  contactForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
     const formData = new FormData(contactForm);
@@ -107,26 +113,33 @@ if (contactForm) {
       return;
     }
 
-    const organisation = (formData.get('organisation') || '').toString().trim() || 'Not provided';
-    const topic = (formData.get('topic') || '').toString().trim() || 'General inquiry';
-    const subject = encodeURIComponent('Project enquiry from ' + name);
-    const body = encodeURIComponent(
-      'Name: ' + name + '\n' +
-      'Email: ' + email + '\n' +
-      'Organisation: ' + organisation + '\n' +
-      'Project type: ' + topic + '\n\n' +
-      'Project details:\n' + message
-    );
+    if (typeof emailjs === 'undefined') {
+      setStatus('Email service could not load. Please try again later.', true);
+      return;
+    }
 
-    if (sendButton) sendButton.disabled = true;
-    setStatus('Opening your mail client to send the enquiry...');
+    const templateParams = {
+      to_email: CONTACT_RECIPIENT,
+      reply_to: email,
+      name,
+      email,
+      organisation: (formData.get('organisation') || '').toString().trim() || 'Not provided',
+      topic: (formData.get('topic') || '').toString().trim(),
+      message
+    };
 
-    window.location.href = 'mailto:rovatics.care@gmail.com?cc=rovatics.from.query@gmail.com&subject=' + subject + '&body=' + body;
+    sendButton.disabled = true;
+    setStatus('Sending your enquiry...');
 
-    setTimeout(() => {
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
       contactForm.reset();
-      if (sendButton) sendButton.disabled = false;
-      setStatus('Your enquiry is ready to send. Please confirm the mail app opened successfully.');
-    }, 800);
+      setStatus('Your enquiry has been sent successfully.');
+    } catch (error) {
+      console.error('EmailJS error:', error);
+      setStatus('Unable to send your enquiry. Please try again later.', true);
+    } finally {
+      sendButton.disabled = false;
+    }
   });
 }
