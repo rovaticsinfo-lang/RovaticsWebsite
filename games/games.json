@@ -28,5 +28,11 @@
     "file": "beambots.html",
     "emoji": "🔦",
     "description": "Bounce, split and tint laser beams to wake sleeping robots. 12 levels, colour mixing and a new Daily Lab puzzle every day."
+  },
+  {
+    "title": "Building Bricks",
+    "file": "building-bricks.html",
+    "emoji": "🧱",
+    "description": "A 9999-in-1 retro LCD handheld: falling blocks, pentominoes, brick breaker, tank battle, car racing and snake."
   }
 ]
