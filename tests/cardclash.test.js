@@ -8,6 +8,7 @@ const total = g => g.players.reduce((s, p) => s + p.hand.length, 0) + g.pot.leng
 const deck = D.DECKS.cricket;
 const mkDeck = (vals) => ({ id: 'f', attrs: [{ key: 'v' }], max: { v: 100 }, cards: Object.keys(vals).map(id => ({ id, stats: { v: vals[id] } })) });
 
+t('every deck has at least 6 attributes', () => D.DECK_IDS.forEach(id => assert.ok(D.DECKS[id].attrs.length >= 6)));
 t('every deck has 24 unique cards and complete stats', () => {
   D.DECK_IDS.forEach(id => {
     const d = D.DECKS[id];

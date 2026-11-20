@@ -25,7 +25,7 @@ f.onload=()=>{try{
      setTimeout(()=>{
       ok(!$('game').hidden,'game screen shown');
       ok(d.querySelectorAll('.pl').length===3,'3 player chips');
-      ok(d.querySelectorAll('.card .attr').length===5,'my card shows 5 attributes');
+      ok(d.querySelectorAll('.card .attr').length===7,'my card shows 7 attributes (wwe)');
       w.__cc.forceTeller('host'); let rounds=0, sawReveal=false, sawPower=false, sawEnd=false, iv=setInterval(()=>{
         const cc=w.__cc, v=cc.view;
         if(cc.busy && d.querySelector('.flip')) sawReveal=true;

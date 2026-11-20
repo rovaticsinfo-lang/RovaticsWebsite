@@ -1,5 +1,5 @@
 /* Card Clash deck data. Add a new deck by pushing another object to DECKS.
-   Every attribute is "higher wins". Each deck should have a multiple of 12 cards
+   Extra attributes live in `extra` (one value per card, same order as `raw`). Every attribute is "higher wins". Each deck should have a multiple of 12 cards
    (24 deals evenly to 2, 3 or 4 players).
    NOTE: Cricket numbers are approximate career international totals, for fun only.
    WWE values are fan-made ratings (1-100), not official stats. */
@@ -16,8 +16,14 @@
       { key: 'matches', label: 'Matches', icon: '🏟️' },
       { key: 'runs', label: 'Runs', icon: '🏃' },
       { key: 'hundreds', label: 'Centuries', icon: '💯' },
-      { key: 'wickets', label: 'Wickets', icon: '🎯' }
+      { key: 'wickets', label: 'Wickets', icon: '🎯' },
+      { key: 'highest', label: 'Top Score', icon: '🚀' },
+      { key: 'avg', label: 'Test Avg', icon: '📊' }
     ],
+    extra: {
+      highest: [248, 254, 183, 257, 224, 319, 270, 400, 99, 67, 257, 61, 81, 110, 175, 111, 278, 333, 239, 291, 334, 124, 264, 262],
+      avg: [53.8, 46.9, 38.1, 51.9, 55.4, 57.4, 52.3, 52.9, 17.3, 11.7, 22.6, 7.4, 7.8, 17.8, 31.1, 32.3, 50.7, 42.2, 42.2, 50.2, 99.9, 26.0, 40.6, 50.0]
+    },
     // name, country, [matches, runs, hundreds, wickets], emoji
     raw: [
       ['Sachin Tendulkar', 'India', [664, 34357, 100, 201], '👑'],
@@ -55,8 +61,14 @@
       { key: 'stamina', label: 'Stamina', icon: '🫁' },
       { key: 'charisma', label: 'Charisma', icon: '🎤' },
       { key: 'finisher', label: 'Finisher', icon: '💥' },
-      { key: 'toughness', label: 'Toughness', icon: '🛡️' }
+      { key: 'toughness', label: 'Toughness', icon: '🛡️' },
+      { key: 'speed', label: 'Speed', icon: '💨' },
+      { key: 'technique', label: 'Technique', icon: '🎓' }
     ],
+    extra: {
+      speed: [70, 72, 80, 78, 82, 80, 76, 82, 70, 65, 92, 84, 60, 62, 86, 98, 84, 90, 88, 86, 93, 45, 46, 96],
+      technique: [80, 88, 84, 70, 85, 86, 92, 88, 72, 70, 98, 99, 72, 96, 88, 90, 93, 92, 90, 92, 97, 60, 58, 86]
+    },
     // strength, stamina, charisma, finisher, toughness
     raw: [
       ['John Cena', 'USA', [88, 95, 96, 90, 92], '🫳'],
@@ -94,8 +106,14 @@
       { key: 'speed', label: 'Speed', icon: '🚀' },
       { key: 'iq', label: 'Brain', icon: '🧠' },
       { key: 'battery', label: 'Battery', icon: '🔋' },
-      { key: 'armor', label: 'Armor', icon: '🛡️' }
+      { key: 'armor', label: 'Armor', icon: '🛡️' },
+      { key: 'agility', label: 'Agility', icon: '🤸' },
+      { key: 'stealth', label: 'Stealth', icon: '🥷' }
     ],
+    extra: {
+      agility: [68, 45, 90, 70, 35, 80, 72, 64, 88, 30, 96, 50, 38, 74, 85, 78, 66, 52, 92, 55, 90, 62, 86, 70],
+      stealth: [40, 30, 75, 50, 22, 70, 35, 66, 45, 28, 60, 88, 25, 82, 38, 54, 72, 48, 99, 42, 36, 80, 68, 60]
+    },
     raw: [
       ['Volt-9', 'Sector A', [93, 71, 64, 58, 77], '⚡'], ['Rusty Rex', 'Scrapyard', [81, 52, 41, 66, 90], '🦖'],
       ['Nimbus', 'Cloud Deck', [55, 94, 82, 61, 48], '☁️'], ['Gearhead', 'Workshop', [74, 68, 77, 72, 70], '⚙️'],
@@ -115,7 +133,7 @@
   function build(d) {
     var cards = d.raw.map(function (r, i) {
       var stats = {};
-      d.attrs.forEach(function (a, k) { stats[a.key] = r[2][k]; });
+      d.attrs.forEach(function (a, k) { stats[a.key] = d.extra && d.extra[a.key] ? d.extra[a.key][i] : r[2][k]; });
       return { id: d.id + '-' + i, idx: i, name: r[0], sub: r[1], emoji: r[3], stats: stats, hue: (i * 47 + d.id.length * 31) % 360 };
     });
     var max = {};

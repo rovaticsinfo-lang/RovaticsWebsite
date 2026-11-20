@@ -8,6 +8,7 @@
   :root{--bg:#06122e;--bg2:#0a1d4a;--panel:rgba(255,255,255,.07);--line:rgba(140,200,255,.3);--text:#f2f8ff;--muted:#a9c4ee;
         --accent:#42e8f5;--grad:linear-gradient(110deg,#0878f9,#42e8f5);--good:#5dffa0;--bad:#ff5d73;--gold:#ffd24a;
         --c1:#0878f9;--c2:#42e8f5}
+  html{overflow-x:hidden}
   *,*::before,*::after{box-sizing:border-box}
   body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:var(--text);overflow-x:hidden;
        background:radial-gradient(ellipse at 20% 0%,color-mix(in srgb,var(--c1) 35%,#06122e),transparent 60%),
@@ -88,7 +89,7 @@
   .card.epic{background:linear-gradient(135deg,#b46bff,#ecd7ff,#6b8bff)} .card.rare{background:linear-gradient(135deg,#3fa9ff,#d5efff,#42e8f5)}
   @keyframes deal{from{transform:translateY(60px) rotate(-6deg) scale(.85);opacity:0}}
   .card .inner{border-radius:17px;overflow:hidden;background:#091738;position:relative}
-  .card .art{height:150px;display:flex;align-items:center;justify-content:center;font-size:5.2rem;position:relative;
+  .card .art{height:112px;display:flex;align-items:center;justify-content:center;font-size:4.2rem;position:relative;
              background:radial-gradient(circle at 50% 40%,hsl(var(--h) 80% 55% / .9),hsl(var(--h) 60% 22%) 70%)}
   .card .art .big{filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));animation:bob 2.4s ease-in-out infinite}
   .card .tier{position:absolute;top:8px;right:10px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.45)}
@@ -666,7 +667,7 @@
       '<p>• The <b>teller 👑</b> picks one stat on their card. Everyone reveals their top card.</p><p>• The <b>highest value wins every revealed card</b> and becomes the next teller.</p>' +
       '<p>• <b>Tie?</b> The cards go in a pot and the same teller goes again — the next winner takes the pot.</p>' +
       '<p>• <b>⚡ Power Play</b> (once per game): double the stakes! Every loser pays one extra card. If you lose your own Power Play, you pay two extra.</p>' +
-      '<p>• Run out of cards and you are out. Last player holding cards wins!</p><p>• Shortcut: press <b>1–5</b> to pick a stat. You have 25 seconds per turn.</p>' +
+      '<p>• Run out of cards and you are out. Last player holding cards wins!</p><p>• Shortcut: press the <b>number keys</b> (1, 2, 3…) to pick a stat. You have 25 seconds per turn.</p>' +
       '<p class="small">Cricket numbers are approximate career totals; wrestling values are fan-made ratings — for fun only.</p></div><button class="btn primary" id="rOk">Got it</button>';
     $('overlay').hidden = false; $('rOk').onclick = hideOverlay;
   };
