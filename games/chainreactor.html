@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rovatics Chain Reactor</title>
+<style>
+  :root{--bg:#050d24;--panel:rgba(255,255,255,.07);--line:rgba(120,190,255,.3);--text:#f2f8ff;--muted:#a9c4ee;--accent:#42e8f5;
+        --grad:linear-gradient(110deg,#0878f9,#42e8f5);--good:#5dffa0;--bad:#ff5d73;--gold:#ffd24a;--bg1:#12307a;--bg2:#0a4a63}
+  html{overflow-x:hidden}
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:var(--text);padding:12px;transition:background 1s;
+       background:radial-gradient(ellipse at 15% 0%,var(--bg1),transparent 55%),radial-gradient(ellipse at 90% 100%,var(--bg2),transparent 55%),#050d24 fixed}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .screen{position:relative;z-index:1;max-width:920px;margin:0 auto}
+  .screen[hidden]{display:none}
+  .btn{padding:9px 18px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-weight:700}
+  .btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.primary{background:var(--grad);color:#04142d;border:0}
+  .btn.primary:hover:not(:disabled){color:#04142d;filter:brightness(1.12)}
+  .btn.big{padding:16px 28px;font-size:1.15rem;border-radius:18px}
+  h1{margin:0;font-size:clamp(2rem,7vw,3.4rem);line-height:1.05}
+  .glow{background:linear-gradient(90deg,#4dffd2,#ffe34d,#ff6b4d,#ff4dff,#4da6ff,#4dffd2);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:slide 5s linear infinite}
+  @keyframes slide{to{background-position:200% 0}}
+  .sub{color:var(--muted);margin:8px 0 16px;max-width:640px}
+  .hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:18px 0 6px}
+  .orbs{display:flex;gap:10px;margin:10px 0 6px}
+  .orbs i{width:30px;height:30px;border-radius:50%;animation:throb 1.4s ease-in-out infinite;box-shadow:0 0 18px currentColor;background:currentColor}
+  @keyframes throb{50%{transform:scale(1.35);filter:brightness(1.5)}}
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0}
+  .mode{padding:18px;border-radius:20px;border:1px solid var(--line);background:var(--panel);text-align:left;transition:.2s}
+  .mode:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 10px 30px rgba(66,232,245,.2)}
+  .mode .e{font-size:2.2rem} .mode b{display:block;font-size:1.25rem;margin:4px 0} .mode span{color:var(--muted);font-size:.92rem}
+  .toprow{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .worlds{display:grid;gap:14px}
+  .world{padding:14px 16px;border-radius:18px;border:1px solid var(--line);background:var(--panel)}
+  .world.locked{opacity:.45}
+  .world h3{margin:0;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:1.1rem}
+  .world p{margin:2px 0 10px;color:var(--muted);font-size:.88rem}
+  .lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px}
+  .lv{padding:8px 4px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);text-align:center;font-weight:800;line-height:1.1}
+  .lv small{display:block;font-weight:400;color:var(--gold);letter-spacing:1px;min-height:1em}
+  .lv:hover:not(:disabled){border-color:var(--accent);transform:translateY(-2px)}
+  .lv:disabled{opacity:.35;cursor:not-allowed}
+  .lv.next{border-color:var(--gold);animation:pulse 1.5s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 18px rgba(255,210,74,.6)}}
+  .hud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:6px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:600;font-size:.95rem}
+  .chip b{color:var(--accent)}
+  .pips{display:flex;gap:4px;align-items:center}
+  .pips i{width:14px;height:22px;border-radius:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25)}
+  .pips i.g{background:var(--gold);border-color:#fff8;box-shadow:0 0 8px rgba(255,210,74,.6)} .pips i.s{background:#c5d6ee} .pips i.b{background:#d99a5a} .pips i.used{opacity:.18;box-shadow:none}
+  .boardbox{display:flex;justify-content:center}
+  canvas#cv{border-radius:18px;border:1px solid var(--line);background:rgba(4,10,30,.75);touch-action:manipulation;cursor:pointer;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+  .tip{text-align:center;color:var(--muted);font-size:.92rem;min-height:1.4em;margin:10px 0 0}
+  .dangerbar{height:8px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden;margin:6px auto 0;max-width:420px}
+  .dangerbar i{display:block;height:100%;background:var(--grad);transition:width .3s}
+  #toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-300%);padding:11px 22px;border-radius:999px;background:var(--grad);color:#04142d;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.45);transition:transform .35s cubic-bezier(.2,1.4,.4,1);z-index:80;max-width:92vw;text-align:center}
+  #toast.show{transform:translate(-50%,0)}
+  .overlay{position:fixed;inset:0;background:rgba(2,8,24,.82);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+  .overlay[hidden]{display:none}
+  .modal{background:linear-gradient(160deg,#0d2a66,#071a45);border:1px solid var(--accent);border-radius:22px;padding:22px 24px;max-width:480px;width:100%;text-align:center;animation:pop .45s;max-height:92vh;overflow:auto}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+  .modal h2{margin:4px 0 6px;font-size:1.7rem} .modal p{color:var(--muted);margin:6px 0}
+  .bigstars{font-size:2.6rem;letter-spacing:8px;color:var(--gold)} .bigstars span{display:inline-block;animation:starIn .5s both}
+  @keyframes starIn{from{transform:scale(0) rotate(-180deg);opacity:0}}
+  .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .how{text-align:left;color:var(--muted);padding-left:18px} .how li{margin:7px 0}
+  .tlist,.alist{display:grid;gap:8px;text-align:left}
+  .titem{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;border:2px solid var(--line);background:var(--panel);width:100%}
+  .titem.sel{border-color:var(--accent);box-shadow:0 0 14px rgba(66,232,245,.4)} .titem:disabled{opacity:.45}
+  .sw{display:flex;gap:4px} .sw i{width:16px;height:16px;border-radius:50%}
+  .aitem{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--panel)} .aitem.off{opacity:.4;filter:grayscale(1)}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:75}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<section class="screen" id="menu">
+  <div class="hero">
+    <div class="orbs" aria-hidden="true"><i style="color:#4dffd2"></i><i style="color:#ffe34d;animation-delay:.2s"></i><i style="color:#ff6b4d;animation-delay:.4s"></i><i style="color:#ff4dff;animation-delay:.6s"></i></div>
+    <h1>⚛️ <span class="glow">Chain Reactor</span></h1>
+    <p class="sub">Tap a core, charge it to 4 and watch the whole reactor go off. Plan one perfect tap and clear the board in a single blazing chain!</p>
+  </div>
+  <div class="modes">
+    <button class="mode" id="mCamp" type="button"><div class="e">🗺️</div><b>Campaign</b><span id="campInfo">100 levels · 10 worlds</span></button>
+    <button class="mode" id="mOver" type="button"><div class="e">🔥</div><b>Overload</b><span id="overInfo">Endless survival — how long can you hold the reactor?</span></button>
+  </div>
+  <div class="row" style="margin-top:0"><button class="btn" id="howBtn">❓ How to play</button><button class="btn" id="themeBtn">🎨 Themes</button><button class="btn" id="achBtn">🏅 Awards</button><button class="btn" id="muteBtn">🔊</button></div>
+</section>
+
+<!-- CAMPAIGN MAP -->
+<section class="screen" id="map" hidden>
+  <div class="toprow"><button class="btn" id="mapBack">☰ Menu</button><span class="chip" id="starTotal">⭐ 0 / 300</span></div>
+  <div class="worlds" id="worlds"></div>
+</section>
+
+<!-- PLAY -->
+<section class="screen" id="play" hidden>
+  <div class="hud">
+    <button class="btn" id="backBtn">☰ Back</button>
+    <div class="chips"><span class="chip" id="titleChip">Level 1</span><span class="chip" id="infoChip"></span></div>
+  </div>
+  <div class="pips" id="pips" style="justify-content:center;margin:2px 0 8px"></div>
+  <div class="boardbox"><canvas id="cv" aria-label="Chain Reactor board"></canvas></div>
+  <div class="dangerbar" id="dbar" hidden><i></i></div>
+  <div class="acts" id="acts">
+    <button class="btn" id="hintBtn">💡 Hint (3)</button>
+    <button class="btn" id="undoBtn">↶ Undo (3)</button>
+    <button class="btn" id="resetBtn">↺ Restart</button>
+  </div>
+  <p class="tip" id="tip"></p>
+</section>
+
+<div id="toast" role="status"></div>
+<canvas id="confetti"></canvas>
+<div class="overlay" id="overlay" hidden><div class="modal" id="modal"></div></div>
+
+<script src="chainreactor-engine.js"></script>
+<script src="chainreactor-levels.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CR = window.ChainReactorEngine, LV = window.ChainReactorLevels, KEY = 'rovatics.chainreactor.v1';
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  var save = { stars: {}, theme: 0, ach: {}, best: 0, muted: false, seenHow: false, overPlays: 0 };
+  try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv) save = Object.assign(save, sv); } catch (e) {}
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
+  var toastT;
+  function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, 2400); }
+
+  // ================= themes & achievements =================
+  var THEMES = [
+    { name: 'Neon Core', need: 0, c: ['#4dffd2', '#ffe34d', '#ff6b4d'], bg: ['#12307a', '#0a4a63'] },
+    { name: 'Candy Pop', need: 15, c: ['#7ad7ff', '#ff9ad5', '#ffd84d'], bg: ['#6b1d5e', '#1d3f7a'] },
+    { name: 'Ocean Depths', need: 40, c: ['#6df0c8', '#4da6ff', '#a98bff'], bg: ['#003d5c', '#0a1f6b'] },
+    { name: 'Golden Hour', need: 80, c: ['#ffe9a8', '#ffb347', '#ff5f3d'], bg: ['#6b3a00', '#4a1226'] },
+    { name: 'Galaxy', need: 130, c: ['#c9a3ff', '#ff7bd9', '#7be8ff'], bg: ['#2b0f5e', '#0a1c52'] },
+    { name: 'Retro Arcade', need: 200, c: ['#39ff14', '#ffff00', '#ff2079'], bg: ['#1a1a1a', '#0b3d2e'] }
+  ];
+  var ACH = [
+    { id: 'first', e: '🌟', t: 'First Spark', d: 'Clear your first level' },
+    { id: 'combo8', e: '💥', t: 'Domino Effect', d: 'Explode 8+ cores with one tap' },
+    { id: 'combo15', e: '☄️', t: 'Supernova', d: 'Explode 15+ cores with one tap' },
+    { id: 'onetap', e: '☝️', t: 'One-Tap Wonder', d: 'Clear a 4+ core level with a single tap' },
+    { id: 'stars30', e: '⭐', t: 'Star Collector', d: 'Collect 30 stars' },
+    { id: 'stars100', e: '🌠', t: 'Star Hoarder', d: 'Collect 100 stars' },
+    { id: 'perfect10', e: '🏆', t: 'Perfectionist', d: 'Get 3 stars on 10 levels' },
+    { id: 'world', e: '🗺️', t: 'World Conqueror', d: 'Clear every level of a world' },
+    { id: 'over500', e: '🔥', t: 'Overloaded', d: 'Score 500 in Overload' },
+    { id: 'over2000', e: '🚀', t: 'Meltdown Master', d: 'Score 2000 in Overload' }
+  ];
+  function totalStars() { var s = 0; Object.keys(save.stars).forEach(function (k) { if (/^\d+$/.test(k)) s += save.stars[k]; }); return s; }
+  function theme() { var t = THEMES[save.theme] || THEMES[0]; return totalStars() >= t.need ? t : THEMES[0]; }
+  function applyTheme() { var t = theme(); document.documentElement.style.setProperty('--bg1', t.bg[0]); document.documentElement.style.setProperty('--bg2', t.bg[1]); }
+  function award(id) {
+    if (save.ach[id]) return; save.ach[id] = Date.now(); persist();
+    var a = ACH.filter(function (x) { return x.id === id; })[0]; toast(a.e + ' Award unlocked: ' + a.t + '!'); SFX.fanfare();
+  }
+  function checkStarAwards() {
+    var ts = totalStars(); if (ts >= 30) award('stars30'); if (ts >= 100) award('stars100');
+    var p = 0; Object.keys(save.stars).forEach(function (k) { if (/^\d+$/.test(k) && save.stars[k] === 3) p++; }); if (p >= 10) award('perfect10');
+    for (var w = 0; w < LV.WORLDS.length; w++) { var all = true; for (var i = 0; i < 10; i++) if (!save.stars[w * 10 + i + 1]) all = false; if (all) award('world'); }
+    THEMES.forEach(function (t, i) { if (i && t.need <= ts && !save['themeSeen' + i]) { save['themeSeen' + i] = 1; persist(); toast('🎨 New theme unlocked: ' + t.name + '!'); } });
+  }
+
+  // ================= sound =================
+  var ac = null;
+  function refreshMute() { $('muteBtn').textContent = save.muted ? '🔇' : '🔊'; }
+  $('muteBtn').onclick = function () { save.muted = !save.muted; persist(); refreshMute(); }; refreshMute();
+  function tone(f, d, type, when, vol) {
+    if (save.muted) return;
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + (when || 0);
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(vol || .1, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d); } catch (e) {}
+  }
+  var SFX = {
+    tap: function () { tone(520, .06, 'triangle'); },
+    boom: function (k) { var f = 180 + Math.min(k, 14) * 38; tone(f, .16, 'square', 0, .07); tone(f * 1.5, .22, 'sawtooth', .03, .05); },
+    err: function () { tone(170, .15, 'sawtooth', 0, .05); },
+    win: function () { [523, 659, 784, 1047, 784, 1047, 1319].forEach(function (f, i) { tone(f, .22, 'triangle', i * .11, .11); }); },
+    fanfare: function () { [659, 784, 988, 1319].forEach(function (f, i) { tone(f, .2, 'triangle', i * .09, .09); }); },
+    lose: function () { tone(300, .3, 'sawtooth', 0, .07); tone(200, .4, 'sawtooth', .2, .07); }
+  };
+  document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); });
+
+  // ================= state =================
+  var mode = null, lvIdx = 0, level = null, S = null, G = null, par = 1, maxTaps = 3, used = 0, undoStack = [], undoLeft = 3, hintLeft = 3, tapLog = [], hintCell = -1, hintUntil = 0;
+  var anim = null, D = null, parts = [], rings = [], floats = [], shots = [], shake = 0, pushT = -1e9, cleared = 0, comboMax = 0, finished = false, initCores = 0;
+  var cv = $('cv'), cx = cv.getContext('2d'), cs = 60, dpr = window.devicePixelRatio || 1;
+
+  // ================= menu / map =================
+  function show(id) { ['menu', 'map', 'play'].forEach(function (s) { $(s).hidden = s !== id; }); $('overlay').hidden = true; }
+  function refreshMenu() {
+    var ts = totalStars(), done = Object.keys(save.stars).filter(function (k) { return /^\d+$/.test(k); }).length;
+    $('campInfo').textContent = done + ' / ' + LV.LEVELS.length + ' levels cleared · ⭐ ' + ts;
+    $('overInfo').textContent = save.best ? 'Endless survival · Best score ' + save.best : 'Endless survival — how long can you hold the reactor?';
+    applyTheme();
+  }
+  function unlocked(n) { return n === 1 || !!save.stars[n - 1] || !!save.stars[n]; }
+  function renderMap() {
+    var box = $('worlds'); box.innerHTML = ''; var nextShown = false;
+    LV.WORLDS.forEach(function (w, wi) {
+      var ws = 0, card = el('div', 'world'), grid = el('div', 'lvgrid'), anyOpen = false;
+      for (var i = 0; i < 10; i++) (function (n) {
+        var st = save.stars[n] || 0; ws += st; var open = unlocked(n); if (open) anyOpen = true;
+        var b = el('button', 'lv' + (open && !st && !nextShown ? ' next' : '')); b.type = 'button'; b.disabled = !open; if (open && !st) nextShown = true;
+        b.appendChild(document.createTextNode(open ? String(n) : '🔒')); b.appendChild(el('small', '', st ? '★'.repeat(st) + '☆'.repeat(3 - st) : ''));
+        b.onclick = function () { startLevel(n); }; grid.appendChild(b);
+      })(wi * 10 + i + 1);
+      if (!anyOpen) card.classList.add('locked');
+      var h = el('h3'); h.appendChild(el('span', '', (wi + 1) + '. ' + w.name)); h.appendChild(el('span', '', '⭐ ' + ws + '/30'));
+      card.appendChild(h); card.appendChild(el('p', '', w.blurb)); card.appendChild(grid); box.appendChild(card);
+    });
+    $('starTotal').textContent = '⭐ ' + totalStars() + ' / ' + LV.LEVELS.length * 3;
+  }
+  $('mCamp').onclick = function () { renderMap(); show('map'); };
+  $('mapBack').onclick = function () { refreshMenu(); show('menu'); };
+  $('backBtn').onclick = function () { anim = null; D = null; if (mode === 'overload') { refreshMenu(); show('menu'); } else { renderMap(); show('map'); } };
+
+  // ================= start modes =================
+  function startLevel(n) {
+    mode = 'campaign'; lvIdx = n; level = LV.LEVELS[n - 1]; S = CR.parse(level.rows); par = level.par; maxTaps = par + 2;
+    used = 0; undoStack = []; undoLeft = 3; hintLeft = 3; tapLog = []; hintCell = -1; finished = false; anim = null; D = null; parts = []; rings = []; floats = []; shots = []; comboMax = 0;
+    initCores = CR.coresLeft(S);
+    show('play'); $('acts').hidden = false; $('dbar').hidden = true;
+    $('titleChip').textContent = 'World ' + (level.world + 1) + ' · Level ' + n; $('infoChip').textContent = LV.WORLDS[level.world].name;
+    $('tip').textContent = n === 1 ? '👆 Tap a core to charge it. Reach charge 4 and it explodes, zapping the first core in each direction!' : LV.WORLDS[level.world].blurb;
+    resize(); updateHud();
+  }
+  function startOverload() {
+    mode = 'overload'; G = CR.endlessNew((Date.now() & 0xfffff) + 1); S = G.S; used = 0; finished = false; anim = null; D = null; parts = []; rings = []; floats = []; shots = []; comboMax = 0; hintCell = -1; save.overPlays++; persist();
+    show('play'); $('acts').hidden = false; $('dbar').hidden = false;
+    $('titleChip').textContent = '🔥 Overload'; $('infoChip').textContent = 'Best ' + save.best;
+    $('tip').textContent = '⚠️ New cores rise from below. Don\'t let any reach the top! Big chains score big.';
+    resize(); updateHud();
+  }
+  $('mOver').onclick = startOverload;
+
+  function updateHud() {
+    var pips = $('pips'); pips.innerHTML = '';
+    if (mode === 'campaign') {
+      for (var i = 0; i < maxTaps; i++) { var p = el('i', i < par ? 'g' : i === par ? 's' : 'b'); if (i < used) p.classList.add('used'); pips.appendChild(p); }
+      var left = maxTaps - used; $('infoChip').textContent = LV.WORLDS[level.world].name + ' · ' + left + ' tap' + (left === 1 ? '' : 's') + ' left';
+      $('hintBtn').textContent = '💡 Hint (' + hintLeft + ')'; $('hintBtn').hidden = false; $('undoBtn').hidden = false; $('undoBtn').textContent = '↶ Undo (' + undoLeft + ')';
+      $('hintBtn').disabled = hintLeft <= 0 || finished || !!anim; $('undoBtn').disabled = undoLeft <= 0 || !undoStack.length || finished || !!anim;
+    } else {
+      var every = G.pushes > 24 ? 1 : 2, nxt = every - (G.taps % every);
+      $('infoChip').innerHTML = 'Score <b>' + G.score + '</b> · Best <b>' + Math.max(save.best, G.score) + '</b>';
+      $('dbar').firstChild.style.width = (100 * (1 - (nxt - 1) / every)) + '%';
+      $('hintBtn').hidden = true; $('undoBtn').hidden = true;
+    }
+  }
+
+  // ================= input =================
+  function cellAt(e) {
+    var r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * (cv.width / dpr / r.width), y = (e.clientY - r.top) * (cv.height / dpr / r.height);
+    var gx = Math.floor(x / cs), gy = Math.floor(y / cs);
+    return gx >= 0 && gy >= 0 && gx < S.w && gy < S.h ? gy * S.w + gx : -1;
+  }
+  cv.addEventListener('pointerdown', function (e) { doTap(cellAt(e)); });
+  function doTap(i) {
+    if (i < 0 || anim || finished || !S) return;
+    if (!CR.canTap(S, i)) { SFX.err(); shake = Math.max(shake, 3); var c = center(i); rings.push({ x: c.x, y: c.y, r: cs * .2, life: 1, c: '#ff5d73', grow: 1.2 }); if (S.typ[i] === CR.I) toast('🧊 Frozen — hit it with a blast to thaw it first'); return; }
+    if (mode === 'campaign') {
+      if (used >= maxTaps) return;
+      undoStack.push({ S: CR.clone(S), used: used, log: tapLog.slice() }); if (undoStack.length > 10) undoStack.shift();
+      var before = CR.clone(S); before.val[i]++;
+      var res = CR.tap(S, i, true); used++; tapLog.push(i); hintCell = -1; SFX.tap();
+      var c0 = center(i); rings.push({ x: c0.x, y: c0.y, r: cs * .2, life: 1, c: '#ffffff', grow: 1.1 });
+      play(res, before, function () { afterCampaign(res); });
+    } else {
+      var before2 = CR.clone(S); before2.val[i]++;
+      var res2 = CR.endlessTap(G, i, true); SFX.tap();
+      if (!res2.ok) return;
+      play(res2, before2, function () { afterOverload(res2); });
+    }
+    updateHud();
+  }
+
+  // ================= animation engine =================
+  function center(i) { return { x: (i % S.w + .5) * cs, y: (((i / S.w) | 0) + .5) * cs }; }
+  function play(res, before, done) {
+    comboMax = Math.max(comboMax, res.exploded);
+    if (!res.waves.length) { done(); return; }
+    D = before; anim = { waves: res.waves, k: -1, res: res, done: done, tStart: 0, dur: 280 };
+    anim.pending = true; // first wave starts on next frame
+  }
+  function startWave(now) {
+    anim.k++;
+    if (anim.k >= anim.waves.length) { var d = anim.done, r = anim.res; anim = null; D = null; finishCombo(r); d(); return; }
+    var w = anim.waves[anim.k]; anim.tStart = now; anim.dur = Math.max(160, 290 - anim.k * 14);
+    var th = theme(), col = ['#fff', th.c[0], th.c[1], th.c[2]];
+    SFX.boom(anim.k);
+    w.boom.forEach(function (b) {
+      var c = center(b.i), colr = b.t === CR.D ? '#ffb347' : b.t === CR.L ? '#ff4dff' : '#ffffff';
+      D.typ[b.i] = 0; D.val[b.i] = 0;
+      rings.push({ x: c.x, y: c.y, r: cs * .25, life: 1, c: colr, grow: 2.3 });
+      for (var n = 0; n < 14; n++) { var a = Math.random() * 6.283, sp = 1.5 + Math.random() * 4.5; parts.push({ x: c.x, y: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, c: n % 3 ? th.c[Math.min(2, n % 3)] : '#fff', r: 2 + Math.random() * 3 }); }
+    });
+    shake = Math.max(shake, Math.min(14, 3 + anim.k * 1.6 + w.boom.length));
+    shots = w.shots.map(function (s) {
+      var f = center(s.from), tx, ty;
+      if (s.end >= 0) { var e = center(s.end); tx = e.x; ty = e.y; } else {
+        var steps = 99, x0 = s.from % S.w, y0 = (s.from / S.w) | 0;
+        if (s.dx > 0) steps = Math.min(steps, S.w - x0); if (s.dx < 0) steps = Math.min(steps, x0 + 1); if (s.dy > 0) steps = Math.min(steps, S.h - y0); if (s.dy < 0) steps = Math.min(steps, y0 + 1);
+        tx = f.x + s.dx * steps * cs; ty = f.y + s.dy * steps * cs;
+      }
+      return { x1: f.x, y1: f.y, x2: tx, y2: ty, kind: s.kind, hits: s.hits };
+    });
+  }
+  function endWave() {
+    var w = anim.waves[anim.k], th = theme();
+    D = { w: S.w, h: S.h, typ: w.after.typ.slice(), val: w.after.val.slice() };
+    var seen = {};
+    w.shots.forEach(function (s) { s.hits.forEach(function (h) { if (!seen[h]) { seen[h] = 1; var c = center(h); rings.push({ x: c.x, y: c.y, r: cs * .15, life: .8, c: th.c[1], grow: 1.3 }); } }); });
+  }
+  function finishCombo(r) {
+    if (r.exploded >= 3) {
+      var txt = r.exploded >= 15 ? 'UNSTOPPABLE! ' : r.exploded >= 10 ? 'AWESOME! ' : r.exploded >= 6 ? 'GREAT! ' : 'NICE! ';
+      floats.push({ x: S.w * cs / 2, y: S.h * cs / 2, t: txt + '×' + r.exploded, life: 1.6, c: r.exploded >= 10 ? '#ffd24a' : '#4dffd2', size: Math.min(46, 22 + r.exploded * 2) });
+    }
+    if (r.exploded >= 8) award('combo8'); if (r.exploded >= 15) award('combo15');
+  }
+
+  // ================= flow after each tap =================
+  function afterCampaign() {
+    updateHud();
+    if (CR.isWon(S)) return win();
+    if (used >= maxTaps) return lose();
+  }
+  function afterOverload(res) {
+    if (res.pushed || res.over) pushT = performance.now();
+    if (G.score >= 500) award('over500'); if (G.score >= 2000) award('over2000');
+    updateHud();
+    if (G.over) { finished = true; SFX.lose(); if (G.score > save.best) save.best = G.score; persist(); setTimeout(overModal, 600); }
+    else if (res.exploded > 0 && CR.coresLeft(S) === 0) toast('🎉 Board cleared! +100');
+  }
+  function win() {
+    finished = true; var stars = CR.starsFor(par, used), old = save.stars[lvIdx] || 0;
+    if (stars > old) save.stars[lvIdx] = stars; persist();
+    award('first'); if (used === 1 && initCores >= 4) award('onetap'); checkStarAwards();
+    SFX.win(); confetti(); updateHud();
+    var html = '<div style="font-size:3rem">⚛️✨</div><h2>' + (lvIdx === LV.LEVELS.length ? 'Reactor fully mastered!' : 'Level ' + lvIdx + ' cleared!') + '</h2><div class="bigstars">';
+    for (var i = 0; i < 3; i++) html += '<span style="animation-delay:' + (i * .25 + .15) + 's;' + (i < stars ? '' : 'opacity:.2') + '">★</span>';
+    html += '</div><p>Taps used: <b>' + used + '</b> · Par: <b>' + par + '</b>' + (comboMax >= 4 ? ' · Biggest chain: <b>' + comboMax + '</b>' : '') + '</p><p>' +
+      (stars === 3 ? 'Perfect — flawless engineering! 🌟' : 'Clear it in ' + par + ' tap' + (par > 1 ? 's' : '') + ' for 3 stars!') + '</p><div class="row">';
+    if (lvIdx < LV.LEVELS.length) html += '<button class="btn primary" id="mNext">Next level ▶</button>';
+    html += '<button class="btn" id="mAgain">↺ Replay</button><button class="btn" id="mMap">🗺️ Map</button></div>';
+    setTimeout(function () { showModal(html); var nx = $('mNext'); if (nx) nx.onclick = function () { startLevel(lvIdx + 1); }; $('mAgain').onclick = function () { startLevel(lvIdx); }; $('mMap').onclick = function () { renderMap(); show('map'); }; }, 450);
+  }
+  function lose() {
+    finished = true; SFX.lose(); updateHud();
+    setTimeout(function () {
+      showModal('<div style="font-size:3rem">💨</div><h2>Out of taps!</h2><p>' + CR.coresLeft(S) + ' core' + (CR.coresLeft(S) === 1 ? '' : 's') + ' still online. Every level can be cleared in ' + par + ' tap' + (par > 1 ? 's' : '') + ' — look for the chain!</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🗺️ Map</button></div>');
+      $('mRetry').onclick = function () { startLevel(lvIdx); }; $('mMap').onclick = function () { renderMap(); show('map'); };
+    }, 500);
+  }
+  function overModal() {
+    var best = save.best === G.score && G.score > 0;
+    showModal('<div style="font-size:3rem">' + (best ? '🏆' : '💥') + '</div><h2>Reactor meltdown!</h2><p>Score <b style="color:var(--accent);font-size:1.6rem">' + G.score + '</b></p><p>' + (best ? 'New best score! 🎉' : 'Best: ' + save.best) + ' · Cores destroyed: ' + G.cleared + ' · Biggest chain: ' + G.bestCombo + '</p><div class="row"><button class="btn primary" id="mRetry">🔥 Play again</button><button class="btn" id="mMenu">☰ Menu</button></div>');
+    if (best) confetti();
+    $('mRetry').onclick = startOverload; $('mMenu').onclick = function () { refreshMenu(); show('menu'); };
+  }
+  function showModal(h) { $('modal').innerHTML = h; $('overlay').hidden = false; }
+
+  // ================= actions =================
+  $('undoBtn').onclick = function () {
+    if (mode !== 'campaign' || anim || finished || undoLeft <= 0 || !undoStack.length) return;
+    var u = undoStack.pop(); S = u.S; used = u.used; tapLog = u.log; undoLeft--; hintCell = -1; SFX.tap(); updateHud();
+  };
+  $('resetBtn').onclick = function () { if (anim) return; mode === 'campaign' ? startLevel(lvIdx) : startOverload(); };
+  $('hintBtn').onclick = function () {
+    if (mode !== 'campaign' || anim || finished || hintLeft <= 0) return;
+    var h = -1, onPath = tapLog.length <= level.solution.length && tapLog.every(function (c, k) { return c === level.solution[k]; });
+    if (onPath && tapLog.length < level.solution.length) h = level.solution[tapLog.length];
+    else { h = CR.hintTap(S, maxTaps - used); }
+    if (h < 0) { toast('🤔 No clear hint from here — try Undo or Restart'); return; }
+    hintLeft--; hintCell = h; hintUntil = performance.now() + 6000; toast('💡 Try tapping the glowing core!'); updateHud();
+  };
+
+  // ================= how-to / themes / awards =================
+  $('howBtn').onclick = function () {
+    showModal('<h2>⚛️ How to play</h2><ul class="how"><li><b>Tap a core</b> to give it +1 charge. At <b>4</b> it explodes!</li>' +
+      '<li>An explosion fires <b>4 shots</b> (up, down, left, right). Each shot adds +1 charge to the <b>first core it hits</b> — set off chain reactions!</li>' +
+      '<li><b>Clear every core</b> within the tap limit. Fewer taps = more ⭐. The golden pips show your 3-star budget.</li>' +
+      '<li>🧱 <b>Steel walls</b> block shots · ✕ <b>Diagonal</b> cores fire diagonally · ⚡ <b>Lasers</b> pierce the whole line · 🧊 <b>Frozen</b> cores can\'t be tapped until a blast thaws them.</li>' +
+      '<li>🔥 <b>Overload</b> mode: endless survival. Cores keep rising — clear them before they reach the top.</li></ul><div class="row"><button class="btn primary" id="hOk">Let\'s react!</button></div>');
+    $('hOk').onclick = function () { $('overlay').hidden = true; };
+  };
+  $('themeBtn').onclick = function () {
+    var ts = totalStars(), html = '<h2>🎨 Themes</h2><p>Earn ⭐ in the campaign to unlock new looks. You have <b>' + ts + '</b>.</p><div class="tlist">';
+    THEMES.forEach(function (t, i) {
+      var ok = ts >= t.need; html += '<button class="titem' + (save.theme === i ? ' sel' : '') + '" data-i="' + i + '" ' + (ok ? '' : 'disabled') + '><span class="sw">' + t.c.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + '</span><b>' + t.name + '</b><span style="margin-left:auto;color:var(--muted)">' + (ok ? (save.theme === i ? '✓ Active' : 'Use') : '🔒 ' + t.need + ' ⭐') + '</span></button>';
+    });
+    showModal(html + '</div><div class="row"><button class="btn" id="tOk">Close</button></div>');
+    document.querySelectorAll('.titem').forEach(function (b) { b.onclick = function () { save.theme = +b.dataset.i; persist(); applyTheme(); $('themeBtn').click(); }; });
+    $('tOk').onclick = function () { $('overlay').hidden = true; };
+  };
+  $('achBtn').onclick = function () {
+    var n = ACH.filter(function (a) { return save.ach[a.id]; }).length, html = '<h2>🏅 Awards</h2><p>' + n + ' / ' + ACH.length + ' unlocked</p><div class="alist">';
+    ACH.forEach(function (a) { html += '<div class="aitem' + (save.ach[a.id] ? '' : ' off') + '"><span style="font-size:1.6rem">' + a.e + '</span><div style="text-align:left"><b>' + a.t + '</b><div style="color:var(--muted);font-size:.85rem">' + a.d + '</div></div></div>'; });
+    showModal(html + '</div><div class="row"><button class="btn" id="aOk">Close</button></div>'); $('aOk').onclick = function () { $('overlay').hidden = true; };
+  };
+
+  // ================= confetti =================
+  var cvf = $('confetti'), cfx = cvf.getContext('2d'), cparts = [], craf = 0;
+  function confetti() {
+    cvf.width = innerWidth; cvf.height = innerHeight; cparts = []; var cols = theme().c.concat(['#fff', '#ff4dff', '#4da6ff']);
+    for (var i = 0; i < 170; i++) cparts.push({ x: Math.random() * cvf.width, y: -20 - Math.random() * cvf.height * .5, vx: (Math.random() - .5) * 4, vy: 2 + Math.random() * 5, s: 5 + Math.random() * 7, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: cols[(Math.random() * cols.length) | 0] });
+    cancelAnimationFrame(craf);
+    (function f() { cfx.clearRect(0, 0, cvf.width, cvf.height);
+      cparts.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.r += p.vr; cfx.save(); cfx.translate(p.x, p.y); cfx.rotate(p.r); cfx.fillStyle = p.c; cfx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); cfx.restore(); });
+      cparts = cparts.filter(function (p) { return p.y < cvf.height + 20; });
+      if (cparts.length) craf = requestAnimationFrame(f); else cfx.clearRect(0, 0, cvf.width, cvf.height); })();
+  }
+
+  // ================= rendering =================
+  function resize() {
+    if (!S) return;
+    var avail = Math.min($('play').clientWidth || 600, 640);
+    cs = Math.max(30, Math.min(Math.floor(avail / S.w), 84, Math.floor((window.innerHeight * (mode === 'overload' ? .66 : .6)) / S.h)));
+    dpr = window.devicePixelRatio || 1; cv.style.width = cs * S.w + 'px'; cv.style.height = cs * S.h + 'px';
+    cv.width = Math.round(cs * S.w * dpr); cv.height = Math.round(cs * S.h * dpr);
+  }
+  window.addEventListener('resize', resize);
+  function rr(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+  function hexA(hex, a) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; }
+
+  function drawCore(px, py, typ, v, now, danger) {
+    var th = theme(), colr = v >= 4 ? '#ffffff' : th.c[Math.min(3, v) - 1], r = cs * .33, pulse = v === 3 ? 1 + .09 * Math.sin(now / (110 - 15 * 0)) : 1;
+    cx.save(); cx.translate(px, py); cx.scale(pulse, pulse);
+    var g = cx.createRadialGradient(-r * .3, -r * .35, r * .1, 0, 0, r * 1.05); g.addColorStop(0, '#fff'); g.addColorStop(.25, colr); g.addColorStop(1, hexA(colr, .55));
+    cx.shadowColor = colr; cx.shadowBlur = v >= 3 ? 22 : 12;
+    if (typ === CR.D) { cx.save(); cx.rotate(Math.PI / 4); rr(-r * .95, -r * .95, r * 1.9, r * 1.9, r * .3); cx.fillStyle = g; cx.fill(); cx.restore(); }
+    else if (typ === CR.L) { cx.beginPath(); for (var k = 0; k < 6; k++) { var a = Math.PI / 3 * k + Math.PI / 6; cx.lineTo(Math.cos(a) * r * 1.12, Math.sin(a) * r * 1.12); } cx.closePath(); cx.fillStyle = g; cx.fill(); }
+    else { cx.beginPath(); cx.arc(0, 0, r, 0, 6.283); cx.fillStyle = g; cx.fill(); }
+    cx.shadowBlur = 0;
+    // charge ring
+    cx.strokeStyle = 'rgba(4,20,45,.75)'; cx.lineWidth = cs * .055; cx.lineCap = 'round';
+    for (var q = 0; q < 3; q++) { if (q < v) { cx.strokeStyle = 'rgba(4,20,45,.85)'; cx.beginPath(); cx.arc(0, 0, r * .62, -Math.PI / 2 + q * 2.0944 + .25, -Math.PI / 2 + (q + 1) * 2.0944 - .25); cx.stroke(); } }
+    // symbol
+    cx.fillStyle = 'rgba(4,20,45,.9)'; cx.font = 'bold ' + Math.round(cs * .26) + 'px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(typ === CR.D ? '✕' : typ === CR.L ? '⚡' : String(Math.min(v, 3)), 0, cs * .01);
+    cx.restore();
+  }
+  function drawFrozen(px, py, v, now) {
+    drawCore(px, py, CR.N, v, now);
+    cx.save(); cx.translate(px, py); cx.fillStyle = 'rgba(190,235,255,.42)'; rr(-cs * .4, -cs * .4, cs * .8, cs * .8, cs * .12); cx.fill();
+    cx.strokeStyle = 'rgba(255,255,255,.85)'; cx.lineWidth = Math.max(2, cs * .04); cx.stroke();
+    cx.strokeStyle = 'rgba(255,255,255,.7)'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(-cs * .28, -cs * .2); cx.lineTo(-cs * .1, -cs * .32); cx.moveTo(cs * .1, cs * .3); cx.lineTo(cs * .3, cs * .12); cx.stroke();
+    cx.fillStyle = '#fff'; cx.font = Math.round(cs * .18) + 'px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('❄', cs * .26, -cs * .27); cx.restore();
+  }
+  function drawWall(x, y) {
+    var g = cx.createLinearGradient(x, y, x + cs, y + cs); g.addColorStop(0, '#586989'); g.addColorStop(1, '#262f4b');
+    cx.fillStyle = g; rr(x + cs * .07, y + cs * .07, cs * .86, cs * .86, cs * .1); cx.fill();
+    cx.fillStyle = '#9db0d6'; [[.22, .22], [.78, .22], [.22, .78], [.78, .78]].forEach(function (p) { cx.beginPath(); cx.arc(x + p[0] * cs, y + p[1] * cs, cs * .035, 0, 6.283); cx.fill(); });
+  }
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!S || $('play').hidden) return;
+    if (anim) { if (anim.pending) { anim.pending = false; startWave(now); } else if (now - anim.tStart >= anim.dur) { endWave(); startWave(now); } }
+    var st = anim && D ? D : S;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, cs * S.w, cs * S.h);
+    var sx = 0, sy = 0; if (shake > .3) { sx = (Math.random() - .5) * shake; sy = (Math.random() - .5) * shake; shake *= .88; } else shake = 0;
+    cx.save(); cx.translate(sx, sy);
+    var rise = mode === 'overload' ? Math.max(0, 1 - (now - pushT) / 260) * cs : 0;
+    var x, y;
+    for (y = 0; y < S.h; y++) for (x = 0; x < S.w; x++) {
+      cx.fillStyle = (x + y) % 2 ? 'rgba(255,255,255,.035)' : 'rgba(255,255,255,.06)'; rr(x * cs + 2, y * cs + 2, cs - 4, cs - 4, cs * .14); cx.fill();
+    }
+    if (mode === 'overload') { // danger glow at the top
+      var danger = 0; for (x = 0; x < S.w; x++) for (y = 0; y < 3; y++) if (st.typ[y * S.w + x]) danger = Math.max(danger, 3 - y);
+      if (danger) { var gr = cx.createLinearGradient(0, 0, 0, cs * 2.2); gr.addColorStop(0, 'rgba(255,60,80,' + (.18 * danger * (.6 + .4 * Math.sin(now / 150))) + ')'); gr.addColorStop(1, 'rgba(255,60,80,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, cs * S.w, cs * 2.2); }
+    }
+    // hint ring
+    if (hintCell >= 0 && now < hintUntil && !anim) { var hc = center(hintCell); cx.strokeStyle = 'rgba(255,210,74,' + (.5 + .5 * Math.sin(now / 130)) + ')'; cx.lineWidth = 4; cx.beginPath(); cx.arc(hc.x, hc.y, cs * (.44 + .05 * Math.sin(now / 130)), 0, 6.283); cx.stroke(); }
+    // cells
+    for (y = 0; y < S.h; y++) for (x = 0; x < S.w; x++) {
+      var i = y * S.w + x, t = st.typ[i]; if (!t) continue; var px = (x + .5) * cs, py = (y + .5) * cs + rise;
+      if (t === CR.W) drawWall(x * cs, y * cs + rise); else if (t === CR.I) drawFrozen(px, py, st.val[i], now); else drawCore(px, py, t, st.val[i], now);
+    }
+    // shots
+    if (anim) {
+      var p = Math.min(1, (now - anim.tStart) / (anim.dur * .85)), e = p * p * (3 - 2 * p), th = theme();
+      shots.forEach(function (s) {
+        var dx = s.x2 - s.x1, dy = s.y2 - s.y1, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len, hx = s.x1 + dx * e, hy = s.y1 + dy * e;
+        var col = s.kind === CR.L ? '#ff4dff' : s.kind === CR.D ? '#ffb347' : '#ffffff';
+        cx.save(); cx.globalCompositeOperation = 'lighter'; cx.lineCap = 'round';
+        var tail = s.kind === CR.L ? len * e : cs * .55, tx = hx - ux * Math.min(tail, len * e + 1), ty = hy - uy * Math.min(tail, len * e + 1);
+        cx.strokeStyle = hexA(col, .35); cx.lineWidth = cs * (s.kind === CR.L ? .2 : .16); cx.beginPath(); cx.moveTo(tx, ty); cx.lineTo(hx, hy); cx.stroke();
+        cx.strokeStyle = col; cx.lineWidth = cs * (s.kind === CR.L ? .07 : .06); cx.stroke();
+        cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(hx, hy, cs * .08, 0, 6.283); cx.fill(); cx.restore();
+      });
+    }
+    // rings & particles
+    rings = rings.filter(function (r) { return r.life > 0; });
+    rings.forEach(function (r) { r.r += cs * .07 * r.grow; r.life -= .06; cx.strokeStyle = hexA(r.c.length === 7 ? r.c : '#ffffff', Math.max(0, r.life)); cx.lineWidth = Math.max(1, cs * .06 * r.life); cx.beginPath(); cx.arc(r.x, r.y, r.r, 0, 6.283); cx.stroke(); });
+    parts = parts.filter(function (q) { return q.life > 0; });
+    parts.forEach(function (q) { q.x += q.vx; q.y += q.vy; q.vy += .08; q.life -= .028; cx.globalAlpha = Math.max(0, q.life); cx.fillStyle = q.c; cx.beginPath(); cx.arc(q.x, q.y, q.r * q.life + .5, 0, 6.283); cx.fill(); cx.globalAlpha = 1; });
+    floats = floats.filter(function (f) { return f.life > 0; });
+    floats.forEach(function (f) { f.life -= .016; f.y -= .6; cx.globalAlpha = Math.min(1, f.life); cx.fillStyle = f.c; cx.strokeStyle = 'rgba(0,0,0,.6)'; cx.lineWidth = 4; cx.font = '900 ' + f.size + 'px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.strokeText(f.t, f.x, f.y); cx.fillText(f.t, f.x, f.y); cx.globalAlpha = 1; });
+    cx.restore();
+  }
+
+  // test hook
+  window.__cr = { get S() { return S; }, get G() { return G; }, get level() { return level; }, get anim() { return !!anim; }, get used() { return used; }, get finished() { return finished; }, tap: doTap, startLevel: startLevel, startOverload: startOverload, get save() { return save; } };
+
+  applyTheme(); refreshMenu(); requestAnimationFrame(frame);
+  if (!save.seenHow) { save.seenHow = true; persist(); $('howBtn').click(); }
+})();
+</script>
+<!-- Rovatics brand badge -->
+<style>
+  .rv-brand-badge{position:fixed;right:8px;bottom:8px;z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;opacity:.9;border-radius:999px;
+    background:rgba(4,14,40,.72);border:1px solid rgba(66,232,245,.45);backdrop-filter:blur(6px);color:#7fe6ff;font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;
+    letter-spacing:.04em;pointer-events:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+</style>
+<div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="../assets/rovatics-logo.png" alt=""><span>Rovatics</span></div>
+</body>
+</html>

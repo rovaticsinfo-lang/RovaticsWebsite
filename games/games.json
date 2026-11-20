@@ -28,5 +28,11 @@
     "file": "beambots.html",
     "emoji": "🔦",
     "description": "Bounce, split and tint laser beams to wake sleeping robots. 12 levels, colour mixing and a new Daily Lab puzzle every day."
+  },
+  {
+    "title": "Chain Reactor",
+    "file": "chainreactor.html",
+    "emoji": "⚛️",
+    "description": "Tap, charge and chain-explode! 100 levels in 10 worlds, endless Overload mode, themes and awards."
   }
 ]
