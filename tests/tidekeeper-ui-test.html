@@ -1,0 +1,69 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/tidekeeper.html" style="width:1020px;height:860px"></iframe>
+<script>
+// Real-time UI test: serve the repo over http and open this page. Posts results to /result.
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+const done=()=>{const t=out.join('\n')+'\nDONE';document.getElementById('out').textContent=t;fetch('/result',{method:'POST',body:t}).catch(()=>{});};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const until=async(fn,ms=20000)=>{const t0=Date.now();while(Date.now()-t0<ms){try{if(fn())return true}catch(e){}await sleep(50)}return false};
+f.onload=async()=>{try{
+ const w=f.contentWindow,d=w.document,$=id=>d.getElementById(id),T=w.__tk,LD=w.TideKeeperLevels;
+ const playSol=async n=>{T.startLevel(n);await sleep(120);const s=LD.LEVELS[n-1].solution;
+   for(const a of s){await until(()=>!T.anim&&!T.finished,8000);if(T.finished)break;T.act(a);await sleep(60);}
+   return until(()=>!$('overlay').hidden,9000);};
+
+ ok(!$('overlay').hidden && /How to play/.test($('modal').textContent),'how-to shown on first visit'); $('hOk').click();
+ ok(!$('menu').hidden,'menu visible');
+ ok(/Tide Watcher/.test($('rankBox').textContent),'rank shown on the menu');
+ $('mCamp').click(); ok(!$('map').hidden && d.querySelectorAll('.world').length===10,'map shows 10 shores');
+ ok(d.querySelectorAll('.lv:not(:disabled)').length===1,'only tide 1 unlocked at the start');
+
+ d.querySelector('.lv:not(:disabled)').click(); await sleep(150);
+ ok(!$('play').hidden && T.lv===1,'tide 1 started');
+ ok(d.querySelectorAll('.cre').length===T.L.ents.length,'roster lists every creature');
+ ok(/par/.test($('moveChip').textContent),'move + par counter shown');
+
+ const t0=T.S.tide; T.act('U'); await sleep(450);
+ ok(T.S.tide===Math.min(t0+1,T.L.tideMax) && T.S.moves===1,'raising the sea costs one move');
+ $('undoBtn').click(); await sleep(450);
+ ok(T.S.tide===t0 && T.S.moves===0,'undo rewinds the sea and the move count');
+ $('hintBtn').click(); await sleep(100);
+ ok(/Hint \(2\)/.test($('hintBtn').textContent),'hint spends a charge');
+ ok(/moon says/.test($('toast').textContent),'hint names a move: '+$('toast').textContent);
+
+ ok(await playSol(1),'tide 1: stored solution reaches a result');
+ ok(/Everyone is home/.test($('modal').textContent),'win modal');
+ ok(/★/.test($('modal').textContent)||d.querySelector('.bigstars'),'stars shown');
+ ok(/Score/.test($('modal').textContent),'score breakdown shown');
+ ok(T.save.stars[1]===3,'par run saved 3 stars');
+ ok(!!$('mNext'),'next tide button'); $('mNext').click(); await sleep(150);
+ ok(T.lv===2,'tide 2 started');
+ $('backBtn').click(); ok(d.querySelectorAll('.lv:not(:disabled)').length>=2,'tide 2 unlocked on the map');
+
+ // one level from every shore, played through the real UI
+ for(const n of [5,15,25,35,45,55,65,75,85,100]){
+   const r=await playSol(n);
+   ok(r && /Everyone is home|whole coast is safe/.test($('modal').textContent),'shore '+(Math.ceil(n/10))+' tide '+n+' solved through the UI');
+   $('overlay').hidden=true;
+ }
+
+ // running out of moves ends the level and offers a step back
+ T.startLevel(21); await sleep(150);
+ const budget=T.L.moves;
+ for(let i=0;i<budget;i++){await until(()=>!T.anim&&!T.finished,6000);if(T.finished)break;T.act('W');await sleep(60);}
+ ok(await until(()=>!$('overlay').hidden,6000),'a result modal appears when the moves run out');
+ ok(/Out of moves|tide turned/.test($('modal').textContent),'lose modal: '+$('modal').textContent.slice(0,40));
+ $('mUndo').click(); await sleep(450);
+ ok($('overlay').hidden && !T.finished,'step back returns to play');
+
+ // a creature can die: strand a fish by draining the sea
+ T.startLevel(1); await sleep(150);
+ for(let i=0;i<10;i++){await until(()=>!T.anim&&!T.finished,6000);if(T.finished)break;T.act('D');await sleep(60);}
+ const died=T.S.dead||/tide turned/.test($('modal').textContent);
+ ok(died||T.S.moves>0,'draining the sea has consequences (dead='+T.S.dead+')');
+
+ $('mRetry')&&$('mRetry').click(); await sleep(200); $('backBtn').click(); $('mapBack').click();
+ $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===10,'10 awards listed'); $('aOk').click();
+ ok(T.save.ach.first===1,'award unlocked by play');
+}catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
+</script>

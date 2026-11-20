@@ -52,5 +52,11 @@
     "file": "scene-blocks.html",
     "emoji": "🌈",
     "description": "1000 block-puzzle levels with rotatable shapes, in a living world: Live Sky that follows your real clock, space, ocean, forest, candy, neon city and snow."
+  },
+  {
+    "title": "Tide Keeper",
+    "file": "tidekeeper.html",
+    "emoji": "🌙",
+    "description": "You are the Moon: raise and lower the sea to guide fish, deer, turtles, crabs and drifting seeds home. 100 hand-verified tides across 10 forest-and-ocean shores."
   }
 ]
