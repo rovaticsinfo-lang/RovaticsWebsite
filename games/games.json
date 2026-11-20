@@ -36,6 +36,12 @@
     "description": "Tap, charge and chain-explode! 100 levels in 10 worlds, endless Overload mode, themes and awards."
   },
   {
+    "title": "Gravity Bot",
+    "file": "gravitybot.html",
+    "emoji": "🛰️",
+    "description": "Slingshot a robot probe past orbiting planets, black holes and portals, then steer home. 100 levels, scores, ranks and endless Deep Space."
+  },
+  {
     "title": "Building Bricks",
     "file": "building-bricks.html",
     "emoji": "🧱",
