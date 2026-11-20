@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="a" src="../games/cardclash.html" style="width:800px;height:800px"></iframe>
+<iframe id="b" src="../games/cardclash.html" style="width:800px;height:800px"></iframe>
+<script>
+// Real two-peer test over the PeerJS cloud server (needs internet). Run in real time.
+const out=[];const ok=(c,m)=>{out.push((c?'PASS ':'FAIL ')+m);document.getElementById('out').textContent=out.join('\n')+'\nRUNNING';};
+const fin=()=>{const t=out.join('\n')+'\nDONE';document.getElementById('out').textContent=t;fetch('/result',{method:'POST',body:t}).catch(()=>{});};
+const wait=(fn,ms=15000)=>new Promise(r=>{const t0=Date.now();const i=setInterval(()=>{let v;try{v=fn()}catch(e){}if(v||Date.now()-t0>ms){clearInterval(i);r(v)}},150)});
+Promise.all([new Promise(r=>a.onload=r),new Promise(r=>b.onload=r)]).then(async()=>{try{
+ const A=a.contentWindow,B=b.contentWindow,da=A.document,db=B.document;
+ da.getElementById('nameIn').value='Alice'; da.getElementById('createBtn').click();
+ const code=await wait(()=>{const c=da.getElementById('roomCode').textContent;return /^[A-Z0-9]{5}$/.test(c)&&c});
+ ok(!!code,'host got room code '+code); if(!code)return fin();
+ db.getElementById('nameIn').value='Bob'; db.getElementById('codeIn').value=code; db.getElementById('joinBtn').click();
+ const joined=await wait(()=>db.getElementById('lobby').hidden===false && db.querySelectorAll('.seat.full').length===2);
+ ok(!!joined,'guest joined lobby, sees 2 players');
+ ok(da.querySelectorAll('.seat.full').length===2,'host sees 2 players');
+ da.querySelectorAll('.deckbtn')[2].click();
+ ok(!!await wait(()=>db.querySelector('.deckbtn.sel b')?.textContent==='Rovatics Bots'),'deck choice synced to guest');
+ ok(db.querySelector('.deckbtn').disabled,'guest cannot change deck');
+ da.getElementById('startBtn').click();
+ ok(!!await wait(()=>!da.getElementById('game').hidden&&!db.getElementById('game').hidden&&A.__cc.view&&B.__cc.view),'both players in game with views');
+ const va=A.__cc.view, vb=B.__cc.view;
+ ok(va.myTop&&vb.myTop&&va.myTop!==vb.myTop,'each sees only own (different) top card');
+ ok(JSON.stringify(vb).indexOf(va.myTop)<0,"guest view doesn't contain host's card id");
+ ok(va.tellerId===vb.tellerId,'same teller on both');
+ const tw=va.tellerId==='host'?A:B; 
+ await wait(()=>tw.document.querySelector('button.attr'));
+ tw.document.querySelector('button.attr').click();
+ ok(!!await wait(()=>da.querySelector('.flip.up')&&db.querySelector('.flip.up'),9000),'both see the reveal');
+ ok(!!await wait(()=>A.__cc.view.round===2&&B.__cc.view.round===2&&!A.__cc.busy&&!B.__cc.busy,12000),'round advanced on both');
+ const ca=A.__cc.view.players.map(p=>p.count).sort().join(), cb=B.__cc.view.players.map(p=>p.count).sort().join();
+ ok(ca===cb && ca!=='12,12','card counts synced after round: '+ca);
+ B.document.getElementById('react').querySelector('button').click();
+ ok(!!await wait(()=>da.querySelector('.floaty'),4000),'reaction reaches host');
+ db.getElementById('leaveBtn').click();
+ ok(!!await wait(()=>A.__cc.view.over||A.__cc.view.players.some(p=>p.left),6000),'host handles guest leaving');
+}catch(e){ok(false,'exception '+e.message)} fin();});
+</script>

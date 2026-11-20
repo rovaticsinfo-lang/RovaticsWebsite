@@ -10,5 +10,11 @@
     "file": "kids-car-race-game.html",
     "emoji": "🏁",
     "description": "Race two computer cars through 5 levels. Dodge cones, grab ⚡ boosts, and win the Champion Cup."
+  },
+  {
+    "title": "Card Clash",
+    "file": "cardclash.html",
+    "emoji": "🃏",
+    "description": "Top-trumps for 2–4 players: Cricket, Wrestling or Robot cards. Create a room, challenge friends or play bots."
   }
 ]

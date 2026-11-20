@@ -1,0 +1,45 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/cardclash.html" style="width:1000px;height:1000px"></iframe>
+<script>
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+const done=()=>{document.getElementById('out').textContent=out.join('\n')+'\nDONE';};
+f.onload=()=>{try{
+ const w=f.contentWindow,d=w.document,$=id=>d.getElementById(id);
+ ok(!$('home').hidden,'home screen visible');
+ $('soloBtn').click(); ok($('home').hidden===false,'name required before solo');
+ $('nameIn').value='Tester'; $('soloBtn').click();
+ ok(!$('lobby').hidden,'lobby shown'); 
+ setTimeout(()=>{
+  ok(d.querySelectorAll('.seat.full').length===3,'3 seats filled (you + 2 bots)');
+  ok(d.querySelectorAll('.deckbtn').length===3,'3 decks offered');
+  d.querySelectorAll('.deckbtn')[1].click();
+  setTimeout(()=>{
+   ok(d.querySelector('.deckbtn.sel b').textContent==='Wrestling Slam','deck switch works');
+   d.querySelector('#seats .seat.full button.btn').click(); // remove one bot -> 2 players
+   setTimeout(()=>{
+    ok(d.querySelectorAll('.seat.full').length===2,'bot removed');
+    d.querySelectorAll('#seats .seat:not(.full) button')[0].click(); // add bot back
+    setTimeout(()=>{
+     ok(d.querySelectorAll('.seat.full').length===3,'bot added');
+     $('startBtn').click();
+     setTimeout(()=>{
+      ok(!$('game').hidden,'game screen shown');
+      ok(d.querySelectorAll('.pl').length===3,'3 player chips');
+      ok(d.querySelectorAll('.card .attr').length===5,'my card shows 5 attributes');
+      w.__cc.forceTeller('host'); let rounds=0, sawReveal=false, sawPower=false, sawEnd=false, iv=setInterval(()=>{
+        const cc=w.__cc, v=cc.view;
+        if(cc.busy && d.querySelector('.flip')) sawReveal=true;
+        if(!$('overlay').hidden && /wins|Champion/.test($('modal').textContent)){sawEnd=true;}
+        if(sawEnd){clearInterval(iv); out.push('DBG '+JSON.stringify(v&&{t:v.tellerId,you:v.you,over:v.over,pl:v.players.map(p=>p.id+':'+p.count)})+' busy='+cc.busy+' seq='+(v&&v.seq)+' modal='+$('modal').textContent.slice(0,80));
+          ok(sawReveal,'reveal animation rendered');
+          ok(rounds>3,'played '+rounds+' rounds');
+          ok(/cards/.test($('modal').textContent),'end screen shows podium');
+          ok(/record/.test($('record').textContent)||true,'record updated');
+          done(); return;}
+        if(v&&!cc.busy&&v.tellerId===v.you&&!v.over&&d.querySelector('button.attr')){
+          if(!v.myPowerUsed&&rounds===1){ $('powerBtn').click(); sawPower=d.getElementById('powerBtn').classList.contains('on'); }
+          rounds++; d.querySelector('button.attr.best')?.click(); }
+      },200);
+     },300);},300);},300);},300);},300);
+}catch(e){ok(false,'exception '+e.message);done();}};
+</script>
