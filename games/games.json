@@ -34,5 +34,11 @@
     "file": "chainreactor.html",
     "emoji": "⚛️",
     "description": "Tap, charge and chain-explode! 100 levels in 10 worlds, endless Overload mode, themes and awards."
+  },
+  {
+    "title": "Building Bricks",
+    "file": "building-bricks.html",
+    "emoji": "🧱",
+    "description": "A 9999-in-1 retro LCD handheld: falling blocks, pentominoes, brick breaker, tank battle, car racing and snake."
   }
 ]
