@@ -22,5 +22,11 @@
     "file": "cardclash.html",
     "emoji": "🃏",
     "description": "Top-trumps for 2–4 players: Cricket, Wrestling or Robot cards. Create a room, challenge friends or play bots."
+  },
+  {
+    "title": "Beam Bots",
+    "file": "beambots.html",
+    "emoji": "🔦",
+    "description": "Bounce, split and tint laser beams to wake sleeping robots. 12 levels, colour mixing and a new Daily Lab puzzle every day."
   }
 ]
