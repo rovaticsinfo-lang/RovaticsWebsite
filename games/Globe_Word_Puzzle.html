@@ -163,4 +163,12 @@ function finish(){over=true;puz=null;$('plabel').textContent='All puzzles solved
   const s=(Date.now()-t0)/1000|0;$('winTxt').textContent=`You solved all ${TOTAL} puzzles in ${s/60|0}:${String(s%60).padStart(2,'0')} with ${score} points.`;setTimeout(()=>$('win').classList.add('show'),900)}
 
 new ResizeObserver(resize).observe(cv);resize();build();requestAnimationFrame(frame);
-</script></body></html>
+</script><!-- Rovatics brand badge -->
+<style>
+  .rv-brand-badge{position:fixed;right:8px;bottom:8px;z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;opacity:.9;border-radius:999px;
+    background:rgba(4,14,40,.72);border:1px solid rgba(66,232,245,.45);backdrop-filter:blur(6px);color:#7fe6ff;font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;
+    letter-spacing:.04em;pointer-events:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+</style>
+<div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="../assets/rovatics-logo.png" alt=""><span>Rovatics</span></div>
+</body></html>

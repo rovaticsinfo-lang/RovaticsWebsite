@@ -1,0 +1,46 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/beambots.html" style="width:900px;height:900px"></iframe>
+<script>
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+const done=()=>{document.getElementById('out').textContent=out.join('\n')+'\nDONE';};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+f.onload=async()=>{try{
+ const w=f.contentWindow,d=w.document,$=id=>d.getElementById(id),B=w.__bb;
+ ok(!$('menu').hidden,'menu visible');
+ ok(d.querySelectorAll('.lv').length===12,'12 level buttons');
+ ok(d.querySelectorAll('.lv:not(:disabled)').length===1,'only level 1 unlocked');
+ $('howBtn').click(); ok(!$('overlay').hidden,'how-to opens'); $('hOk').click();
+ d.querySelector('.lv:not(:disabled)').click(); await sleep(50);
+ ok(!$('play').hidden,'play screen'); ok($('par').textContent==='2','par shown');
+ ok(d.querySelectorAll('.tool').length===2,'tray: mirror + eraser for L1');
+ ok(B.tr.targets.length===1 && !B.tr.solved,'robot asleep at start');
+ // wrong placement: no win, counts moves
+ const L=B.L; let free=null; for(let y=0;y<L.h&&!free;y++)for(let x=0;x<L.w;x++){ if(!w.BeamBotsEngine.isOccupied(L,x,y)&&!L.solution.some(s=>s.x===x&&s.y===y)){free={x,y};break;} }
+ B.act(free); ok(B.moves===1&&Object.keys(B.placed).length===1,'placing a mirror counts a move');
+ B.act(free); ok(B.placed[w.BeamBotsEngine.key(free.x,free.y)].o===1,'tapping rotates');
+ $('undoBtn').click(); $('undoBtn').click(); ok(Object.keys(B.placed).length===0,'undo works');
+ // inventory cap
+ let placedCount=0; for(let y=0;y<L.h;y++)for(let x=0;x<L.w;x++){ if(!w.BeamBotsEngine.isOccupied(L,x,y)){B.act({x,y});} }
+ ok(Object.keys(B.placed).length===2,'cannot place more than inventory (2)');
+ $('resetBtn').click(); ok(Object.keys(B.placed).length===0,'reset clears');
+ // hint
+ $('hintBtn').click(); ok(Object.keys(B.placed).length===1,'hint places a correct piece'); ok(/Hint \(2\)/.test($('hintBtn').textContent),'hint count drops');
+ // finish with solution
+ $('resetBtn').click();
+ for(const s of L.solution){ d.querySelector('.tool[data-tool="'+s.type+'"]').click(); B.act({x:s.x,y:s.y}); if(s.o===1)B.act({x:s.x,y:s.y}); }
+ ok(B.tr.solved && B.done,'solution solves the level');
+ await sleep(1700);
+ ok(!$('overlay').hidden && /complete/.test($('modal').textContent),'celebration modal');
+ ok(!!$('mNext'),'next level button');
+ ok(JSON.parse(w.localStorage.getItem('rovatics.beambots.v1')).stars[1]>=1,'stars saved');
+ $('mNext').click(); await sleep(50);
+ ok(/Level 2/.test($('lvChip').textContent),'level 2 started');
+ $('backBtn').click(); ok(d.querySelectorAll('.lv:not(:disabled)').length===2,'level 2 unlocked');
+ $('dailyBtn').click(); await sleep(50); ok(/Daily/.test($('lvChip').textContent)&&!$('play').hidden,'daily puzzle starts');
+ // play every level programmatically
+ for(let n=1;n<=12;n++){ B.startLevel(n); await sleep(20); const LL=B.L;
+   for(const s of LL.solution){ d.querySelector('.tool[data-tool="'+s.type+'"]').click(); B.act({x:s.x,y:s.y}); if(s.o===1)B.act({x:s.x,y:s.y}); }
+   if(!B.done) ok(false,'level '+n+' not solved'); }
+ ok(true,'all 12 levels solvable in the real UI');
+}catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
+</script>

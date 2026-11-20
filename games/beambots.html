@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rovatics Beam Bots</title>
+<style>
+  :root{--bg:#050d24;--panel:rgba(255,255,255,.07);--line:rgba(120,190,255,.3);--text:#f2f8ff;--muted:#a9c4ee;--accent:#42e8f5;
+        --grad:linear-gradient(110deg,#0878f9,#42e8f5);--good:#5dffa0;--bad:#ff5d73;--gold:#ffd24a}
+  html{overflow-x:hidden}
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:var(--text);padding:12px;
+       background:radial-gradient(ellipse at 15% 0%,#12307a,transparent 55%),radial-gradient(ellipse at 90% 100%,#0a4a63,transparent 55%),#050d24 fixed}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .stars-bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .stars-bg i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;opacity:.5;animation:tw 3s ease-in-out infinite}
+  @keyframes tw{50%{opacity:.05;transform:scale(.4)}}
+  .screen{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  .screen[hidden]{display:none}
+  .btn{padding:9px 18px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-weight:700}
+  .btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.primary{background:var(--grad);color:#04142d;border:0}
+  .btn.primary:hover:not(:disabled){color:#04142d;filter:brightness(1.12)}
+  h1{margin:0;font-size:clamp(1.8rem,6vw,3rem);line-height:1.1}
+  .glow{background:linear-gradient(90deg,#ff4d6d,#ffe34d,#4dff88,#4dffff,#4da6ff,#ff4dff);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:slide 6s linear infinite}
+  @keyframes slide{to{background-position:200% 0}}
+  .sub{color:var(--muted);margin:8px 0 18px;max-width:620px}
+  .menuTop{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:6px}
+  .lvls{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin:16px 0}
+  .lv{padding:12px 10px;border-radius:16px;border:1px solid var(--line);background:var(--panel);text-align:center;position:relative;transition:.2s}
+  .lv:hover:not(:disabled){transform:translateY(-3px);border-color:var(--accent);box-shadow:0 8px 24px rgba(66,232,245,.2)}
+  .lv:disabled{opacity:.35;cursor:not-allowed}
+  .lv .n{font-size:1.7rem;font-weight:800;color:var(--accent)} .lv .nm{font-size:.78rem;color:var(--muted);min-height:2.3em;line-height:1.15}
+  .lv .st{letter-spacing:2px;font-size:.95rem;min-height:1.3em}
+  .lv.next{border-color:var(--gold);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 22px rgba(255,210,74,.55)}}
+  .daily{padding:16px 18px;border-radius:18px;border:1px solid var(--gold);background:linear-gradient(120deg,rgba(255,210,74,.14),rgba(255,77,255,.1));display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+  .hud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .chip{padding:6px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:600;font-size:.95rem}
+  .chip b{color:var(--accent)}
+  .boardbox{display:flex;justify-content:center}
+  canvas#cv{border-radius:16px;border:1px solid var(--line);background:#071331;touch-action:manipulation;cursor:pointer;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  .tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+  .tool{min-width:104px;padding:10px 14px;border-radius:14px;border:2px solid var(--line);background:var(--panel);font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .tool .ic{font-size:1.5rem} .tool small{color:var(--muted);font-weight:500}
+  .tool.sel{border-color:var(--accent);background:rgba(66,232,245,.16);box-shadow:0 0 16px rgba(66,232,245,.35)}
+  .tool:disabled{opacity:.4}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .tip{text-align:center;color:var(--muted);font-size:.92rem;min-height:1.4em;margin:10px 0 0}
+  #toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-300%);padding:11px 22px;border-radius:999px;background:var(--grad);color:#04142d;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.45);transition:transform .35s cubic-bezier(.2,1.4,.4,1);z-index:80;max-width:92vw;text-align:center}
+  #toast.show{transform:translate(-50%,0)}
+  .overlay{position:fixed;inset:0;background:rgba(2,8,24,.8);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+  .overlay[hidden]{display:none}
+  .modal{background:linear-gradient(160deg,#0d2a66,#071a45);border:1px solid var(--accent);border-radius:22px;padding:24px 26px;max-width:460px;width:100%;text-align:center;animation:pop .5s;max-height:92vh;overflow:auto}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+  .modal h2{margin:4px 0 6px;font-size:1.8rem} .modal p{color:var(--muted);margin:6px 0}
+  .bigstars{font-size:2.6rem;letter-spacing:8px} .bigstars span{display:inline-block;animation:starIn .5s both}
+  @keyframes starIn{from{transform:scale(0) rotate(-180deg);opacity:0}}
+  .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:75}
+  .how{text-align:left;color:var(--muted)} .how li{margin:6px 0}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<div class="stars-bg" id="sbg"></div>
+
+<!-- MENU -->
+<section class="screen" id="menu">
+  <div class="menuTop">
+    <div><h1>🔦 <span class="glow">Beam Bots</span></h1>
+      <p class="sub">The Rovatics lab went dark and the robots fell asleep! Bounce, split and tint laser beams to wake every robot with exactly the colour of light it needs.</p></div>
+    <div class="row" style="margin:0"><button class="btn" id="howBtn">❓ How to play</button><button class="btn" id="muteBtn">🔊</button></div>
+  </div>
+  <div class="daily"><div><b>📅 Daily Lab</b><div class="sub" style="margin:2px 0 0" id="dailyInfo">A brand-new puzzle every day, same for everyone.</div></div>
+    <button class="btn primary" id="dailyBtn">Play today's puzzle</button></div>
+  <div class="lvls" id="lvls"></div>
+  <p class="sub" id="progress"></p>
+</section>
+
+<!-- PLAY -->
+<section class="screen" id="play" hidden>
+  <div class="hud">
+    <button class="btn" id="backBtn">☰ Levels</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="chip" id="lvChip">Level 1</span>
+      <span class="chip">Moves <b id="moves">0</b> · Par <b id="par">0</b></span>
+      <span class="chip" id="robotChip">🤖 <b id="awake">0</b>/<b id="total">0</b> awake</span>
+    </div>
+  </div>
+  <div class="boardbox"><canvas id="cv" aria-label="Beam Bots puzzle board"></canvas></div>
+  <div class="tray" id="tray"></div>
+  <div class="acts">
+    <button class="btn" id="hintBtn">💡 Hint (3)</button>
+    <button class="btn" id="undoBtn">↶ Undo</button>
+    <button class="btn" id="resetBtn">↺ Reset</button>
+  </div>
+  <p class="tip" id="tip"></p>
+</section>
+
+<div id="toast" role="status"></div>
+<canvas id="confetti"></canvas>
+<div class="overlay" id="overlay" hidden><div class="modal" id="modal"></div></div>
+
+<script src="beambots-engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  var E = window.BeamBotsEngine, KEY = 'rovatics.beambots.v1';
+  var $ = function (id) { return document.getElementById(id); };
+  var save = { stars: {}, muted: false, seenHow: false };
+  try { var s = JSON.parse(localStorage.getItem(KEY)); if (s) save = Object.assign(save, s); } catch (e) {}
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  var toastT;
+  function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, 2400); }
+  (function () { var b = $('sbg'); for (var i = 0; i < 40; i++) { var d = el('i'); d.style.left = (i * 37 % 100) + '%'; d.style.top = (i * 53 % 100) + '%'; d.style.animationDelay = -(i % 7) + 's'; d.style.animationDuration = (2 + i % 4) + 's'; b.appendChild(d); } })();
+
+  // ---------- sound ----------
+  var ac = null;
+  function refreshMute() { $('muteBtn').textContent = save.muted ? '🔇' : '🔊'; }
+  $('muteBtn').onclick = function () { save.muted = !save.muted; persist(); refreshMute(); }; refreshMute();
+  function tone(f, d, type, when, vol) {
+    if (save.muted) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + (when || 0);
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); g.gain.setValueAtTime(vol || .1, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
+      o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d);
+    } catch (e) {}
+  }
+  var SFX = {
+    place: function () { tone(440, .07, 'triangle'); tone(660, .09, 'triangle', .05); },
+    rotate: function () { tone(520, .06, 'square', 0, .05); },
+    erase: function () { tone(300, .1, 'sawtooth', 0, .05); },
+    wake: function (i) { var b = 523 * Math.pow(1.122, (i || 0) * 2); tone(b, .18, 'triangle'); tone(b * 1.5, .25, 'sine', .08); },
+    err: function () { tone(180, .18, 'sawtooth', 0, .06); },
+    win: function () { [523, 659, 784, 1047, 784, 1047, 1319].forEach(function (f, i) { tone(f, .25, 'triangle', i * .12, .12); }); }
+  };
+  document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); });
+
+  // ---------- state ----------
+  var L = null, mode = 'level', levelNo = 1, dailyKey = '', placed = {}, tool = 'm', moves = 0, hintsUsed = 0, undoStack = [];
+  var tr = null, t0 = 0, done = false, hintGhost = null, particles = [], awakeAt = {}, wrongToast = {}, winAt = 0, lastAwake = 0;
+  var cv = $('cv'), cx = cv.getContext('2d'), cs = 60, dpr = window.devicePixelRatio || 1;
+  var K = E.key;
+
+  function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function starsStr(n) { return n ? '★'.repeat(n) + '☆'.repeat(3 - n) : '☆☆☆'; }
+
+  // ---------- menu ----------
+  function renderMenu() {
+    var box = $('lvls'); box.innerHTML = ''; var total = 0, nextShown = false;
+    for (var n = 1; n <= E.LEVELS; n++) (function (n) {
+      var st = save.stars[n] || 0; total += st;
+      var unlocked = n === 1 || save.stars[n - 1] || st;
+      var b = el('button', 'lv' + (unlocked && !st && !nextShown ? ' next' : '')); b.type = 'button'; b.disabled = !unlocked;
+      if (unlocked && !st) nextShown = true;
+      b.appendChild(el('div', 'n', unlocked ? String(n) : '🔒')); b.appendChild(el('div', 'nm', E.LEVEL_NAMES[n - 1]));
+      var s = el('div', 'st', starsStr(st)); s.style.color = st ? 'var(--gold)' : 'var(--muted)'; b.appendChild(s);
+      b.onclick = function () { startLevel(n); }; box.appendChild(b);
+    })(n);
+    $('progress').textContent = '⭐ ' + total + ' / ' + E.LEVELS * 3 + ' stars collected' + (total === E.LEVELS * 3 ? ' — Master Electrician! 🏆' : '');
+    var dk = 'D' + today(), ds = save.stars[dk];
+    $('dailyInfo').textContent = ds ? 'Today\'s puzzle done: ' + starsStr(ds) + ' — come back tomorrow!' : 'A brand-new puzzle every day, same for everyone.';
+    $('dailyBtn').textContent = ds ? 'Play again' : 'Play today\'s puzzle';
+  }
+
+  // ---------- level control ----------
+  function startLevel(n) { mode = 'level'; levelNo = n; load(E.getLevel(n), 'Level ' + n + ' · ' + E.LEVEL_NAMES[n - 1]); }
+  function startDaily() { mode = 'daily'; dailyKey = today(); load(E.getDaily(dailyKey), '📅 Daily ' + dailyKey); }
+  function load(level, label) {
+    L = level; placed = {}; moves = 0; hintsUsed = 0; undoStack = []; done = false; hintGhost = null; particles = []; awakeAt = {}; wrongToast = {}; lastAwake = 0; winAt = 0;
+    tool = L.inventory.m ? 'm' : 's';
+    $('menu').hidden = true; $('play').hidden = false; $('overlay').hidden = true;
+    $('lvChip').textContent = label; $('par').textContent = L.par; $('total').textContent = L.targets.length;
+    buildTray(); resize(); retrace(true); updateHud(); showTip();
+    if (!save.seenHow) { save.seenHow = true; persist(); showHow(); }
+  }
+  function showTip() {
+    var tips = [];
+    if (L.inventory.s) tips.push('🔀 Splitters send the beam straight AND around the corner at once.');
+    if (L.filters.length) tips.push('🟦 Tinted glass only lets its own colour through.');
+    if (L.emitters.some(function (e) { return e.c !== 7; }) || L.targets.some(function (t) { return t.need !== 7; })) tips.push('🌈 Light mixes: red + green = yellow, red + blue = magenta, green + blue = cyan, all three = white.');
+    tips.push('👆 Tap a piece to rotate it · Right-click or use the eraser to remove · Press 1/2/3 to switch tools.');
+    $('tip').textContent = tips[(levelNo + (mode === 'daily' ? 3 : 0)) % tips.length];
+  }
+  function buildTray() {
+    var tray = $('tray'); tray.innerHTML = '';
+    [['m', '🪞', 'Mirror'], ['s', '🔀', 'Splitter'], ['x', '🧽', 'Eraser']].forEach(function (t) {
+      if (t[0] === 's' && !L.inventory.s) return;
+      var b = el('button', 'tool'); b.type = 'button'; b.dataset.tool = t[0];
+      b.appendChild(el('span', 'ic', t[1])); b.appendChild(el('span', '', t[2])); b.appendChild(el('small', '', ''));
+      b.onclick = function () { tool = t[0]; SFX.rotate(); updateHud(); }; tray.appendChild(b);
+    });
+  }
+  function updateHud() {
+    var left = E.inventoryLeft(L, placed);
+    document.querySelectorAll('.tool').forEach(function (b) {
+      var t = b.dataset.tool; b.classList.toggle('sel', tool === t);
+      b.lastChild.textContent = t === 'x' ? 'remove' : left[t] + ' left'; b.disabled = t !== 'x' && left[t] <= 0 && tool !== t;
+    });
+    $('moves').textContent = moves;
+    $('hintBtn').textContent = '💡 Hint (' + (3 - hintsUsed) + ')'; $('hintBtn').disabled = hintsUsed >= 3 || done;
+    $('undoBtn').disabled = !undoStack.length || done;
+    var aw = tr ? tr.targets.filter(function (t) { return t.ok; }).length : 0; $('awake').textContent = aw;
+  }
+
+  // ---------- interaction ----------
+  function cellAt(e) {
+    var r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * (cv.width / dpr / r.width), y = (e.clientY - r.top) * (cv.height / dpr / r.height);
+    var cxl = Math.floor(x / cs), cyl = Math.floor(y / cs);
+    return cxl >= 0 && cyl >= 0 && cxl < L.w && cyl < L.h ? { x: cxl, y: cyl } : null;
+  }
+  function pushUndo() { undoStack.push(JSON.stringify(placed)); if (undoStack.length > 100) undoStack.shift(); }
+  function act(c, remove) {
+    if (done || !c) return;
+    var k = K(c.x, c.y), p = placed[k], left = E.inventoryLeft(L, placed);
+    if (E.isOccupied(L, c.x, c.y)) { SFX.err(); bump(c); return; }
+    if (p) {
+      pushUndo();
+      if (remove || tool === 'x') { delete placed[k]; SFX.erase(); burst(c.x, c.y, '#ff5d73', 8); }
+      else { p.o ^= 1; SFX.rotate(); burst(c.x, c.y, '#42e8f5', 6); }
+    } else {
+      if (tool === 'x' || remove) return;
+      if (left[tool] <= 0) { toast('No ' + (tool === 'm' ? 'mirrors' : 'splitters') + ' left — remove one first'); SFX.err(); return; }
+      pushUndo(); placed[k] = { type: tool, o: 0 }; SFX.place(); burst(c.x, c.y, '#ffffff', 10);
+    }
+    moves++; hintGhost = null; retrace(false); updateHud();
+  }
+  var bumps = {};
+  function bump(c) { bumps[K(c.x, c.y)] = performance.now(); }
+  cv.addEventListener('pointerdown', function (e) { if (e.button === 2) return; act(cellAt(e), false); });
+  cv.addEventListener('contextmenu', function (e) { e.preventDefault(); act(cellAt(e), true); });
+  $('undoBtn').onclick = function () { if (!undoStack.length || done) return; placed = JSON.parse(undoStack.pop()); moves++; SFX.erase(); retrace(false); updateHud(); };
+  $('resetBtn').onclick = function () { if (done) return; pushUndo(); placed = {}; moves++; retrace(false); updateHud(); toast('Board cleared'); };
+  $('hintBtn').onclick = function () {
+    if (done || hintsUsed >= 3) return;
+    var h = E.hint(L, placed); if (!h) return toast('Everything is already in place!');
+    hintsUsed++; var left = E.inventoryLeft(L, placed), k = K(h.x, h.y);
+    if (placed[k] && placed[k].type === h.type) { pushUndo(); placed[k].o = h.o; }
+    else if (left[h.type] > 0) { pushUndo(); placed[k] = { type: h.type, o: h.o }; }
+    else { hintGhost = { x: h.x, y: h.y, until: performance.now() + 6000 }; toast('💡 Free up a ' + (h.type === 'm' ? 'mirror' : 'splitter') + ' and place it at the glowing cell'); updateHud(); return; }
+    hintGhost = { x: h.x, y: h.y, until: performance.now() + 2500 }; moves++; SFX.place(); toast('💡 Hint placed — ' + (3 - hintsUsed) + ' left'); retrace(false); updateHud();
+  };
+  $('backBtn').onclick = function () { $('play').hidden = true; $('menu').hidden = false; $('overlay').hidden = true; renderMenu(); };
+  $('dailyBtn').onclick = startDaily;
+  document.addEventListener('keydown', function (e) {
+    if ($('play').hidden) return;
+    if (e.key === '1') { tool = 'm'; updateHud(); } else if (e.key === '2' && L.inventory.s) { tool = 's'; updateHud(); } else if (e.key === '3' || e.key === 'e') { tool = 'x'; updateHud(); }
+    else if (e.key === 'z' || e.key === 'Z') $('undoBtn').click();
+  });
+
+  // ---------- tracing & win logic ----------
+  function retrace(initial) {
+    var prevAwake = tr ? tr.targets.map(function (t) { return t.ok; }) : [];
+    tr = E.trace(L, placed); t0 = performance.now();
+    var wokeNow = 0;
+    tr.targets.forEach(function (t, i) {
+      var k = K(t.x, t.y);
+      if (t.ok && !prevAwake[i]) { awakeAt[k] = performance.now(); wokeNow++; burst(t.x, t.y, E.COLORS[t.need], 18); }
+      if (!t.ok) delete awakeAt[k];
+      if (!initial && t.got && !t.ok && wrongToast[k] !== t.got) { wrongToast[k] = t.got; toast('🤖 That robot needs ' + E.COLOR_NAMES[t.need] + ' light — it got ' + E.COLOR_NAMES[t.got]); SFX.err(); }
+    });
+    var aw = tr.targets.filter(function (t) { return t.ok; }).length;
+    if (!initial && wokeNow) {
+      SFX.wake(aw);
+      var rest = tr.targets.length - aw;
+      if (rest) toast(['✨ Robot awake!', '🎉 Another one online!', '⚡ Power surge!'][aw % 3] + ' ' + rest + ' to go');
+    }
+    lastAwake = aw;
+    if (tr.solved && !done) { done = true; winAt = performance.now(); setTimeout(win, 1400); updateHud(); }
+  }
+  function win() {
+    var stars = E.starsFor(L, moves, hintsUsed), key = mode === 'daily' ? 'D' + dailyKey : levelNo;
+    var best = save.stars[key] || 0; if (stars > best) save.stars[key] = stars; persist();
+    SFX.win(); confetti();
+    var html = '<div style="font-size:3rem">🤖⚡🤖</div><h2>' + (mode === 'daily' ? 'Daily puzzle cleared!' : levelNo === E.LEVELS ? 'The lab is fully powered!' : 'Level ' + levelNo + ' complete!') + '</h2>' +
+      '<div class="bigstars" style="color:var(--gold)">';
+    for (var i = 0; i < 3; i++) html += '<span style="animation-delay:' + (i * .25 + .2) + 's;' + (i < stars ? '' : 'opacity:.25') + '">★</span>';
+    html += '</div><p>Moves: <b>' + moves + '</b> · Par: <b>' + L.par + '</b>' + (hintsUsed ? ' · Hints: ' + hintsUsed : '') + '</p><p>' +
+      (stars === 3 ? 'Flawless engineering! 🌟' : hintsUsed && stars < 3 ? 'Try without hints for 3 stars!' : 'Try fewer moves for 3 stars!') + '</p><div class="row">';
+    if (mode === 'level' && levelNo < E.LEVELS) html += '<button class="btn primary" id="mNext">Next level ▶</button>';
+    html += '<button class="btn" id="mAgain">↺ Replay</button><button class="btn" id="mMenu">☰ Levels</button></div>';
+    $('modal').innerHTML = html; $('overlay').hidden = false;
+    var nx = $('mNext'); if (nx) nx.onclick = function () { startLevel(levelNo + 1); };
+    $('mAgain').onclick = function () { mode === 'daily' ? startDaily() : startLevel(levelNo); };
+    $('mMenu').onclick = function () { $('backBtn').click(); };
+  }
+  function showHow() {
+    $('modal').innerHTML = '<h2>🔦 How to play</h2><ul class="how"><li>Every <b>sleeping robot 🤖</b> needs light of <b>exactly</b> the colour shown on its visor ring.</li>' +
+      '<li>Pick <b>🪞 Mirrors</b> and <b>🔀 Splitters</b> from the tray and tap the board to place them. Tap a piece again to rotate it.</li>' +
+      '<li>Beams stop at walls. <b>Tinted glass</b> filters colours, and beams of different colours <b>mix</b>.</li>' +
+      '<li>You have a limited number of pieces — plan the route! Fewer moves = more ⭐.</li>' +
+      '<li>Stuck? Use up to 3 <b>💡 hints</b> per level (they cost a star).</li></ul><div class="row"><button class="btn primary" id="hOk">Let\'s go!</button></div>';
+    $('overlay').hidden = false; $('hOk').onclick = function () { $('overlay').hidden = true; };
+  }
+  $('howBtn').onclick = showHow;
+
+  // ---------- particles / confetti ----------
+  function burst(x, y, color, n) {
+    for (var i = 0; i < n; i++) { var a = Math.random() * 6.28, sp = .5 + Math.random() * 2.2;
+      particles.push({ x: x + .5, y: y + .5, vx: Math.cos(a) * sp / 30, vy: Math.sin(a) * sp / 30, life: 1, c: color, r: 1 + Math.random() * 2.5 }); }
+  }
+  var cvf = $('confetti'), cfx = cvf.getContext('2d'), cparts = [], craf = 0;
+  function confetti() {
+    cvf.width = innerWidth; cvf.height = innerHeight; cparts = [];
+    var cols = ['#ff4d6d', '#ffe34d', '#4dff88', '#4dffff', '#4da6ff', '#ff4dff', '#fff'];
+    for (var i = 0; i < 180; i++) cparts.push({ x: Math.random() * cvf.width, y: -20 - Math.random() * cvf.height * .5, vx: (Math.random() - .5) * 4, vy: 2 + Math.random() * 5, s: 5 + Math.random() * 7, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: cols[(Math.random() * cols.length) | 0] });
+    cancelAnimationFrame(craf);
+    (function f() {
+      cfx.clearRect(0, 0, cvf.width, cvf.height);
+      cparts.forEach(function (p) { p.x += p.vx; p.y += p.vy; p.r += p.vr; cfx.save(); cfx.translate(p.x, p.y); cfx.rotate(p.r); cfx.fillStyle = p.c; cfx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); cfx.restore(); });
+      cparts = cparts.filter(function (p) { return p.y < cvf.height + 20; });
+      if (cparts.length) craf = requestAnimationFrame(f); else cfx.clearRect(0, 0, cvf.width, cvf.height);
+    })();
+  }
+
+  // ---------- rendering ----------
+  function resize() {
+    if (!L) return;
+    var avail = Math.min($('play').clientWidth || 600, 760);
+    cs = Math.max(34, Math.min(Math.floor(avail / L.w), 86, Math.floor((window.innerHeight * .62) / L.h)));
+    dpr = window.devicePixelRatio || 1;
+    cv.style.width = cs * L.w + 'px'; cv.style.height = cs * L.h + 'px';
+    cv.width = Math.round(cs * L.w * dpr); cv.height = Math.round(cs * L.h * dpr);
+  }
+  window.addEventListener('resize', resize);
+
+  function rr(x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
+  function col(mask, a) { var c = E.COLORS[mask] || '#fff', n = parseInt(c.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + (a == null ? 1 : a) + ')'; }
+
+  function drawRobot(cxp, cyp, t, now) {
+    var k = K(t.x, t.y), s = cs * .78, ok = t.ok, since = awakeAt[k] ? now - awakeAt[k] : 9999;
+    var dance = done ? Math.abs(Math.sin((now - winAt) / 160 + t.x)) * cs * .12 : 0;
+    var bounce = ok ? (Math.sin(since / 90) * Math.max(0, 1 - since / 700) * cs * .1) - dance : 0;
+    var y0 = cyp + bounce;
+    // requirement ring
+    cx.save(); cx.strokeStyle = col(t.need, .85); cx.lineWidth = Math.max(2, cs * .04); cx.setLineDash([cs * .1, cs * .08]); cx.lineDashOffset = -now / 60;
+    cx.beginPath(); cx.arc(cxp, cyp, cs * .47, 0, 6.283); cx.stroke(); cx.restore();
+    // glow when awake
+    if (ok) { var g = cx.createRadialGradient(cxp, cyp, 0, cxp, cyp, cs * .7); g.addColorStop(0, col(t.need, .45)); g.addColorStop(1, col(t.need, 0)); cx.fillStyle = g; cx.fillRect(cxp - cs, cyp - cs, cs * 2, cs * 2); }
+    // antenna
+    cx.strokeStyle = '#9db6e8'; cx.lineWidth = Math.max(2, cs * .035);
+    cx.beginPath(); cx.moveTo(cxp, y0 - s * .32); cx.lineTo(cxp, y0 - s * .46); cx.stroke();
+    cx.fillStyle = ok ? col(t.need) : '#4a5a85'; if (ok) { cx.shadowColor = col(t.need); cx.shadowBlur = 12; }
+    cx.beginPath(); cx.arc(cxp, y0 - s * .5, s * .06 * (ok ? 1 + .3 * Math.sin(now / 150) : 1), 0, 6.283); cx.fill(); cx.shadowBlur = 0;
+    // body
+    var bg = cx.createLinearGradient(0, y0 - s * .1, 0, y0 + s * .4); bg.addColorStop(0, ok ? '#cfe3ff' : '#6f7fa8'); bg.addColorStop(1, ok ? '#7d9fe0' : '#3a4770');
+    cx.fillStyle = bg; rr(cxp - s * .26, y0 + s * .08, s * .52, s * .32, s * .08); cx.fill();
+    // arms
+    var wave = ok ? Math.sin(now / 130 + t.x) * s * .12 : 0;
+    cx.strokeStyle = ok ? '#a9c6f5' : '#556393'; cx.lineWidth = s * .08; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(cxp - s * .26, y0 + s * .16); cx.lineTo(cxp - s * .38, y0 + s * .28 - wave); cx.moveTo(cxp + s * .26, y0 + s * .16); cx.lineTo(cxp + s * .38, y0 + s * .28 + wave); cx.stroke();
+    // head
+    cx.fillStyle = bg; rr(cxp - s * .3, y0 - s * .32, s * .6, s * .38, s * .1); cx.fill();
+    // visor
+    var vis = ok ? col(t.need) : t.got ? col(t.got, .35 + .25 * Math.sin(now / 90)) : '#141c3a';
+    cx.fillStyle = vis; if (ok) { cx.shadowColor = col(t.need); cx.shadowBlur = 14; }
+    rr(cxp - s * .23, y0 - s * .24, s * .46, s * .2, s * .07); cx.fill(); cx.shadowBlur = 0;
+    // eyes / face
+    cx.fillStyle = ok ? '#04142d' : '#2b3558';
+    if (ok) { var blink = (now % 3000) < 120 ? .15 : 1; cx.fillRect(cxp - s * .14, y0 - s * .19, s * .08, s * .1 * blink); cx.fillRect(cxp + s * .06, y0 - s * .19, s * .08, s * .1 * blink); }
+    else { cx.fillRect(cxp - s * .15, y0 - s * .12, s * .1, s * .02); cx.fillRect(cxp + s * .05, y0 - s * .12, s * .1, s * .02);
+      cx.fillStyle = 'rgba(180,200,255,.8)'; cx.font = 'bold ' + Math.round(cs * .2) + 'px Segoe UI'; var zy = (now / 25) % 22;
+      cx.globalAlpha = 1 - zy / 22; cx.fillText('z', cxp + s * .3, y0 - s * .3 - zy * cs / 60); cx.globalAlpha = 1; }
+  }
+
+  function draw(now) {
+    requestAnimationFrame(draw);
+    if (!L || $('play').hidden) return;
+    cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, cs * L.w, cs * L.h);
+    var x, y;
+    // tiles
+    for (y = 0; y < L.h; y++) for (x = 0; x < L.w; x++) {
+      cx.fillStyle = (x + y) % 2 ? '#0a1a40' : '#0c1e48'; rr(x * cs + 1.5, y * cs + 1.5, cs - 3, cs - 3, cs * .1); cx.fill();
+      var b = bumps[K(x, y)]; if (b && now - b < 350) { cx.fillStyle = 'rgba(255,93,115,' + (.4 * (1 - (now - b) / 350)) + ')'; cx.fill(); }
+      cx.fillStyle = 'rgba(120,190,255,.12)'; cx.beginPath(); cx.arc(x * cs + cs * .5, y * cs + cs * .5, cs * .03, 0, 6.283); cx.fill();
+    }
+    // walls
+    L.walls.forEach(function (w) {
+      var g = cx.createLinearGradient(w.x * cs, w.y * cs, w.x * cs + cs, w.y * cs + cs); g.addColorStop(0, '#4b5a7e'); g.addColorStop(1, '#232d49');
+      cx.fillStyle = g; rr(w.x * cs + cs * .08, w.y * cs + cs * .08, cs * .84, cs * .84, cs * .1); cx.fill();
+      cx.fillStyle = '#8fa2cc'; [[.22, .22], [.78, .22], [.22, .78], [.78, .78]].forEach(function (p) { cx.beginPath(); cx.arc(w.x * cs + p[0] * cs, w.y * cs + p[1] * cs, cs * .035, 0, 6.283); cx.fill(); });
+    });
+    // filters
+    L.filters.forEach(function (f) {
+      cx.fillStyle = col(f.c, .28); rr(f.x * cs + cs * .1, f.y * cs + cs * .1, cs * .8, cs * .8, cs * .12); cx.fill();
+      cx.strokeStyle = col(f.c, .95); cx.lineWidth = Math.max(2, cs * .05); cx.stroke();
+      cx.strokeStyle = 'rgba(255,255,255,.5)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(f.x * cs + cs * .25, f.y * cs + cs * .35); cx.lineTo(f.x * cs + cs * .45, f.y * cs + cs * .2); cx.stroke();
+    });
+    // emitters
+    L.emitters.forEach(function (e) {
+      var ex = e.x * cs + cs / 2, ey = e.y * cs + cs / 2, ang = [-Math.PI / 2, 0, Math.PI / 2, Math.PI][e.d];
+      cx.save(); cx.translate(ex, ey); cx.rotate(ang);
+      cx.fillStyle = '#2a3560'; rr(-cs * .32, -cs * .32, cs * .64, cs * .64, cs * .12); cx.fill();
+      cx.fillStyle = '#56679c'; rr(0, -cs * .12, cs * .42, cs * .24, cs * .05); cx.fill();
+      cx.shadowColor = col(e.c); cx.shadowBlur = 10 + 6 * Math.sin(now / 250); cx.fillStyle = col(e.c);
+      cx.beginPath(); cx.arc(0, 0, cs * .13, 0, 6.283); cx.fill(); cx.shadowBlur = 0; cx.restore();
+    });
+    // hint ghost
+    if (hintGhost && now < hintGhost.until) {
+      cx.strokeStyle = 'rgba(255,210,74,' + (.5 + .5 * Math.sin(now / 120)) + ')'; cx.lineWidth = 3; rr(hintGhost.x * cs + 3, hintGhost.y * cs + 3, cs - 6, cs - 6, cs * .12); cx.stroke();
+    }
+    // beams (additive so overlapping colours mix)
+    var reveal = (now - t0) / 1000 * 16;
+    cx.save(); cx.globalCompositeOperation = 'lighter'; cx.lineCap = 'round';
+    tr.segs.forEach(function (s) {
+      var len = Math.abs(s.x2 - s.x1) + Math.abs(s.y2 - s.y1), f = Math.max(0, Math.min(1, (reveal - s.dist) / len)); if (f <= 0) return;
+      var ex = s.x1 + (s.x2 - s.x1) * f, ey = s.y1 + (s.y2 - s.y1) * f;
+      cx.strokeStyle = col(s.c, .35); cx.lineWidth = cs * .2; cx.beginPath(); cx.moveTo(s.x1 * cs, s.y1 * cs); cx.lineTo(ex * cs, ey * cs); cx.stroke();
+      cx.strokeStyle = col(s.c, .9); cx.lineWidth = cs * .08; cx.stroke();
+      cx.strokeStyle = 'rgba(255,255,255,.85)'; cx.lineWidth = cs * .025; cx.stroke();
+      var tp = ((now / 450) + s.dist * .37) % 1; if (tp < f) { cx.fillStyle = '#fff'; cx.beginPath(); cx.arc((s.x1 + (s.x2 - s.x1) * tp) * cs, (s.y1 + (s.y2 - s.y1) * tp) * cs, cs * .05, 0, 6.283); cx.fill(); }
+    });
+    cx.restore();
+    // placed pieces
+    Object.keys(placed).forEach(function (k) {
+      var p = placed[k], q = k.split(','), px = +q[0] * cs, py = +q[1] * cs, a = p.o === 0 ? [.18, .82, .82, .18] : [.18, .18, .82, .82];
+      cx.save(); cx.lineCap = 'round';
+      cx.fillStyle = 'rgba(255,255,255,.06)'; rr(px + cs * .06, py + cs * .06, cs * .88, cs * .88, cs * .12); cx.fill();
+      if (p.type === 'm') {
+        cx.shadowColor = '#bfe8ff'; cx.shadowBlur = 10; cx.strokeStyle = '#dff4ff'; cx.lineWidth = cs * .11;
+        cx.beginPath(); cx.moveTo(px + a[0] * cs, py + a[1] * cs); cx.lineTo(px + a[2] * cs, py + a[3] * cs); cx.stroke();
+        cx.shadowBlur = 0; cx.strokeStyle = '#7fb4e8'; cx.lineWidth = cs * .03; cx.stroke();
+      } else {
+        cx.shadowColor = '#42e8f5'; cx.shadowBlur = 12; cx.strokeStyle = 'rgba(66,232,245,.9)'; cx.lineWidth = cs * .12;
+        cx.beginPath(); cx.moveTo(px + a[0] * cs, py + a[1] * cs); cx.lineTo(px + a[2] * cs, py + a[3] * cs); cx.stroke();
+        cx.shadowBlur = 0; cx.strokeStyle = '#04142d'; cx.setLineDash([cs * .07, cs * .07]); cx.lineWidth = cs * .04; cx.stroke(); cx.setLineDash([]);
+      }
+      cx.restore();
+    });
+    // robots
+    tr.targets.forEach(function (t) { drawRobot(t.x * cs + cs / 2, t.y * cs + cs / 2, t, now); });
+    // particles
+    particles = particles.filter(function (p) { return p.life > 0; });
+    particles.forEach(function (p) { p.x += p.vx * 16; p.y += p.vy * 16; p.life -= .03; cx.globalAlpha = Math.max(0, p.life); cx.fillStyle = p.c; cx.beginPath(); cx.arc(p.x * cs, p.y * cs, p.r, 0, 6.283); cx.fill(); cx.globalAlpha = 1; });
+  }
+
+  // test hook
+  window.__bb = { get L() { return L; }, get placed() { return placed; }, get done() { return done; }, get moves() { return moves; }, startLevel: startLevel, startDaily: startDaily, act: act, get tr() { return tr; }, cell: function (x, y) { return { x: x, y: y }; } };
+
+  renderMenu(); requestAnimationFrame(draw);
+})();
+</script>
+<!-- Rovatics brand badge -->
+<style>
+  .rv-brand-badge{position:fixed;right:8px;bottom:8px;z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;opacity:.9;border-radius:999px;
+    background:rgba(4,14,40,.72);border:1px solid rgba(66,232,245,.45);backdrop-filter:blur(6px);color:#7fe6ff;font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;
+    letter-spacing:.04em;pointer-events:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+</style>
+<div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="../assets/rovatics-logo.png" alt=""><span>Rovatics</span></div>
+</body>
+</html>
