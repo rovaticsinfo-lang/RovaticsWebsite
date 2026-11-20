@@ -40,5 +40,11 @@
     "file": "building-bricks.html",
     "emoji": "🧱",
     "description": "A 9999-in-1 retro LCD handheld: falling blocks, pentominoes, brick breaker, tank battle, car racing and snake."
+  },
+  {
+    "title": "Scene Blocks",
+    "file": "scene-blocks.html",
+    "emoji": "🌈",
+    "description": "1000 block-puzzle levels with rotatable shapes, in a living world: Live Sky that follows your real clock, space, ocean, forest, candy, neon city and snow."
   }
 ]
