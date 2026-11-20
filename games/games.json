@@ -12,6 +12,12 @@
     "description": "Race two computer cars through 5 levels. Dodge cones, grab ⚡ boosts, and win the Champion Cup."
   },
   {
+    "title": "Rovatics Sudoku",
+    "file": "sudoku.html",
+    "emoji": "🧩",
+    "description": "10 ever-harder levels, clues, celebrations, friend challenges and a leaderboard."
+  },
+  {
     "title": "Card Clash",
     "file": "cardclash.html",
     "emoji": "🃏",
