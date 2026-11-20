@@ -4,5 +4,11 @@
     "file": "Globe_Word_Puzzle.html",
     "emoji": "🌐",
     "description": "Spin the globe and solve 12 word puzzles."
+  },
+  {
+    "title": "Rovatics Racers",
+    "file": "kids-car-race.html",
+    "emoji": "🏁",
+    "description": "Race two computer cars through 5 levels. Dodge cones, grab ⚡ boosts, and win the Champion Cup."
   }
 ]
