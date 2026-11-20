@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/chainreactor.html" style="width:900px;height:900px"></iframe>
+<script>
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+const done=()=>{const t=out.join('\n')+'\nDONE';document.getElementById('out').textContent=t;fetch('/result',{method:'POST',body:t}).catch(()=>{});};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+f.onload=async()=>{try{
+ const w=f.contentWindow,d=w.document,$=id=>d.getElementById(id),B=w.__cr;
+ ok(!$('overlay').hidden && /How to play/.test($('modal').textContent),'how-to shown on first visit'); $('hOk').click();
+ ok(!$('menu').hidden,'menu visible');
+ $('mCamp').click(); ok(!$('map').hidden && d.querySelectorAll('.world').length===10,'map shows 10 worlds');
+ ok(d.querySelectorAll('.lv:not(:disabled)').length===1,'only level 1 unlocked');
+ d.querySelector('.lv:not(:disabled)').click(); await sleep(50);
+ ok(!$('play').hidden && B.level.par>=1,'level 1 started');
+ ok(d.querySelectorAll('#pips i').length===B.level.par+2,'tap budget = par + 2');
+ // empty-cell tap should not use a tap
+ const emptyIdx=Array.from(B.S.typ).findIndex(t=>t===0); if(emptyIdx>=0){B.tap(emptyIdx);ok(B.used===0,'tapping empty cell costs nothing');}
+ // hint then undo
+ $('hintBtn').click(); ok(/Hint \(2\)/.test($('hintBtn').textContent),'hint used');
+ const sol=B.level.solution.slice();
+ B.tap(sol[0]); while(B.anim)await sleep(50); ok(B.used===1,'tap counted');
+ if(sol.length>1){ $('undoBtn').click(); ok(B.used===0 && /Undo \(2\)/.test($('undoBtn').textContent),'undo restores tap & decrements'); B.tap(sol[0]); while(B.anim)await sleep(50);}
+ for(let k=1;k<sol.length;k++){B.tap(sol[k]); while(B.anim)await sleep(50);}
+ await sleep(900);
+ ok(!$('overlay').hidden && /cleared/.test($('modal').textContent),'win modal');
+ ok(w.__cr.save.stars[1]>=1,'stars saved');
+ ok(!!$('mNext'),'next level button'); $('mNext').click(); await sleep(50);
+ ok(/Level 2/.test($('titleChip').textContent),'level 2 started');
+ // lose path: waste taps on level 2
+ const L=B.level; let guard=0; while(!B.finished && guard++<20){ const t=Array.from(B.S.typ).findIndex((x,i)=>B.S.typ[i]===1||B.S.typ[i]===2||B.S.typ[i]===3); if(t<0)break; B.tap(t); while(B.anim)await sleep(40); }
+ await sleep(900); ok(!$('overlay').hidden && /(Out of taps|cleared)/.test($('modal').textContent),'end-of-level modal after using all taps');
+ $('mMap').click(); ok(!$('map').hidden,'back to map');
+ // sample of levels solved through the real UI
+ for(const n of [3,40,100]){ w.localStorage.setItem('x','1'); B.save.stars[n-1]=B.save.stars[n-1]||1; B.startLevel(n); const sl=B.level.solution.slice();
+   for(const c of sl){ B.tap(c); let g=0; while(B.anim&&g++<400)await sleep(50);} await sleep(100);
+   ok(B.finished && w.__cr.S && Array.from(B.S.typ).every(t=>t===0||t===4),'level '+n+' solved via UI in '+sl.length+' taps'); }
+ // overload
+ d.getElementById('backBtn').click(); $('mapBack').click(); $('mOver').click(); await sleep(50);
+ ok(/Overload/.test($('titleChip').textContent) && B.G.S.w===7,'overload started');
+ const before=B.G.score; let taps=0;
+ while(!B.finished && taps<25){ const S=B.G.S; let best=-1; for(let i=0;i<S.typ.length;i++){ if(S.typ[i]>=1&&S.typ[i]<=3&&(best<0||S.val[i]>S.val[best]))best=i; } if(best<0)break; B.tap(best); let g=0; while(B.anim&&g++<300)await sleep(40); taps++; }
+ ok(B.G.score>before,'overload scoring works (score '+B.G.score+')');
+ ok(B.G.taps>=1,'overload taps counted');
+ ok(!!d.querySelector('#themeBtn') ,'theme button'); $('themeBtn').click(); ok(d.querySelectorAll('.titem').length===6,'6 themes listed'); $('tOk').click();
+ $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===10,'10 awards listed'); $('aOk').click();
+}catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
+</script>

@@ -1,0 +1,59 @@
+// Offline level generator for Chain Reactor. Run: node tests/tools/gen-chainreactor-levels.js
+// Writes games/chainreactor-levels.js. Every level is solved by the engine's solver, so every level is winnable.
+const fs = require('fs'), path = require('path');
+const E = require('../../games/chainreactor-engine.js');
+
+const WORLDS = [
+  { name: 'Spark Basics', blurb: 'Tap a core to charge it. At 4 it explodes and zaps its neighbours!', types: { n: 1 }, walls: [0, 0], ice: 0, size: [[3, 3], [4, 4], [5, 5]], cells: [[2, 4], [4, 8], [6, 11]], par: [[1, 2], [2, 3], [2, 4]] },
+  { name: 'Steel Maze', blurb: 'Steel walls block every shot. Plan the bounce!', types: { n: 1 }, walls: [1, 5], ice: 0, size: [[4, 4], [5, 5], [6, 6]], cells: [[5, 8], [7, 11], [9, 13]], par: [[2, 3], [2, 4], [3, 4]] },
+  { name: 'Cross Fire', blurb: 'Diagonal cores (✕) blast along the diagonals.', types: { n: .65, d: .35 }, must: 'd', walls: [0, 3], ice: 0, size: [[4, 4], [5, 5], [6, 6]], cells: [[5, 8], [7, 11], [9, 13]], par: [[2, 3], [2, 4], [3, 4]] },
+  { name: 'Deep Freeze', blurb: 'Frozen cores cannot be tapped — hit them once to thaw them.', types: { n: .75, d: .25 }, must: 'i', walls: [0, 3], ice: .3, size: [[4, 4], [5, 5], [6, 6]], cells: [[5, 8], [7, 11], [9, 13]], par: [[2, 3], [2, 4], [3, 4]] },
+  { name: 'Laser Grid', blurb: 'Laser cores (⚡) pierce the whole line, hitting everything!', types: { n: .6, d: .15, l: .25 }, must: 'l', walls: [0, 3], ice: .15, size: [[5, 5], [6, 6], [6, 6]], cells: [[7, 10], [9, 13], [11, 15]], par: [[2, 3], [3, 4], [3, 5]] },
+  { name: 'Fortress', blurb: 'Walls everywhere. The only way is the clever way.', types: { n: .55, d: .2, l: .25 }, must: 'l', walls: [3, 7], ice: .1, size: [[6, 6], [7, 7], [7, 7]], cells: [[9, 13], [11, 15], [12, 17]], par: [[3, 4], [3, 5], [4, 5]] },
+  { name: 'Frostfire', blurb: 'Ice and fire together — thaw, then detonate.', types: { n: .5, d: .25, l: .25 }, must: 'i', walls: [1, 4], ice: .35, size: [[6, 6], [7, 7], [7, 7]], cells: [[10, 14], [12, 16], [13, 18]], par: [[3, 4], [3, 5], [4, 5]] },
+  { name: 'Chaos Theory', blurb: 'Dozens of cores, one perfect tap order.', types: { n: .5, d: .25, l: .25 }, must: 'd', walls: [2, 5], ice: .2, size: [[7, 7], [7, 7], [7, 7]], cells: [[13, 17], [15, 19], [17, 21]], par: [[4, 5], [4, 6], [5, 6]] },
+  { name: 'Overdrive', blurb: 'Bigger board, bigger chains, bigger brain needed.', types: { n: .45, d: .25, l: .3 }, must: 'l', walls: [2, 6], ice: .2, size: [[7, 8], [7, 8], [8, 8]], cells: [[15, 19], [17, 21], [19, 23]], par: [[4, 5], [5, 6], [5, 7]] },
+  { name: 'The Core', blurb: 'The heart of the Rovatics reactor. Good luck, engineer.', types: { n: .4, d: .3, l: .3 }, must: 'l', walls: [3, 7], ice: .25, size: [[8, 8], [8, 8], [8, 8]], cells: [[17, 21], [19, 23], [21, 26]], par: [[5, 6], [5, 7], [6, 7]] }
+];
+
+function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+function between(rng, [a, b]) { return a + Math.floor(rng() * (b - a + 1)); }
+function pickType(rng, probs) { let r = rng(), acc = 0; for (const k of Object.keys(probs)) { acc += probs[k]; if (r < acc) return k; } return 'n'; }
+
+function genOne(wi, li, rng) {
+  const W = WORLDS[wi], band = Math.min(2, Math.floor(li / 3.4)), frac = li / 9;
+  const [sw, sh] = W.size[band], nCells = between(rng, W.cells[band]), parR = W.par[band];
+  const S = E.make(sw, sh), idx = [...Array(sw * sh).keys()];
+  for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  let p = 0;
+  const nWalls = W.walls[1] ? Math.round(W.walls[0] + (W.walls[1] - W.walls[0]) * frac) : 0;
+  for (let k = 0; k < nWalls; k++) S.typ[idx[p++]] = E.W;
+  for (let k = 0; k < nCells; k++) {
+    const i = idx[p++]; let t = pickType(rng, W.types);
+    if (W.ice && rng() < W.ice && t !== 'l') t = 'i';
+    S.typ[i] = { n: E.N, d: E.D, l: E.L, i: E.I }[t]; S.val[i] = 1 + Math.floor(rng() * 3);
+  }
+  if (W.must) { let has = false; const code = { d: E.D, l: E.L, i: E.I }[W.must]; for (let i = 0; i < S.typ.length; i++) if (S.typ[i] === code) has = true; if (!has) return null; }
+  const par = E.solve(S, parR[1], 2500000);
+  if (!par || par.taps.length < parR[0]) return null;
+  // must contain every featured type in the world's later levels so each world feels distinct
+  return { S, par: par.taps.length, taps: par.taps };
+}
+
+const levels = [];
+const t0 = Date.now();
+for (let wi = 0; wi < WORLDS.length; wi++) for (let li = 0; li < 10; li++) {
+  const rng = E.mulberry32(9000 + wi * 1000 + li * 37);
+  let res = null, tries = 0;
+  while (!res && tries++ < 6000) res = genOne(wi, li, rng);
+  if (!res) throw new Error('failed world ' + wi + ' level ' + li);
+  levels.push({ world: wi, rows: E.serialize(res.S), par: res.par, solution: res.taps });
+  process.stdout.write(`W${wi + 1}L${li + 1} par ${res.par} (${tries} tries)  `);
+}
+console.log('\nGenerated in ' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
+const out = `/* AUTO-GENERATED by tests/tools/gen-chainreactor-levels.js - do not edit by hand. Every level is solved by the engine solver. */
+(function (root, factory) { if (typeof module === 'object' && module.exports) module.exports = factory(); else root.ChainReactorLevels = factory(); })(typeof self !== 'undefined' ? self : this, function () {
+  return { WORLDS: ${JSON.stringify(WORLDS.map(w => ({ name: w.name, blurb: w.blurb })))}, LEVELS: ${JSON.stringify(levels)} };
+});
+`;
+fs.writeFileSync(path.join(__dirname, '../../games/chainreactor-levels.js'), out);
