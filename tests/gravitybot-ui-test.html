@@ -1,0 +1,50 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/gravitybot.html" style="width:1000px;height:800px"></iframe>
+<script>
+// Real-time UI test (needs http: run a static server and open this page). Posts results to /result if available.
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+const done=()=>{const t=out.join('\n')+'\nDONE';document.getElementById('out').textContent=t;fetch('/result',{method:'POST',body:t}).catch(()=>{});};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const until=async(fn,ms=20000)=>{const t0=Date.now();while(Date.now()-t0<ms){try{if(fn())return true}catch(e){}await sleep(60)}return false};
+f.onload=async()=>{try{
+ const w=f.contentWindow,d=w.document,$=id=>d.getElementById(id),B=w.__gb;
+ ok(!$('overlay').hidden&&/How to play/.test($('modal').textContent),'how-to on first visit'); $('hOk').click();
+ ok(!$('menu').hidden,'menu visible');
+ $('mCamp').click(); ok(d.querySelectorAll('.world').length===6,'6 galaxies on the map'); ok(d.querySelectorAll('.lv:not(:disabled)').length===1,'only level 1 unlocked');
+ d.querySelector('.lv:not(:disabled)').click(); await sleep(100);
+ ok(!$('play').hidden && B.phase==='aim' && B.shots===3,'level 1: aim phase with 3 shots');
+ // real pointer drag launches (drag back = launch forward)
+ const cv=$('cv'),r=cv.getBoundingClientRect(),sc=r.width/1000,S=B.L.start;
+ const ev=(t,x,y)=>cv.dispatchEvent(new w.PointerEvent(t,{clientX:r.left+x*sc,clientY:r.top+y*sc,pointerId:1,bubbles:true}));
+ ev('pointerdown',S.x,S.y); ev('pointermove',S.x-60,S.y); ev('pointerup',S.x-60,S.y);
+ ok(B.phase==='fly'&&B.shots===2,'dragging back and releasing launches a shot');
+ ok(await until(()=>B.phase==='aim'||!$('overlay').hidden),'flight ends'); await sleep(900);
+ // hint shows
+ if(B.phase==='aim'){ $('hintBtn').click(); ok(/Hint \(2\)/.test($('hintBtn').textContent),'hint used'); }
+ // solve with the stored solution
+ await until(()=>B.phase==='aim'||!$('overlay').hidden);
+ if(B.phase==='aim'){ B.fire(B.L.solution); }
+ ok(await until(()=>!$('overlay').hidden&&/complete/.test($('modal').textContent),15000),'win modal appears');
+ ok(/Reached the charging station/.test($('modal').textContent),'goal checklist shown');
+ ok(B.save.stars[1]>=1,'stars saved'); ok(!!$('mNext'),'next level button'); $('mNext').click(); await sleep(150);
+ ok(/Level 2/.test($('titleChip').textContent),'level 2 started');
+ // lose all shots with bad throws
+ for(let i=0;i<3;i++){ await until(()=>B.phase==='aim',15000); B.fire({vx:0.5,vy:0.1}); await until(()=>!B.flight,15000); await sleep(900); }
+ ok(await until(()=>!$('overlay').hidden&&/Out of shots/.test($('modal').textContent),8000),'out-of-shots modal after 3 misses');
+ $('mMap').click(); ok(!$('map').hidden,'back to map');
+ // sample levels across galaxies via the solution
+ for(const n of [5,25,45,60]){ B.save.stars[n-1]=B.save.stars[n-1]||1; B.startLevel(n); await sleep(100); B.fire(B.L.solution);
+   ok(await until(()=>!$('overlay').hidden&&/complete/.test($('modal').textContent),20000),'level '+n+' solved through the UI (galaxy '+(Math.floor((n-1)/10)+1)+')'); }
+ // endless
+ $('mMap').click(); $('mapBack').click(); $('mEnd').click(); await sleep(150);
+ ok(/Sector 1/.test($('titleChip').textContent),'endless sector 1');
+ await until(()=>B.phase==='aim'); B.fire(B.L.solution);
+ ok(await until(()=>!$('overlay').hidden&&/Sector 1 cleared/.test($('modal').textContent),15000),'sector cleared'); $('mNext').click(); await sleep(150);
+ ok(/Sector 2/.test($('titleChip').textContent),'sector 2 starts');
+ // lose 3 hulls
+ for(let h=0;h<3;h++){ for(let i=0;i<3;i++){ await until(()=>B.phase==='aim',15000); B.fire({vx:0.5,vy:0.1}); await until(()=>!B.flight,15000); await sleep(900); }
+   await until(()=>!$('overlay').hidden,8000); if(h<2){ $('mRetry').click(); await sleep(200);} }
+ ok(/Mission over/.test($('modal').textContent),'mission over after 3 hulls');
+ $('mMenu').click(); $('skinBtn').click(); ok(d.querySelectorAll('.titem').length===6,'6 skins'); $('tOk').click(); $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===10,'10 awards'); $('aOk').click();
+}catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
+</script>

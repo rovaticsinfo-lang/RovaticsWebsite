@@ -34,5 +34,11 @@
     "file": "chainreactor.html",
     "emoji": "⚛️",
     "description": "Tap, charge and chain-explode! 100 levels in 10 worlds, endless Overload mode, themes and awards."
+  },
+  {
+    "title": "Gravity Bot",
+    "file": "gravitybot.html",
+    "emoji": "🛰️",
+    "description": "Slingshot a robot probe past planets, suns and black holes. 60 levels in 6 galaxies plus endless Deep Space mode."
   }
 ]
