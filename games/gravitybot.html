@@ -27,6 +27,8 @@
   .planet-row{display:flex;gap:14px;align-items:center;margin:8px 0}
   .pl{border-radius:50%;animation:bob 3s ease-in-out infinite}
   @keyframes bob{50%{transform:translateY(-8px)}}
+  .rank{display:flex;flex-direction:column;gap:6px;align-items:center;margin:6px auto 0;padding:12px 18px;border-radius:16px;background:var(--panel);border:1px solid var(--line);min-width:260px}
+  .rank b{font-size:1.15rem;color:var(--gold)} .rank .bar{width:100%;height:9px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden} .rank .bar i{display:block;height:100%;background:var(--grad);transition:width .6s}
   .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0}
   .mode{padding:18px;border-radius:20px;border:1px solid var(--line);background:var(--panel);text-align:left;transition:.2s}
   .mode:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 10px 30px rgba(123,232,255,.2)}
@@ -44,6 +46,8 @@
   .hud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
   .chips{display:flex;gap:8px;flex-wrap:wrap}
   .chip{padding:6px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:600;font-size:.95rem} .chip b{color:var(--accent)}
+  .fuel{display:inline-block;width:70px;height:10px;border-radius:6px;background:rgba(255,255,255,.15);overflow:hidden;vertical-align:middle;margin-left:4px}
+  .fuel i{display:block;height:100%;background:linear-gradient(90deg,#ff7b3d,#ffd24a);transition:width .1s}
   .boardbox{display:flex;justify-content:center}
   canvas#cv{border-radius:18px;border:1px solid var(--line);background:#050820;touch-action:none;cursor:crosshair;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.6)}
   .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
@@ -58,6 +62,9 @@
   .bigstars{font-size:2.6rem;letter-spacing:8px;color:var(--gold)} .bigstars span{display:inline-block;animation:starIn .5s both}
   @keyframes starIn{from{transform:scale(0) rotate(-180deg);opacity:0}}
   .goals{text-align:left;display:inline-block;margin:8px 0} .goals div{margin:3px 0} .ok{color:var(--good)} .no{color:var(--muted)}
+  .score{margin:8px auto;max-width:340px;text-align:left} .score div{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.08);animation:fadeIn .4s both} .score .tot{border:0;font-size:1.3rem;font-weight:800;color:var(--accent);padding-top:8px}
+  @keyframes fadeIn{from{opacity:0;transform:translateX(-10px)}}
+  .promo{margin:8px 0;padding:10px;border-radius:14px;background:rgba(255,210,74,.15);border:1px solid var(--gold);color:var(--gold);font-weight:800;animation:pop .6s}
   .how{text-align:left;color:var(--muted);padding-left:18px} .how li{margin:7px 0}
   .tlist,.alist{display:grid;gap:8px;text-align:left}
   .titem{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;border:2px solid var(--line);background:var(--panel);width:100%}
@@ -78,24 +85,25 @@
       <div class="pl" style="width:26px;height:26px;animation-delay:1s;background:radial-gradient(circle at 30% 30%,#ffa8e8,#c02b9a 60%,#4a0a3a)"></div>
     </div>
     <h1>🛰️ <span class="glow">Gravity Bot</span></h1>
-    <p class="sub">Pull back, aim and launch your robot probe! Bend its path around planets, suns and black holes, grab the energy cells and dock at the charging station.</p>
+    <p class="sub">Pull back, aim and launch your robot probe! Bend its path around drifting planets, suns and black holes, then steer through the final stretch to dock at the charging station.</p>
+    <div class="rank" id="rankBox"></div>
   </div>
   <div class="modes">
-    <button class="mode" id="mCamp" type="button"><div class="e">🌌</div><b>Campaign</b><span id="campInfo">60 levels · 6 galaxies</span></button>
+    <button class="mode" id="mCamp" type="button"><div class="e">🌌</div><b>Campaign</b><span id="campInfo">100 levels · 10 galaxies</span></button>
     <button class="mode" id="mEnd" type="button"><div class="e">♾️</div><b>Deep Space</b><span id="endInfo">Endless sectors — 3 hulls, how far can you go?</span></button>
   </div>
   <div class="row" style="margin-top:0"><button class="btn" id="howBtn">❓ How to play</button><button class="btn" id="skinBtn">🤖 Skins</button><button class="btn" id="achBtn">🏅 Awards</button><button class="btn" id="muteBtn">🔊</button></div>
 </section>
 
 <section class="screen" id="map" hidden>
-  <div class="toprow"><button class="btn" id="mapBack">☰ Menu</button><span class="chip" id="starTotal">⭐ 0 / 180</span></div>
+  <div class="toprow"><button class="btn" id="mapBack">☰ Menu</button><span class="chip" id="starTotal">⭐ 0 / 300</span></div>
   <div class="worlds" id="worlds"></div>
 </section>
 
 <section class="screen" id="play" hidden>
   <div class="hud">
     <button class="btn" id="backBtn">☰ Back</button>
-    <div class="chips"><span class="chip" id="titleChip">Level 1</span><span class="chip" id="shotChip"></span><span class="chip" id="orbChip"></span></div>
+    <div class="chips"><span class="chip" id="titleChip">Level 1</span><span class="chip" id="shotChip"></span><span class="chip" id="orbChip"></span><span class="chip" id="fuelChip">⛽ <span class="fuel"><i id="fuelBar" style="width:100%"></i></span></span></div>
   </div>
   <div class="boardbox"><canvas id="cv" aria-label="Gravity Bot play field"></canvas></div>
   <div class="acts">
@@ -111,39 +119,52 @@
 <div class="overlay" id="overlay" hidden><div class="modal" id="modal"></div></div>
 
 <script src="gravitybot-engine.js"></script>
+<script src="gravitybot-levels.js"></script>
 <script>
 (function () {
   'use strict';
-  var GE = window.GravityBotEngine, KEY = 'rovatics.gravitybot.v1', W = GE.W, H = GE.H;
+  var GE = window.GravityBotEngine, LD = window.GravityBotLevels, KEY = 'rovatics.gravitybot.v2', W = GE.W, H = GE.H, N_LEVELS = GE.LEVELS;
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
-  var save = { stars: {}, orbs: 0, skin: 0, ach: {}, best: 0, muted: false, seenHow: false };
+  var save = { stars: {}, scores: {}, orbs: 0, skin: 0, ach: {}, best: 0, muted: false, seenHow: false };
   try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv) save = Object.assign(save, sv); } catch (e) {}
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
   var toastT;
   function toast(m) { var t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('show'); }, 2400); }
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
-  // ---------- skins & awards ----------
+  // ---------- skins, ranks & awards ----------
   var SKINS = [
     { name: 'Classic Blue', need: 0, c: ['#7be8ff', '#4d8dff'] }, { name: 'Solar Flare', need: 12, c: ['#ffd24a', '#ff6b3d'] },
-    { name: 'Mint Comet', need: 30, c: ['#8cffc8', '#2bd9a0'] }, { name: 'Rose Quartz', need: 55, c: ['#ffb3e6', '#ff5db8'] },
-    { name: 'Golden Rush', need: 90, c: ['#fff1a8', '#ffb300'] }, { name: 'Rainbow Nova', need: 130, c: ['#ff4d6d', '#ffe34d', '#4dff88', '#4da6ff', '#b44dff'] }
+    { name: 'Mint Comet', need: 35, c: ['#8cffc8', '#2bd9a0'] }, { name: 'Rose Quartz', need: 70, c: ['#ffb3e6', '#ff5db8'] },
+    { name: 'Golden Rush', need: 120, c: ['#fff1a8', '#ffb300'] }, { name: 'Rainbow Nova', need: 180, c: ['#ff4d6d', '#ffe34d', '#4dff88', '#4da6ff', '#b44dff'] }
   ];
   var ACH = [
     { id: 'first', e: '🛰️', t: 'First Docking', d: 'Reach a charging station' },
     { id: 'three', e: '⭐', t: 'Triple Star', d: 'Earn 3 stars on a level' },
     { id: 'oneshot', e: '🎯', t: 'Sharpshooter', d: 'Win a level from galaxy 3+ in a single shot' },
+    { id: 'thrust', e: '🔥', t: 'Course Correction', d: 'Save a shot by steering with thrust' },
+    { id: 'bull', e: '🎯', t: 'Bullseye', d: 'Dock right in the centre of the station' },
+    { id: 'warp', e: '🌀', t: 'Warp Pilot', d: 'Win a level by flying through a portal' },
     { id: 'orbs50', e: '🔋', t: 'Energy Hoarder', d: 'Collect 50 energy cells' },
     { id: 'perfect10', e: '🏆', t: 'Perfectionist', d: 'Earn 3 stars on 10 levels' },
     { id: 'world', e: '🌌', t: 'Galaxy Cleared', d: 'Clear every level of a galaxy' },
     { id: 'bh', e: '🕳️', t: 'Event Horizon', d: 'Win a level in Black Hole Alley' },
+    { id: 'capt', e: '🎖️', t: 'Captain on Deck', d: 'Reach the rank of Captain' },
     { id: 'end5', e: '♾️', t: 'Deep Diver', d: 'Clear 5 sectors in Deep Space' },
     { id: 'end15', e: '🚀', t: 'Void Walker', d: 'Clear 15 sectors in Deep Space' },
-    { id: 'stars60', e: '🌠', t: 'Star Collector', d: 'Collect 60 stars' }
+    { id: 'stars100', e: '🌠', t: 'Star Collector', d: 'Collect 100 stars' }
   ];
   function totalStars() { var s = 0; Object.keys(save.stars).forEach(function (k) { s += save.stars[k]; }); return s; }
+  function totalScore() { var s = 0; Object.keys(save.scores).forEach(function (k) { s += save.scores[k]; }); return s; }
   function skin() { var s = SKINS[save.skin] || SKINS[0]; return totalStars() >= s.need ? s : SKINS[0]; }
   function award(id) { if (save.ach[id]) return; save.ach[id] = Date.now(); persist(); var a = ACH.filter(function (x) { return x.id === id; })[0]; toast(a.e + ' Award unlocked: ' + a.t + '!'); SFX.fanfare(); }
+  function renderRank() {
+    var ts = totalStars(), r = GE.rankFor(ts), box = $('rankBox'); box.innerHTML = '';
+    box.appendChild(el('b', '', '🎖️ ' + r.name));
+    var bar = el('div', 'bar'), fill = el('i'); fill.style.width = (r.next ? Math.min(100, (ts - r.from) / (r.next[1] - r.from) * 100) : 100) + '%'; bar.appendChild(fill); box.appendChild(bar);
+    box.appendChild(el('span', 'sub', r.next ? '⭐ ' + ts + ' — ' + (r.next[1] - ts) + ' more to reach ' + r.next[0] : '⭐ ' + ts + ' — highest rank achieved!')); box.lastChild.style.margin = '0'; box.lastChild.style.fontSize = '.85rem';
+  }
 
   // ---------- sound ----------
   var ac = null;
@@ -161,23 +182,25 @@
     orb: function (k) { tone(660 * Math.pow(1.122, k * 2), .18, 'sine', 0, .1); tone(990 * Math.pow(1.122, k * 2), .22, 'triangle', .06, .06); },
     crash: function () { tone(160, .4, 'sawtooth', 0, .1, 40); tone(90, .5, 'square', .05, .08, 30); },
     lost: function () { tone(440, .6, 'sine', 0, .07, 110); },
+    warp: function () { tone(300, .3, 'sine', 0, .09, 1200); tone(1200, .3, 'triangle', .05, .06, 300); },
+    thrust: function () { tone(120, .08, 'sawtooth', 0, .035, 90); },
     goal: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, .22, 'triangle', i * .1, .11); }); },
-    fanfare: function () { [659, 784, 988, 1319].forEach(function (f, i) { tone(f, .2, 'triangle', i * .09, .09); }); },
-    tick: function () { tone(500, .05, 'triangle', 0, .05); }
+    fanfare: function () { [659, 784, 988, 1319].forEach(function (f, i) { tone(f, .2, 'triangle', i * .09, .09); }); }
   };
   document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); });
 
   // ---------- state ----------
   var mode = null, L = null, lvN = 0, shots = 3, shotsUsed = 0, hintsLeft = 3, phase = 'aim', drag = null, flight = null, ghost = null, aimPred = null;
-  var endless = null, parts = [], rings = [], shake = 0, collected = {}, flashT = 0, resultFx = null;
+  var endless = null, parts = [], rings = [], shake = 0, collected = {}, hold = null, spaceHeld = false, warpsSeen = 0, usedWarp = false, lastThrustSfx = 0;
   var cv = $('cv'), cx = cv.getContext('2d'), sc = 1, dpr = window.devicePixelRatio || 1;
 
   // ---------- menu / map ----------
   function show(id) { ['menu', 'map', 'play'].forEach(function (s) { $(s).hidden = s !== id; }); $('overlay').hidden = true; }
   function refreshMenu() {
     var done = Object.keys(save.stars).length;
-    $('campInfo').textContent = done + ' / 60 levels cleared · ⭐ ' + totalStars();
-    $('endInfo').textContent = save.best ? 'Endless sectors · Best score ' + save.best : 'Endless sectors — 3 hulls, how far can you go?';
+    $('campInfo').textContent = done + ' / ' + N_LEVELS + ' levels cleared · ⭐ ' + totalStars() + (totalScore() ? ' · 🏆 ' + fmt(totalScore()) : '');
+    $('endInfo').textContent = save.best ? 'Endless sectors · Best score ' + fmt(save.best) : 'Endless sectors — 3 hulls, how far can you go?';
+    renderRank();
   }
   function unlocked(n) { return n === 1 || !!save.stars[n - 1] || !!save.stars[n]; }
   function renderMap() {
@@ -194,39 +217,47 @@
       var h = el('h3'); h.appendChild(el('span', '', (wi + 1) + '. ' + w.name)); h.appendChild(el('span', '', '⭐ ' + ws + '/30'));
       card.appendChild(h); card.appendChild(el('p', '', w.blurb)); card.appendChild(grid); box.appendChild(card);
     });
-    $('starTotal').textContent = '⭐ ' + totalStars() + ' / 180';
+    $('starTotal').textContent = '⭐ ' + totalStars() + ' / ' + N_LEVELS * 3 + (totalScore() ? '  ·  🏆 ' + fmt(totalScore()) : '');
   }
   $('mCamp').onclick = function () { renderMap(); show('map'); };
   $('mapBack').onclick = function () { refreshMenu(); show('menu'); };
-  $('backBtn').onclick = function () { flight = null; if (mode === 'endless') { refreshMenu(); show('menu'); } else { renderMap(); show('map'); } };
+  $('backBtn').onclick = function () { flight = null; hold = null; if (mode === 'endless') { refreshMenu(); show('menu'); } else { renderMap(); show('map'); } };
 
   // ---------- starting levels ----------
   function setupLevel(level) {
-    L = level; shots = 3; shotsUsed = 0; phase = 'aim'; drag = null; flight = null; ghost = null; aimPred = null; parts = []; rings = []; collected = {}; resultFx = null;
+    L = level; shots = 3; shotsUsed = 0; phase = 'aim'; drag = null; flight = null; hold = null; ghost = null; aimPred = null; parts = []; rings = []; collected = {}; warpsSeen = 0; usedWarp = false;
     show('play'); resize(); updateHud();
   }
   function startLevel(n) {
-    mode = 'campaign'; lvN = n; hintsLeft = 3; var lv = GE.getLevel(n);
+    mode = 'campaign'; lvN = n; hintsLeft = 3; var lv = LD.LEVELS[n - 1]; if (!lv.portals) lv.portals = [];
     setupLevel(lv);
     $('titleChip').textContent = 'Galaxy ' + (lv.world + 1) + ' · Level ' + n;
-    $('tip').textContent = n === 1 ? '👆 Press, drag BACK from anywhere, then release to launch. The dotted line shows your path!' : GE.WORLDS[lv.world].blurb;
+    var moving = lv.bodies.some(function (b) { return b.mv; });
+    $('tip').textContent = n === 1 ? '👆 Press, drag BACK from anywhere, then release to launch. While flying, HOLD to steer (limited fuel)!' : (GE.WORLDS[lv.world].blurb + (moving ? '  ⏱️ Worlds start moving when you launch.' : ''));
     updateHud();
   }
   function startEndless() {
-    mode = 'endless'; endless = { seed: (Date.now() & 0xffffff) + 1, k: 1, score: 0, hulls: 3, hints: 2, cleared: 0 };
-    nextSector(true);
+    mode = 'endless'; endless = { seed: (Date.now() & 0xffffff) + 1, k: 1, score: 0, hulls: 3, hints: 2, cleared: 0, next: null };
+    nextSector();
   }
+  function genSector(k) { try { return GE.endlessLevel(endless.seed, k); } catch (e) { endless.seed++; return GE.endlessLevel(endless.seed, k); } }
   function nextSector() {
-    var lv; try { lv = GE.endlessLevel(endless.seed, endless.k); } catch (e) { endless.seed++; lv = GE.endlessLevel(endless.seed, endless.k); }
-    hintsLeft = endless.hints; setupLevel(lv);
-    $('titleChip').textContent = '♾️ Sector ' + endless.k; $('tip').textContent = 'Aim carefully — each sector is brand new! Out of shots costs a hull.'; updateHud();
+    var lv = endless.next && endless.next.k === endless.k ? endless.next.L : null; endless.next = null;
+    if (!lv) { toast('🛰️ Charting sector ' + endless.k + '…'); setTimeout(function () { endless.cur = genSector(endless.k); enterSector(); }, 30); return; }
+    endless.cur = lv; enterSector();
+  }
+  function enterSector() {
+    hintsLeft = endless.hints; setupLevel(endless.cur);
+    $('titleChip').textContent = '♾️ Sector ' + endless.k; $('tip').textContent = 'Each sector is brand new! Out of shots costs a hull. Hold to steer mid-flight.'; updateHud();
+    var k = endless.k, sd = endless.seed; // prefetch the next sector while the player thinks
+    setTimeout(function () { if (mode === 'endless' && endless.k === k && endless.seed === sd && !endless.next) { try { endless.next = { k: k + 1, L: GE.endlessLevel(sd, k + 1) }; } catch (e) {} } }, 2500);
   }
   $('mEnd').onclick = startEndless;
 
   function updateHud() {
     if (!L) return;
-    $('shotChip').innerHTML = (mode === 'endless' ? '❤ ' + endless.hulls + ' · Score <b>' + endless.score + '</b> · ' : '') + 'Shots <b>' + (shots) + '</b>';
-    var got = Object.keys(collected).length; $('orbChip').innerHTML = '🔋 <b>' + got + '</b>/' + L.orbs.length;
+    $('shotChip').innerHTML = (mode === 'endless' ? '❤ ' + endless.hulls + ' · Score <b>' + fmt(endless.score) + '</b> · ' : '') + 'Shots <b>' + shots + '</b>';
+    $('orbChip').innerHTML = '🔋 <b>' + Object.keys(collected).length + '</b>/' + L.orbs.length;
     $('hintBtn').textContent = '💡 Hint (' + hintsLeft + ')'; $('hintBtn').disabled = hintsLeft <= 0 || phase !== 'aim';
     $('ffBtn').hidden = phase !== 'fly';
   }
@@ -241,76 +272,110 @@
   window.addEventListener('resize', resize);
   function worldPt(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
   cv.addEventListener('pointerdown', function (e) {
-    if (phase !== 'aim' || !L) return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+    if (!L) return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+    if (phase === 'fly') { hold = worldPt(e); return; }
+    if (phase !== 'aim') return;
     drag = { origin: worldPt(e), cur: worldPt(e) }; ghost = null; computePred();
   });
-  cv.addEventListener('pointermove', function (e) { if (!drag) return; drag.cur = worldPt(e); computePred(); });
-  cv.addEventListener('pointerup', function () { if (!drag) return; var v = dragVec(); drag = null; aimPred = null; if (v && v.len >= 14) launch(v.vel); });
-  cv.addEventListener('pointercancel', function () { drag = null; aimPred = null; });
+  cv.addEventListener('pointermove', function (e) { if (hold) hold = worldPt(e); if (drag) { drag.cur = worldPt(e); computePred(); } });
+  function release() { hold = null; if (!drag) return; var v = dragVec(); drag = null; aimPred = null; if (v && v.len >= 14) launch(v.vel); }
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', function () { hold = null; drag = null; aimPred = null; });
+  document.addEventListener('keydown', function (e) { if (e.code === 'Space' && phase === 'fly') { spaceHeld = true; e.preventDefault(); } });
+  document.addEventListener('keyup', function (e) { if (e.code === 'Space') spaceHeld = false; });
   function dragVec() {
     if (!drag) return null; var dx = drag.origin.x - drag.cur.x, dy = drag.origin.y - drag.cur.y, len = Math.sqrt(dx * dx + dy * dy);
     return { len: len, vel: GE.dragToVelocity(dx, dy, 150), dx: dx, dy: dy };
   }
   function computePred() {
     var v = dragVec(); if (!v || v.len < 14) { aimPred = null; return; }
-    var r = GE.simulate(L, v.vel, { maxSteps: L.preview, goal: false }); aimPred = { pts: r.points, power: v.vel.power, end: r.result };
+    var r = GE.simulate(L, v.vel, { maxSteps: L.preview, goal: false }); aimPred = { pts: r.points, power: v.vel.power, jumps: r.jumps };
   }
 
-  // ---------- flight ----------
+  // ---------- flight (stepped live so the player can steer) ----------
   function launch(vel) {
-    phase = 'fly'; shotsUsed++; shots--; collected = {}; SFX.launch(vel.power); ghost = null;
-    var res = GE.simulate(L, vel, {});
-    flight = { res: res, idx: 0, speed: 1.5, t0: performance.now() }; updateHud();
+    phase = 'fly'; shotsUsed++; shots--; collected = {}; SFX.launch(vel.power); ghost = null; warpsSeen = 0; usedWarp = false;
+    var F = GE.createFlight(L, vel); flight = { F: F, speed: 2, acc: 0, done: false, jumpSet: {}, orbsSeen: 0 }; updateHud();
+    if (shotsUsed === 1 && mode === 'campaign' && lvN <= 3) toast('🔥 Hold anywhere (or Space) to steer — fuel is limited!');
   }
   $('ffBtn').onclick = function () { if (flight) flight.speed = 8; };
+  function thrustTarget() {
+    if (hold) return hold; if (spaceHeld && flight) { var F = flight.F; return { x: F.x + F.vx * 60, y: F.y + F.vy * 60 }; } return null;
+  }
+  function stepFlightFrame(now) {
+    var fl = flight, F = fl.F; fl.acc += fl.speed;
+    while (fl.acc >= 1 && !F.result) {
+      fl.acc -= 1; var tg = thrustTarget(); var before = F.fuel; GE.stepFlight(F, tg);
+      if (tg && F.fuel < before) {
+        var a = Math.atan2(tg.y - F.y, tg.x - F.x);
+        for (var k = 0; k < 2; k++) parts.push({ x: F.x - Math.cos(a) * 10, y: F.y - Math.sin(a) * 10, vx: -Math.cos(a) * (1.5 + Math.random() * 2) + (Math.random() - .5), vy: -Math.sin(a) * (1.5 + Math.random() * 2) + (Math.random() - .5), life: .8, c: Math.random() < .5 ? '#ffd24a' : '#ff7b3d', r: 3 + Math.random() * 3 });
+        if (now - lastThrustSfx > 90) { SFX.thrust(); lastThrustSfx = now; }
+      }
+    }
+    F.orbs.forEach(function (o) { if (!collected[o.i]) { collected[o.i] = 1; var oo = L.orbs[o.i]; rings.push({ x: oo.x, y: oo.y, r: 6, life: 1, c: '#ffe34d' }); SFX.orb(Object.keys(collected).length - 1); updateHud(); } });
+    while (warpsSeen < F.warps.length) { var w = F.warps[warpsSeen++]; usedWarp = true; rings.push({ x: w.from.x, y: w.from.y, r: 6, life: 1, c: '#c78bff' }); rings.push({ x: w.to.x, y: w.to.y, r: 6, life: 1, c: '#c78bff' }); SFX.warp(); toast('🌀 Warp!'); }
+    F.jumps.forEach(function (j) { fl.jumpSet[j] = 1; });
+    var fb = Math.round(F.fuel / GE.FUEL * 100); if (fb !== fl.fb) { fl.fb = fb; $('fuelBar').style.width = fb + '%'; }
+    if (F.result && !fl.done) { fl.done = true; endFlight(); }
+  }
   function endFlight() {
-    var r = flight.res, n = r.points.length / 2 - 1, last = { x: r.points[n * 2], y: r.points[n * 2 + 1] }; flight.done = true;
-    if (r.result === 'goal') { return win(r, last); }
-    if (r.result === 'crash') { explode(last.x, last.y, '#ffb347'); SFX.crash(); shake = 14; toast('💥 Crashed! ' + (shots > 0 ? shots + ' shot' + (shots === 1 ? '' : 's') + ' left' : '')); }
-    else { SFX.lost(); toast(r.result === 'lost' ? '🌌 Lost in deep space!' : '⏳ Drifting forever…'); }
-    setTimeout(function () { flight = null; collected = {}; if (shots > 0) { phase = 'aim'; updateHud(); } else outOfShots(); }, 750);
+    var F = flight.F, last = { x: F.x, y: F.y }; hold = null;
+    if (F.result === 'goal') return win(F, last);
+    if (F.result === 'crash') { explode(last.x, last.y, '#ffb347'); SFX.crash(); shake = 14; toast('💥 Crashed! ' + (shots > 0 ? shots + ' shot' + (shots === 1 ? '' : 's') + ' left' : '')); }
+    else { SFX.lost(); toast(F.result === 'lost' ? '🌌 Lost in deep space!' : '⏳ Drifting forever…'); }
+    setTimeout(function () { flight = null; collected = {}; $('fuelBar').style.width = '100%'; if (shots > 0) { phase = 'aim'; updateHud(); } else outOfShots(); }, 750);
   }
   function explode(x, y, col) {
     rings.push({ x: x, y: y, r: 6, life: 1, c: col }); rings.push({ x: x, y: y, r: 2, life: 1, c: '#fff' });
-    for (var i = 0; i < 40; i++) { var a = Math.random() * 6.283, s = 1 + Math.random() * 5; parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, c: i % 3 ? col : '#fff', r: 2 + Math.random() * 3 }); }
+    for (var i = 0; i < 44; i++) { var a = Math.random() * 6.283, s = 1 + Math.random() * 5; parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, c: i % 3 ? col : '#fff', r: 2 + Math.random() * 3 }); }
   }
 
   // ---------- results ----------
-  function win(r, last) {
-    var orbsGot = r.orbs.length, stars = GE.starsFor(L, shotsUsed, orbsGot);
+  function win(F, last) {
+    var orbsGot = F.orbs.length, stars = GE.starsFor(L, shotsUsed, orbsGot), rankBefore = GE.rankFor(totalStars()).index;
     explode(last.x, last.y, '#5dffa0'); SFX.goal(); shake = 6; confetti();
+    var sc2 = GE.scoreFor({ shotsUsed: shotsUsed, orbsGot: orbsGot, orbsTotal: L.orbs.length, thrustUsed: F.thrustUsed, steps: F.step, goalDist: F.goalDist, minClear: F.minClear });
     var goals = [[true, 'Reached the charging station'], [orbsGot >= L.orbs.length, 'Collected all energy cells (' + orbsGot + '/' + L.orbs.length + ')'], [shotsUsed <= 2, 'Used 2 shots or fewer (' + shotsUsed + ')']];
+    var newBest = false, promo = '';
     if (mode === 'campaign') {
-      var old = save.stars[lvN] || 0; if (stars > old) save.stars[lvN] = stars; save.orbs += orbsGot; persist();
-      award('first'); if (stars === 3) award('three'); if (shotsUsed === 1 && L.world >= 2) award('oneshot'); if (save.orbs >= 50) award('orbs50'); if (L.world === 5) award('bh');
-      var p = 0; Object.keys(save.stars).forEach(function (k) { if (save.stars[k] === 3) p++; }); if (p >= 10) award('perfect10'); if (totalStars() >= 60) award('stars60');
-      for (var w = 0; w < 6; w++) { var all = true; for (var i = 1; i <= 10; i++) if (!save.stars[w * 10 + i]) all = false; if (all) award('world'); }
+      var old = save.stars[lvN] || 0; if (stars > old) save.stars[lvN] = stars; save.orbs += orbsGot;
+      if (!save.scores[lvN] || sc2.total > save.scores[lvN]) { save.scores[lvN] = sc2.total; newBest = true; } persist();
+      award('first'); if (stars === 3) award('three'); if (shotsUsed === 1 && L.world >= 2) award('oneshot'); if (F.thrustUsed > 0) award('thrust'); if (F.goalDist < 9) award('bull'); if (usedWarp) award('warp');
+      if (save.orbs >= 50) award('orbs50'); if (L.world === 5) award('bh'); if (totalStars() >= 100) award('stars100');
+      var p = 0; Object.keys(save.stars).forEach(function (k) { if (save.stars[k] === 3) p++; }); if (p >= 10) award('perfect10');
+      for (var w = 0; w < N_LEVELS / 10; w++) { var all = true; for (var i = 1; i <= 10; i++) if (!save.stars[w * 10 + i]) all = false; if (all) award('world'); }
+      var rankAfter = GE.rankFor(totalStars()); if (rankAfter.index > rankBefore) { promo = '🎖️ PROMOTED to ' + rankAfter.name + '!'; if (rankAfter.index >= 3) award('capt'); }
+    } else {
+      var gain = sc2.total; endless.score += gain; endless.cleared++; if (endless.cleared >= 5) award('end5'); if (endless.cleared >= 15) award('end15'); if (endless.score > save.best) { save.best = endless.score; persist(); }
+      if (F.thrustUsed > 0) award('thrust'); if (F.goalDist < 9) award('bull'); if (usedWarp) award('warp');
     }
     var html = '<div style="font-size:3rem">🛰️⚡</div><h2>' + (mode === 'endless' ? 'Sector ' + endless.k + ' cleared!' : 'Level ' + lvN + ' complete!') + '</h2>';
-    if (mode === 'campaign') {
-      html += '<div class="bigstars">'; for (var s = 0; s < 3; s++) html += '<span style="animation-delay:' + (s * .25 + .15) + 's;' + (s < stars ? '' : 'opacity:.2') + '">★</span>'; html += '</div>';
-    } else { var gain = 100 + orbsGot * 25 + shots * 20; endless.score += gain; endless.cleared++; if (endless.cleared >= 5) award('end5'); if (endless.cleared >= 15) award('end15'); if (endless.score > save.best) { save.best = endless.score; persist(); } html += '<p style="font-size:1.4rem;color:var(--accent)"><b>+' + gain + '</b> points · total ' + endless.score + '</p>'; }
-    html += '<div class="goals">' + goals.map(function (g) { return '<div class="' + (g[0] ? 'ok' : 'no') + '">' + (g[0] ? '✔' : '✘') + ' ' + g[1] + '</div>'; }).join('') + '</div><div class="row">';
-    if (mode === 'campaign') { if (lvN < 60) html += '<button class="btn primary" id="mNext">Next level ▶</button>'; html += '<button class="btn" id="mAgain">↺ Replay</button><button class="btn" id="mMap">🌌 Map</button></div>'; }
+    if (promo) html += '<div class="promo">' + promo + '</div>';
+    if (mode === 'campaign') { html += '<div class="bigstars">'; for (var s = 0; s < 3; s++) html += '<span style="animation-delay:' + (s * .25 + .15) + 's;' + (s < stars ? '' : 'opacity:.2') + '">★</span>'; html += '</div>'; }
+    html += '<div class="goals">' + goals.map(function (g) { return '<div class="' + (g[0] ? 'ok' : 'no') + '">' + (g[0] ? '✔' : '✘') + ' ' + g[1] + '</div>'; }).join('') + '</div>';
+    html += '<div class="score">' + sc2.parts.map(function (q, i) { return '<div style="animation-delay:' + (.3 + i * .12) + 's"><span>' + q.t + '</span><b>+' + fmt(q.pts) + '</b></div>'; }).join('') + '<div class="tot" style="animation-delay:' + (.4 + sc2.parts.length * .12) + 's"><span>Score</span><span>' + fmt(sc2.total) + '</span></div></div>';
+    if (mode === 'campaign') html += '<p>' + (newBest ? '🏆 New best score!' : 'Best: ' + fmt(save.scores[lvN])) + '</p>';
+    html += '<div class="row">';
+    if (mode === 'campaign') { if (lvN < N_LEVELS) html += '<button class="btn primary" id="mNext">Next level ▶</button>'; html += '<button class="btn" id="mAgain">↺ Replay</button><button class="btn" id="mMap">🌌 Map</button></div>'; }
     else html += '<button class="btn primary" id="mNext">Next sector ▶</button><button class="btn" id="mMenu">☰ Menu</button></div>';
     setTimeout(function () {
-      showModal(html); var nx = $('mNext');
+      showModal(html); var nx = $('mNext'); if (promo) confetti();
       if (mode === 'campaign') { if (nx) nx.onclick = function () { startLevel(lvN + 1); }; $('mAgain').onclick = function () { startLevel(lvN); }; $('mMap').onclick = function () { renderMap(); show('map'); }; }
       else { nx.onclick = function () { endless.k++; nextSector(); }; $('mMenu').onclick = function () { refreshMenu(); show('menu'); }; }
     }, 900);
   }
   function outOfShots() {
     if (mode === 'campaign') {
-      showModal('<div style="font-size:3rem">🔧</div><h2>Out of shots!</h2><p>Every level can be solved — try a different angle or power. A 💡 hint shows a working shot.</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🌌 Map</button></div>');
+      showModal('<div style="font-size:3rem">🔧</div><h2>Out of shots!</h2><p>Every level can be solved — try a different angle or power, and steer with thrust. A 💡 hint shows a working shot.</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🌌 Map</button></div>');
       $('mRetry').onclick = function () { startLevel(lvN); }; $('mMap').onclick = function () { renderMap(); show('map'); };
     } else {
       endless.hulls--; updateHud();
       if (endless.hulls > 0) {
         showModal('<div style="font-size:3rem">🔧</div><h2>Hull damaged!</h2><p>❤ ' + endless.hulls + ' hull' + (endless.hulls === 1 ? '' : 's') + ' left. Try this sector again.</p><div class="row"><button class="btn primary" id="mRetry">↺ Retry sector</button></div>');
-        $('mRetry').onclick = function () { nextSector(); };
+        $('mRetry').onclick = function () { enterSector(); };
       } else {
         var best = endless.score >= save.best && endless.score > 0;
-        showModal('<div style="font-size:3rem">' + (best ? '🏆' : '💫') + '</div><h2>Mission over</h2><p>Sectors cleared: <b>' + endless.cleared + '</b></p><p>Score <b style="color:var(--accent);font-size:1.6rem">' + endless.score + '</b></p><p>' + (best ? 'New best score! 🎉' : 'Best: ' + save.best) + '</p><div class="row"><button class="btn primary" id="mRetry">♾️ New run</button><button class="btn" id="mMenu">☰ Menu</button></div>');
+        showModal('<div style="font-size:3rem">' + (best ? '🏆' : '💫') + '</div><h2>Mission over</h2><p>Sectors cleared: <b>' + endless.cleared + '</b></p><p>Score <b style="color:var(--accent);font-size:1.6rem">' + fmt(endless.score) + '</b></p><p>' + (best ? 'New best score! 🎉' : 'Best: ' + fmt(save.best)) + '</p><div class="row"><button class="btn primary" id="mRetry">♾️ New run</button><button class="btn" id="mMenu">☰ Menu</button></div>');
         if (best) confetti(); $('mRetry').onclick = startEndless; $('mMenu').onclick = function () { refreshMenu(); show('menu'); };
       }
     }
@@ -321,15 +386,16 @@
   $('resetBtn').onclick = function () { if (!L) return; mode === 'campaign' ? startLevel(lvN) : (flight = null, setupLevel(L), updateHud()); };
   $('hintBtn').onclick = function () {
     if (phase !== 'aim' || hintsLeft <= 0) return; hintsLeft--; if (mode === 'endless') endless.hints = hintsLeft;
-    var r = GE.simulate(L, L.solution, { maxSteps: 150, goal: false });
+    var r = GE.simulate(L, L.solution, { maxSteps: 200, goal: false });
     ghost = { pts: r.points, until: performance.now() + 7000, v: L.solution }; toast('💡 Gold path = a working shot. Match the pull!'); updateHud();
   };
   $('howBtn').onclick = function () {
     showModal('<h2>🛰️ How to play</h2><ul class="how"><li><b>Press and drag BACK</b> (like a slingshot), then release. The farther you pull, the faster you fly.</li>' +
       '<li>The <b>dotted line</b> previews your path. It gets shorter in later galaxies!</li>' +
-      '<li>🪐 Planets and ☀️ suns <b>pull</b> you in — touch one and you crash. 🕳️ Black holes pull ferociously. ✨ Repulsors <b>push</b> you away.</li>' +
-      '<li>Dock at the <b>green charging station</b>. Earn ⭐ for: reaching it · collecting all 🔋 cells · using 2 shots or fewer.</li>' +
-      '<li>♾️ <b>Deep Space</b>: endless sectors, 3 hulls. Chain clears for a big score.</li></ul><div class="row"><button class="btn primary" id="hOk">Launch!</button></div>');
+      '<li>🔥 <b>While flying, hold</b> your finger/mouse (or Space) — the probe thrusts toward it. Fuel is limited, so steer wisely!</li>' +
+      '<li>⏱️ Planets <b>drift and orbit</b> once you launch. 🪐 Planets and ☀️ suns pull you in (touch = crash), 🕳️ black holes pull hard, ✨ repulsors push you away, ☄️ asteroids just smash you, 🌀 portals teleport you.</li>' +
+      '<li>Dock at the <b>green station</b>. ⭐ for: reaching it · all 🔋 cells · 2 shots or fewer. Bonus points for pure flight, bullseye, close calls and speed!</li>' +
+      '<li>Earn ⭐ to rank up from Cadet to Legend. ♾️ <b>Deep Space</b> is endless — 3 hulls, how far can you go?</li></ul><div class="row"><button class="btn primary" id="hOk">Launch!</button></div>');
     $('hOk').onclick = function () { $('overlay').hidden = true; };
   };
   $('skinBtn').onclick = function () {
@@ -362,16 +428,20 @@
 
   function drawBackground(now) {
     cx.fillStyle = '#050820'; cx.fillRect(0, 0, W, H);
-    var wi = L && L.world != null ? L.world : (L && L.endlessK ? (L.endlessK % 6) : 0), hues = [220, 270, 30, 190, 320, 260][wi % 6];
+    var wi = L && L.world != null ? L.world : (L && L.endlessK ? (L.endlessK % 10) : 0), hues = [220, 270, 30, 190, 320, 260, 20, 280, 340, 200][wi % 10];
     var g = cx.createRadialGradient(W * .75, H * .25, 10, W * .75, H * .25, 520); g.addColorStop(0, hsl(hues, 70, 30, .5)); g.addColorStop(1, hsl(hues, 70, 10, 0)); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
     var g2 = cx.createRadialGradient(W * .2, H * .85, 10, W * .2, H * .85, 420); g2.addColorStop(0, hsl(hues + 60, 70, 28, .4)); g2.addColorStop(1, hsl(hues + 60, 70, 10, 0)); cx.fillStyle = g2; cx.fillRect(0, 0, W, H);
     STARS.forEach(function (s) { var x = (s.x - now * .004 * s.z * 6 + W * 4) % W, a = .35 + .5 * Math.abs(Math.sin(now / 900 + s.tw)); cx.globalAlpha = a * s.z; cx.fillStyle = '#fff'; cx.fillRect(x, s.y, s.z * 2.2, s.z * 2.2); }); cx.globalAlpha = 1;
   }
+  function drawPath(b) {
+    var m = b.mv; if (!m) return;
+    cx.save(); cx.setLineDash([4, 8]); cx.strokeStyle = 'rgba(255,255,255,.2)'; cx.lineWidth = 2; cx.beginPath();
+    if (m.k === 'orbit') cx.arc(m.cx, m.cy, m.R, 0, 6.283); else { cx.moveTo(m.ax, m.ay); cx.lineTo(m.bx, m.by); }
+    cx.stroke(); cx.restore();
+  }
   function drawBody(b, pos, now) {
     var x = pos.x, y = pos.y, r = b.r;
-    if (b.mv) { cx.save(); cx.setLineDash([4, 8]); cx.strokeStyle = 'rgba(255,255,255,.16)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(b.mv.ax, b.mv.ay); cx.lineTo(b.mv.bx, b.mv.by); cx.stroke(); cx.restore(); }
-    // faint gravity field
-    cx.save(); cx.strokeStyle = b.t === 'r' ? 'rgba(255,120,220,.18)' : 'rgba(150,190,255,.1)'; cx.setLineDash([3, 7]); cx.lineWidth = 1.5; cx.beginPath(); cx.arc(x, y, r * 2.4, 0, 6.283); cx.stroke(); cx.restore();
+    cx.save(); cx.strokeStyle = b.t === 'r' ? 'rgba(255,120,220,.18)' : 'rgba(150,190,255,.1)'; cx.setLineDash([3, 7]); cx.lineWidth = 1.5; if (b.t !== 'a') { cx.beginPath(); cx.arc(x, y, r * 2.4, 0, 6.283); cx.stroke(); } cx.restore();
     if (b.t === 'p' || b.t === 'm') {
       cx.save(); cx.shadowColor = hsl(b.hue, 80, 60, .8); cx.shadowBlur = 22;
       var g = cx.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); g.addColorStop(0, hsl(b.hue, 70, 72)); g.addColorStop(.6, hsl(b.hue, 60, 45)); g.addColorStop(1, hsl(b.hue, 60, 16));
@@ -391,7 +461,20 @@
       cx.save(); for (var w = 0; w < 3; w++) { var ph = ((now / 1200) + w / 3) % 1; cx.strokeStyle = 'rgba(255,120,220,' + (.5 * (1 - ph)) + ')'; cx.lineWidth = 3; cx.beginPath(); cx.arc(x, y, r * (.5 + ph * 1.8), 0, 6.283); cx.stroke(); }
       cx.shadowColor = '#ff78dc'; cx.shadowBlur = 24; cx.fillStyle = '#ff9be8'; cx.beginPath(); cx.moveTo(x, y - r * .75); cx.lineTo(x + r * .5, y); cx.lineTo(x, y + r * .75); cx.lineTo(x - r * .5, y); cx.closePath(); cx.fill();
       cx.fillStyle = '#fff'; cx.beginPath(); cx.moveTo(x, y - r * .4); cx.lineTo(x + r * .22, y); cx.lineTo(x, y + r * .4); cx.lineTo(x - r * .22, y); cx.closePath(); cx.fill(); cx.restore();
+    } else if (b.t === 'a') {
+      cx.save(); cx.translate(x, y); cx.rotate(now / 900 + b.hue); cx.shadowColor = '#ff8a5c'; cx.shadowBlur = 12;
+      var gg = cx.createRadialGradient(-r * .3, -r * .3, 1, 0, 0, r * 1.1); gg.addColorStop(0, '#d8c3b0'); gg.addColorStop(1, '#5b463a'); cx.fillStyle = gg; cx.beginPath();
+      for (var j = 0; j < 9; j++) { var aa = j / 9 * 6.283, rr = r * (.8 + .25 * (((j * 7 + b.hue) % 5) / 5)); cx.lineTo(Math.cos(aa) * rr, Math.sin(aa) * rr); } cx.closePath(); cx.fill();
+      cx.fillStyle = 'rgba(0,0,0,.25)'; cx.beginPath(); cx.arc(r * .2, -r * .15, r * .22, 0, 6.283); cx.fill(); cx.restore();
     }
+  }
+  function drawPortal(p, now) {
+    [[p.ax, p.ay, 0], [p.bx, p.by, 2]].forEach(function (e) {
+      var x = e[0], y = e[1], r = GE.PORTAL_R; cx.save(); cx.translate(x, y); cx.shadowColor = '#c78bff'; cx.shadowBlur = 24;
+      for (var k = 0; k < 4; k++) { cx.strokeStyle = 'rgba(' + (190 + k * 15) + ',' + (120 + k * 25) + ',255,' + (.8 - k * .15) + ')'; cx.lineWidth = 4 - k * .7; cx.beginPath(); cx.ellipse(0, 0, r * (1 - k * .2), r * (.5 + k * .1), now / (500 + k * 150) * (k % 2 ? -1 : 1) + e[2], 0, 6.283); cx.stroke(); }
+      var g = cx.createRadialGradient(0, 0, 1, 0, 0, r * .8); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(160,80,255,0)'); cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, r * .8, 0, 6.283); cx.fill(); cx.restore();
+    });
+    cx.save(); cx.setLineDash([2, 8]); cx.strokeStyle = 'rgba(199,139,255,.3)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(p.ax, p.ay); cx.lineTo(p.bx, p.by); cx.stroke(); cx.restore();
   }
   function drawGoal(g, now) {
     var r = GE.GOAL_R, pulse = 1 + .08 * Math.sin(now / 220);
@@ -402,16 +485,18 @@
   }
   function drawOrb(o, now, k) {
     var p = 1 + .15 * Math.sin(now / 250 + k * 2); cx.save(); cx.shadowColor = '#ffe34d'; cx.shadowBlur = 20;
-    var g = cx.createRadialGradient(o.x - 3, o.y - 3, 1, o.x, o.y, 11 * p); g.addColorStop(0, '#fff'); g.addColorStop(.5, '#ffe34d'); g.addColorStop(1, '#ff9d00'); cx.fillStyle = g; cx.beginPath(); cx.arc(o.x, o.y, 10 * p, 0, 6.283); cx.fill();
-    cx.fillStyle = 'rgba(80,40,0,.8)'; cx.font = 'bold 12px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('+', o.x, o.y + 1); cx.restore();
+    var g = cx.createRadialGradient(o.x - 3, o.y - 3, 1, o.x, o.y, 12 * p); g.addColorStop(0, '#fff'); g.addColorStop(.5, '#ffe34d'); g.addColorStop(1, '#ff9d00'); cx.fillStyle = g; cx.beginPath(); cx.arc(o.x, o.y, 11 * p, 0, 6.283); cx.fill();
+    cx.fillStyle = 'rgba(80,40,0,.8)'; cx.font = 'bold 13px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('+', o.x, o.y + 1); cx.restore();
   }
-  function drawProbe(x, y, vx, vy, now, flying) {
-    var sk = skin(), a = Math.atan2(vy, vx);
+  // The robot probe — drawn ~1.8x bigger than before (body radius 15).
+  function drawProbe(x, y, vx, vy, now, flying, thrusting) {
+    var sk = skin(), a = Math.atan2(vy, vx), S = 1.8;
     cx.save(); cx.translate(x, y);
-    if (flying) { cx.rotate(a); var fl = 10 + Math.random() * 8; var gg = cx.createLinearGradient(-fl, 0, 0, 0); gg.addColorStop(0, 'rgba(255,160,40,0)'); gg.addColorStop(1, 'rgba(255,230,120,.9)'); cx.fillStyle = gg; cx.beginPath(); cx.moveTo(-3, -4); cx.lineTo(-3 - fl, 0); cx.lineTo(-3, 4); cx.closePath(); cx.fill(); cx.rotate(-a); }
+    if (flying) { cx.rotate(a); var fl = (thrusting ? 26 : 14) + Math.random() * 10; var gg = cx.createLinearGradient(-fl - 6, 0, 0, 0); gg.addColorStop(0, 'rgba(255,160,40,0)'); gg.addColorStop(1, thrusting ? 'rgba(255,255,200,1)' : 'rgba(255,230,120,.9)'); cx.fillStyle = gg; cx.beginPath(); cx.moveTo(-6, -7); cx.lineTo(-6 - fl, 0); cx.lineTo(-6, 7); cx.closePath(); cx.fill(); cx.rotate(-a); }
+    cx.scale(S, S);
     cx.shadowColor = sk.c[0]; cx.shadowBlur = 14; var g = cx.createRadialGradient(-2, -3, 1, 0, 0, 9); g.addColorStop(0, '#fff'); g.addColorStop(1, '#9db6e8'); cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, 8, 0, 6.283); cx.fill(); cx.shadowBlur = 0;
-    cx.fillStyle = sk.c[0]; cx.fillRect(-5, -2.5, 10, 5); cx.fillStyle = '#04102a'; cx.fillRect(-3.4, -1.2, 2, 2.4); cx.fillRect(1.4, -1.2, 2, 2.4);
-    cx.strokeStyle = '#9db6e8'; cx.lineWidth = 1.6; cx.beginPath(); cx.moveTo(0, -8); cx.lineTo(0, -12); cx.stroke(); cx.fillStyle = sk.c[1] || sk.c[0]; cx.beginPath(); cx.arc(0, -13, 2, 0, 6.283); cx.fill();
+    cx.fillStyle = sk.c[0]; cx.fillRect(-5.5, -3, 11, 6); cx.fillStyle = '#04102a'; cx.fillRect(-3.6, -1.4, 2.2, 2.8); cx.fillRect(1.4, -1.4, 2.2, 2.8);
+    cx.strokeStyle = '#9db6e8'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(0, -8); cx.lineTo(0, -12); cx.stroke(); cx.fillStyle = sk.c[1] || sk.c[0]; cx.beginPath(); cx.arc(0, -13, 2.2, 0, 6.283); cx.fill();
     cx.restore();
   }
   function trailColor(i, n) { var sk = skin(); return sk.c.length > 2 ? sk.c[Math.floor(i / n * sk.c.length) % sk.c.length] : sk.c[0]; }
@@ -419,45 +504,45 @@
   function frame(now) {
     requestAnimationFrame(frame);
     if (!L || $('play').hidden) return;
+    if (flight && !flight.done) stepFlightFrame(now);
     cx.setTransform(dpr * sc, 0, 0, dpr * sc, 0, 0); cx.clearRect(0, 0, W, H);
     var sx = 0, sy = 0; if (shake > .3) { sx = (Math.random() - .5) * shake; sy = (Math.random() - .5) * shake; shake *= .88; } else shake = 0;
     cx.save(); cx.translate(sx, sy);
     drawBackground(now);
-    var tStep = flight ? Math.min(flight.idx, GE.MAXSTEPS) : 0;
+    var tStep = flight ? flight.F.step : 0;
+    L.bodies.forEach(function (b) { drawPath(b); });
+    (L.portals || []).forEach(function (p) { drawPortal(p, now); });
     L.bodies.forEach(function (b) { drawBody(b, GE.bodyPos(b, tStep), now); });
     if (L.goal) drawGoal(L.goal, now);
     L.orbs.forEach(function (o, k) { if (!collected[k]) drawOrb(o, now, k); });
     // aim preview
     if (drag && aimPred && phase === 'aim') {
-      var pp = aimPred.pts, n = pp.length / 2;
-      for (var i = 2; i < n; i += 3) { var f = 1 - i / n; cx.globalAlpha = .25 + .7 * f; cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(pp[i * 2], pp[i * 2 + 1], 2.8 * (.6 + f * .6), 0, 6.283); cx.fill(); } cx.globalAlpha = 1;
+      var pp = aimPred.pts, n = pp.length / 2, js = {}; aimPred.jumps.forEach(function (j) { js[j] = 1; });
+      for (var i = 2; i < n; i += 3) { var f = 1 - i / n; cx.globalAlpha = .25 + .7 * f; cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(pp[i * 2], pp[i * 2 + 1], 3.2 * (.6 + f * .6), 0, 6.283); cx.fill(); } cx.globalAlpha = 1;
       var v = dragVec(); if (v) {
-        cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.setLineDash([3, 5]); cx.beginPath(); cx.moveTo(L.start.x, L.start.y); cx.lineTo(L.start.x - v.dx * (v.len > 150 ? 150 / v.len : 1), L.start.y - v.dy * (v.len > 150 ? 150 / v.len : 1)); cx.stroke(); cx.setLineDash([]);
-        cx.fillStyle = '#fff'; cx.font = 'bold 14px Segoe UI'; cx.textAlign = 'left'; cx.fillText('Power ' + Math.round(v.vel.power * 100) + '%', L.start.x + 16, L.start.y - 22);
+        var cl = v.len > 150 ? 150 / v.len : 1;
+        cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.setLineDash([3, 5]); cx.beginPath(); cx.moveTo(L.start.x, L.start.y); cx.lineTo(L.start.x - v.dx * cl, L.start.y - v.dy * cl); cx.stroke(); cx.setLineDash([]);
+        cx.fillStyle = '#fff'; cx.font = 'bold 15px Segoe UI'; cx.textAlign = 'left'; cx.fillText('Power ' + Math.round(v.vel.power * 100) + '%', L.start.x + 26, L.start.y - 26);
       }
     }
     // hint ghost
     if (ghost && now < ghost.until && phase === 'aim') {
       cx.strokeStyle = 'rgba(255,210,74,' + (.5 + .4 * Math.sin(now / 150)) + ')'; cx.lineWidth = 3; cx.setLineDash([10, 8]); cx.beginPath(); var gp = ghost.pts; cx.moveTo(gp[0], gp[1]);
       for (var j = 1; j < gp.length / 2; j += 2) cx.lineTo(gp[j * 2], gp[j * 2 + 1]); cx.stroke(); cx.setLineDash([]);
-      var sp = Math.sqrt(ghost.v.vx * ghost.v.vx + ghost.v.vy * ghost.v.vy), pull = sp / GE.VMAX * 150; cx.fillStyle = 'rgba(255,210,74,.9)'; cx.font = 'bold 13px Segoe UI'; cx.textAlign = 'left'; cx.fillText('pull back ≈ ' + Math.round(sp / GE.VMAX * 100) + '% power', L.start.x + 16, L.start.y + 30);
-      cx.beginPath(); cx.arc(L.start.x - ghost.v.vx / sp * pull, L.start.y - ghost.v.vy / sp * pull, 6, 0, 6.283); cx.stroke();
+      var sp = Math.sqrt(ghost.v.vx * ghost.v.vx + ghost.v.vy * ghost.v.vy), pull = sp / GE.VMAX * 150; cx.fillStyle = 'rgba(255,210,74,.9)'; cx.font = 'bold 14px Segoe UI'; cx.textAlign = 'left'; cx.fillText('pull back ≈ ' + Math.round(sp / GE.VMAX * 100) + '% power', L.start.x + 26, L.start.y + 36);
+      cx.beginPath(); cx.arc(L.start.x - ghost.v.vx / sp * pull, L.start.y - ghost.v.vy / sp * pull, 7, 0, 6.283); cx.stroke();
     }
     // flight
     if (flight && !flight.done) {
-      var r = flight.res, total = r.points.length / 2 - 1; flight.idx = Math.min(total, flight.idx + flight.speed);
-      var i0 = Math.floor(flight.idx), fr = flight.idx - i0, i1 = Math.min(total, i0 + 1);
-      var px = r.points[i0 * 2] + (r.points[i1 * 2] - r.points[i0 * 2]) * fr, py = r.points[i0 * 2 + 1] + (r.points[i1 * 2 + 1] - r.points[i0 * 2 + 1]) * fr, vx = r.points[i1 * 2] - r.points[i0 * 2], vy = r.points[i1 * 2 + 1] - r.points[i0 * 2 + 1];
-      r.orbs.forEach(function (o) { if (!collected[o.i] && flight.idx >= o.step) { collected[o.i] = 1; var oo = L.orbs[o.i]; rings.push({ x: oo.x, y: oo.y, r: 6, life: 1, c: '#ffe34d' }); SFX.orb(Object.keys(collected).length - 1); updateHud(); } });
-      var from = Math.max(0, i0 - 90);
-      for (var t = from; t < i0; t++) { var f2 = (t - from) / Math.max(1, i0 - from); cx.strokeStyle = trailColor(t, total); cx.globalAlpha = f2 * .85; cx.lineWidth = 1 + f2 * 5; cx.lineCap = 'round'; cx.beginPath(); cx.moveTo(r.points[t * 2], r.points[t * 2 + 1]); cx.lineTo(r.points[(t + 1) * 2], r.points[(t + 1) * 2 + 1]); cx.stroke(); } cx.globalAlpha = 1;
-      if (r.result !== 'crash' || flight.idx < total) drawProbe(px, py, vx || 1, vy, now, true);
-      if (flight.idx >= total) endFlight();
+      var F = flight.F, total = F.pts.length / 2 - 1, from = Math.max(0, total - 110), thr = !!thrustTarget() && F.fuel > 0;
+      cx.lineCap = 'round';
+      for (var t = from; t < total; t++) { if (flight.jumpSet[t + 1]) continue; var f2 = (t - from) / Math.max(1, total - from); cx.strokeStyle = trailColor(t, 900); cx.globalAlpha = f2 * .85; cx.lineWidth = 2 + f2 * 8; cx.beginPath(); cx.moveTo(F.pts[t * 2], F.pts[t * 2 + 1]); cx.lineTo(F.pts[(t + 1) * 2], F.pts[(t + 1) * 2 + 1]); cx.stroke(); } cx.globalAlpha = 1;
+      var tg = thrustTarget(); if (tg && F.fuel > 0) { cx.strokeStyle = 'rgba(255,230,120,.5)'; cx.setLineDash([3, 6]); cx.lineWidth = 2; cx.beginPath(); cx.moveTo(F.x, F.y); cx.lineTo(tg.x, tg.y); cx.stroke(); cx.setLineDash([]); cx.beginPath(); cx.arc(tg.x, tg.y, 9, 0, 6.283); cx.stroke(); }
+      if (!F.result) drawProbe(F.x, F.y, F.vx || 1, F.vy, now, true, thr);
     } else if (phase === 'aim') {
       var dv = dragVec(); drawProbe(L.start.x, L.start.y, dv ? dv.dx : 1, dv ? dv.dy : 0, now, false);
-      if (!drag) { cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.setLineDash([4, 6]); cx.lineWidth = 2; cx.beginPath(); cx.arc(L.start.x, L.start.y, 22 + 4 * Math.sin(now / 300), 0, 6.283); cx.stroke(); cx.setLineDash([]); }
+      if (!drag) { cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.setLineDash([4, 6]); cx.lineWidth = 2; cx.beginPath(); cx.arc(L.start.x, L.start.y, 34 + 4 * Math.sin(now / 300), 0, 6.283); cx.stroke(); cx.setLineDash([]); }
     }
-    // fx
     rings = rings.filter(function (q) { return q.life > 0; });
     rings.forEach(function (q) { q.r += 3.2; q.life -= .035; cx.strokeStyle = q.c; cx.globalAlpha = Math.max(0, q.life); cx.lineWidth = 4 * q.life + 1; cx.beginPath(); cx.arc(q.x, q.y, q.r, 0, 6.283); cx.stroke(); cx.globalAlpha = 1; });
     parts = parts.filter(function (q) { return q.life > 0; });
@@ -465,8 +550,8 @@
     cx.restore();
   }
 
-  window.__gb = { get L() { return L; }, get phase() { return phase; }, get shots() { return shots; }, get flight() { return !!flight; }, get save() { return save; }, startLevel: startLevel, startEndless: startEndless,
-    fire: function (v) { if (phase === 'aim') launch(v); }, get collected() { return Object.keys(collected).length; } };
+  window.__gb = { get L() { return L; }, get phase() { return phase; }, get shots() { return shots; }, get flight() { return !!flight; }, get save() { return save; }, get fuel() { return flight ? flight.F.fuel : -1; }, get thrustUsed() { return flight ? flight.F.thrustUsed : -1; },
+    startLevel: startLevel, startEndless: startEndless, hold: function (p) { hold = p; }, fire: function (v) { if (phase === 'aim') launch(v); }, get collected() { return Object.keys(collected).length; } };
 
   refreshMenu(); requestAnimationFrame(frame);
   if (!save.seenHow) { save.seenHow = true; persist(); $('howBtn').click(); }

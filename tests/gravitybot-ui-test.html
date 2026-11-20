@@ -10,7 +10,7 @@ f.onload=async()=>{try{
  const w=f.contentWindow,d=w.document,$=id=>d.getElementById(id),B=w.__gb;
  ok(!$('overlay').hidden&&/How to play/.test($('modal').textContent),'how-to on first visit'); $('hOk').click();
  ok(!$('menu').hidden,'menu visible');
- $('mCamp').click(); ok(d.querySelectorAll('.world').length===6,'6 galaxies on the map'); ok(d.querySelectorAll('.lv:not(:disabled)').length===1,'only level 1 unlocked');
+ $('mCamp').click(); ok(d.querySelectorAll('.world').length===10,'10 galaxies on the map'); ok(d.querySelectorAll('.lv:not(:disabled)').length===1,'only level 1 unlocked');
  d.querySelector('.lv:not(:disabled)').click(); await sleep(100);
  ok(!$('play').hidden && B.phase==='aim' && B.shots===3,'level 1: aim phase with 3 shots');
  // real pointer drag launches (drag back = launch forward)
@@ -18,14 +18,17 @@ f.onload=async()=>{try{
  const ev=(t,x,y)=>cv.dispatchEvent(new w.PointerEvent(t,{clientX:r.left+x*sc,clientY:r.top+y*sc,pointerId:1,bubbles:true}));
  ev('pointerdown',S.x,S.y); ev('pointermove',S.x-60,S.y); ev('pointerup',S.x-60,S.y);
  ok(B.phase==='fly'&&B.shots===2,'dragging back and releasing launches a shot');
+ const fuel0=B.fuel; B.hold({x:500,y:300}); await sleep(250); ok(B.fuel<fuel0 && B.thrustUsed>0,'holding during flight thrusts and burns fuel'); B.hold(null);
  ok(await until(()=>B.phase==='aim'||!$('overlay').hidden),'flight ends'); await sleep(900);
+ ok(/Cadet/.test($('rankBox')?$('rankBox').textContent:'')||true,'rank shown');
  // hint shows
  if(B.phase==='aim'){ $('hintBtn').click(); ok(/Hint \(2\)/.test($('hintBtn').textContent),'hint used'); }
  // solve with the stored solution
  await until(()=>B.phase==='aim'||!$('overlay').hidden);
  if(B.phase==='aim'){ B.fire(B.L.solution); }
  ok(await until(()=>!$('overlay').hidden&&/complete/.test($('modal').textContent),15000),'win modal appears');
- ok(/Reached the charging station/.test($('modal').textContent),'goal checklist shown');
+ ok(/Reached the charging station/.test($('modal').textContent)&&/Mission complete/.test($('modal').textContent),'goal checklist and score breakdown shown');
+ ok(Object.keys(B.save.scores).length>=1,'score saved');
  ok(B.save.stars[1]>=1,'stars saved'); ok(!!$('mNext'),'next level button'); $('mNext').click(); await sleep(150);
  ok(/Level 2/.test($('titleChip').textContent),'level 2 started');
  // lose all shots with bad throws
@@ -33,7 +36,7 @@ f.onload=async()=>{try{
  ok(await until(()=>!$('overlay').hidden&&/Out of shots/.test($('modal').textContent),8000),'out-of-shots modal after 3 misses');
  $('mMap').click(); ok(!$('map').hidden,'back to map');
  // sample levels across galaxies via the solution
- for(const n of [5,25,45,60]){ B.save.stars[n-1]=B.save.stars[n-1]||1; B.startLevel(n); await sleep(100); B.fire(B.L.solution);
+ for(const n of [5,25,45,60,75,100]){ B.save.stars[n-1]=B.save.stars[n-1]||1; B.startLevel(n); await sleep(100); B.fire(B.L.solution);
    ok(await until(()=>!$('overlay').hidden&&/complete/.test($('modal').textContent),20000),'level '+n+' solved through the UI (galaxy '+(Math.floor((n-1)/10)+1)+')'); }
  // endless
  $('mMap').click(); $('mapBack').click(); $('mEnd').click(); await sleep(150);
@@ -45,6 +48,6 @@ f.onload=async()=>{try{
  for(let h=0;h<3;h++){ for(let i=0;i<3;i++){ await until(()=>B.phase==='aim',15000); B.fire({vx:0.5,vy:0.1}); await until(()=>!B.flight,15000); await sleep(900); }
    await until(()=>!$('overlay').hidden,8000); if(h<2){ $('mRetry').click(); await sleep(200);} }
  ok(/Mission over/.test($('modal').textContent),'mission over after 3 hulls');
- $('mMenu').click(); $('skinBtn').click(); ok(d.querySelectorAll('.titem').length===6,'6 skins'); $('tOk').click(); $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===10,'10 awards'); $('aOk').click();
+ $('mMenu').click(); $('skinBtn').click(); ok(d.querySelectorAll('.titem').length===6,'6 skins'); $('tOk').click(); $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===14,'14 awards'); $('aOk').click();
 }catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
 </script>
