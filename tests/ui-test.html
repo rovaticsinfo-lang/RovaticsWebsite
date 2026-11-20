@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/sudoku.html" style="width:900px;height:900px"></iframe>
+<script>
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+document.getElementById('f').onload=()=>{try{
+ const w=f.contentWindow,d=w.document,S=w.__sudoku,E=w.SudokuEngine;
+ let g=S.game; ok(g.level===1,'starts level 1');
+ ok(d.querySelectorAll('#board .cell').length===81,'81 cells');
+ // no validation before submit: enter a wrong duplicate digit
+ const empty=g.grid.findIndex(v=>!v); const wrong=g.solution[empty]%9+1;
+ S.select(empty);S.enter(wrong);
+ ok(!d.querySelector('.cell.err'),'no error shown before submit');
+ d.getElementById('submitBtn').click();
+ ok(/Not quite/.test(d.getElementById('msg').textContent),'submit reports problems');
+ // clues: max 5
+ for(let i=0;i<8;i++)d.getElementById('clueBtn').click();
+ ok(g.clues===5 && d.getElementById('clueLeft').textContent==='0','clues capped at 5');
+ ok(d.getElementById('clueBtn').disabled,'clue button disabled');
+ // solve fully and submit
+ g.solution.forEach((v,i)=>{ if(!g.given[i]&&!g.hinted[i]){S.select(i);S.enter(v);} });
+ ok(/encourag|!/.test(d.getElementById('toast').textContent),'toast shown: '+d.getElementById('toast').textContent);
+ d.getElementById('submitBtn').click();
+ ok(!d.getElementById('overlay').hidden && /Level 1 Complete/.test(d.getElementById('modal').textContent),'celebration modal');
+ ok(!!d.getElementById('mNext'),'next level button');
+ d.getElementById('mNext').click();
+ ok(S.game.level===2 && S.game.clues===0,'level 2 started, clues reset');
+ ok(d.querySelectorAll('.lv:not(:disabled)').length===2,'only 2 levels unlocked');
+ ok(d.querySelector('#board-lb').textContent.length>0,'leaderboard renders');
+}catch(e){ok(false,'exception '+e.message)}
+ document.getElementById('out').textContent=out.join('\n')+'\nDONE';};
+</script>
