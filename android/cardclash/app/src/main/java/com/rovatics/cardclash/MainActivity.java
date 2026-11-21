@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(START_URL);
+        else web.loadUrl(startUrlFor(getIntent()));
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -167,6 +167,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** The bundled game page; an invite link keeps its ?room=CODE so the game can show "Join / No thanks". */
+    private String startUrlFor(Intent intent) {
+        Uri d = intent == null ? null : intent.getData();
+        return d != null && d.getEncodedQuery() != null ? START_URL + "?" + d.getEncodedQuery() : START_URL;
+    }
+
+    /** An invite link was tapped while the app is already open: show the invite dialog without losing the current screen. */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        Uri d = intent == null ? null : intent.getData();
+        String room = d == null ? null : d.getQueryParameter("room");
+        if (web != null && room != null && room.matches("[A-Za-z0-9]{5}")) {
+            web.evaluateJavascript("window.__rvInvite && window.__rvInvite('" + room + "')", null);
+        }
+    }
+
     /** What the game's JavaScript can ask the app to do. */
     private final class AppBridge {
         @JavascriptInterface
@@ -205,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        web.onPause();
+        // Deliberately NOT calling web.onPause(): that freezes timers and drops the online room while the host shares the invite.
     }
 
     @Override

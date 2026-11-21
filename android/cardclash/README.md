@@ -233,3 +233,13 @@ sdk.dir=C:/Users/you/AppData/Local/Android/Sdk
 - The About screen's **Rate on Google Play** and **Share the app** buttons point at the Play listing id and
   rovatics.com. Once the app is live, change the share text in `res/values/strings.xml` to the Play Store URL.
 - The listing text for the Play Console is ready to paste from `play-assets/store-listing.md`.
+
+## Online rooms, invite links and the TURN relay
+- **Invite links** (`https://www.rovatics.com/games/cardclash.html?room=CODE`) open the app (Android App Links) and show "Join room / No thanks".
+  For Android to open them *automatically*, `/.well-known/assetlinks.json` (in the website repo root) must list the SHA-256 of the key that signs
+  the installed app. It currently lists the TEST key. After your first Play upload, add the **Play App Signing** SHA-256
+  (Play Console > Setup > App signing) for each package. Until then, the link opens in the browser, which shows an "Open app" button.
+- **Phones on different mobile networks** usually need a TURN relay. Add free credentials (e.g. https://www.metered.ca/) to `games/turn-config.js`,
+  run `node android/cardclash/sync-assets.js`, rebuild. Without it, rooms work on the same Wi-Fi / ordinary home networks only.
+- The host app keeps its room alive while backgrounded (e.g. while sharing the code), and joiners retry for ~10 s.
+- Data safety note: online rooms send IP addresses to PeerJS signalling / STUN (and your TURN) servers; declare accordingly in Play Console.

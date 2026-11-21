@@ -24,7 +24,7 @@ const LOGO_APP = path.join(ROOT, 'android', 'cardclash', 'app', 'src', 'main', '
 const LOGO_SITE = path.join(ROOT, 'assets', 'rovatics-logo.png');
 
 const GAMES = {
-  sudoku:   { page: 'sudoku.html',               extra: ['sudoku-engine.js'] },
+  sudoku:   { page: 'sudoku.html',               extra: ['sudoku-engine.js', 'open-in-app.js'] },
   racers:   { page: 'kids-car-race-game.html',   extra: [] },
   beambots: { page: 'beambots.html',             extra: ['beambots-engine.js'] }
 };

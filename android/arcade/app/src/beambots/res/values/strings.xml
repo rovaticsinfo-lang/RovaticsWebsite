@@ -4,5 +4,5 @@
     <string name="app_tagline">Wake the sleeping robots with laser light</string>
     <string name="app_description">A laser-and-mirror puzzle: bounce, split and tint beams to wake sleeping robots. 12 levels plus a new Daily Lab puzzle every day. No ads, fully offline.</string>
     <string name="start_page">beambots.html</string>
-    <string name="share_app_text">Try Rovatics Beam Bots: bounce lasers to wake sleeping robots, plus a new puzzle every day! https://rovatics.com/games.html</string>
+    <string name="share_app_text">Try Rovatics Beam Bots: bounce lasers to wake sleeping robots, plus a new puzzle every day! https://www.rovatics.com/games.html</string>
 </resources>

@@ -30,6 +30,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Invite links (https://rovatics.com/games/cardclash.html?room=CODE) open the app -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="rovatics.com" android:pathPrefix="/games/cardclash.html" />
+                <data android:host="www.rovatics.com" />
+            </intent-filter>
         </activity>
 
         <activity

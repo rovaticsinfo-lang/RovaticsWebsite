@@ -303,7 +303,7 @@
     $('mAgain').onclick = function () { mode === 'daily' ? startDaily() : startLevel(levelNo); };
     $('mMenu').onclick = function () { $('backBtn').click(); };
     $('mShare').onclick = function () {
-      var url = 'https://rovatics.com/games/beambots.html';
+      var url = 'https://www.rovatics.com/games/beambots.html';
       var text = 'I woke up all the robots in Rovatics Beam Bots (' + (mode === 'daily' ? 'Daily Lab' : 'Level ' + levelNo) + ') with ' + '\u2605'.repeat(stars) + ' in ' + moves + ' moves! Can you beat me? ' + url;
       try { if (window.RovaticsApp && RovaticsApp.share) { RovaticsApp.share(text); return; } } catch (e) {}
       if (navigator.share) navigator.share({ text: text }).catch(function () {});

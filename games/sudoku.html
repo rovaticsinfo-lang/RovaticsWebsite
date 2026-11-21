@@ -83,6 +83,9 @@
   .vs .win{border-color:var(--gold);box-shadow:0 0 18px rgba(255,210,74,.35)}
   .small{font-size:.8rem;color:var(--muted)}
 /* rv-power */
+.board-wrap{position:relative}
+.xbub{position:absolute;z-index:20;width:46px;height:46px;border-radius:50%;border:3px solid #fff;background:#ff3b5c;color:#fff;font-size:1.5rem;font-weight:900;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:0 6px 18px rgba(0,0,0,.55);transform:translate(-50%,-100%);animation:xbub .18s ease-out}
+@keyframes xbub{from{transform:translate(-50%,-70%) scale(.4);opacity:0}to{transform:translate(-50%,-100%) scale(1);opacity:1}}
 .chipbtn{cursor:pointer;font:inherit;color:inherit}
 .chipbtn:active{transform:scale(.95)}
 .cell .nt{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;font-size:.5rem;line-height:1;font-weight:600;color:#8fb4ff;pointer-events:none}
@@ -179,7 +182,7 @@
     b.setAttribute('role', 'gridcell');
     if (i % 9 === 2 || i % 9 === 5) b.classList.add('bR');
     if (((i / 9) | 0) === 2 || ((i / 9) | 0) === 5) b.classList.add('bB');
-    b.addEventListener('click', function () { select(+this.dataset.i); });
+    b.addEventListener('click', function () { if (lpFired) { lpFired = false; return; } select(+this.dataset.i); });
     boardEl.appendChild(b); cells.push(b);
   }
   var pad = el('pad');
@@ -278,13 +281,13 @@
       c.setAttribute('aria-label', 'Row ' + (((i / 9) | 0) + 1) + ' column ' + (i % 9 + 1) + (v ? ', ' + v : ', empty'));
     }
   }
-  function select(i) { if (!G || G.done) return; G.sel = i; render(); }
+  function select(i) { if (!G || G.done) return; hideBubble(); G.sel = i; render(); }
 
   function enter(v) {
     if (!G || G.done || G.sel < 0) { if (G && !G.done && G.sel < 0) toast('Tap a cell first 👆'); return; }
     var i = G.sel;
     if (G.given[i] || G.hinted[i]) { toast('That cell is locked 🔒'); return; }
-    el('issues').hidden = true; setMsg('');
+    el('issues').hidden = true; setMsg(''); hideBubble();
     var prevNotes = (G.notes[i] || []).slice();
     if (noteMode && v && !G.grid[i]) {          // pencil marks
       var arr = G.notes[i] || (G.notes[i] = []), at = arr.indexOf(v);
@@ -426,6 +429,31 @@
   function showOverlay(h) { el('modal').innerHTML = h; el('overlay').hidden = false; }
   function hideOverlay() { el('overlay').hidden = true; }
 
+  // ---------- rv-longpress: hold a number you entered -> round red cross to remove it ----------
+  var lpT = 0, lpFired = false, bub = null;
+  function hideBubble() { if (bub) { bub.remove(); bub = null; } }
+  function showBubble(i) {
+    hideBubble();
+    if (!G || G.done || G.paused || G.given[i] || G.hinted[i] || !G.grid[i]) return;
+    lpFired = true; G.sel = i; render();
+    var wrap = boardEl.parentNode, cr = cells[i].getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    bub = document.createElement('button'); bub.type = 'button'; bub.className = 'xbub'; bub.textContent = '✕'; bub.setAttribute('aria-label', 'Remove this number');
+    var left = cr.left - wr.left + cr.width / 2, top = cr.top - wr.top + 2;
+    if (top < 52) top = cr.bottom - wr.top + 54;                      // not enough room above (top row): show below
+    bub.style.left = Math.max(26, Math.min(wr.width - 26, left)) + 'px'; bub.style.top = top + 'px';
+    bub.addEventListener('click', function (e) { e.stopPropagation(); var j = i; hideBubble(); G.sel = j; enter(0); });
+    wrap.appendChild(bub); haptic('tick'); sfx('tap');
+  }
+  boardEl.addEventListener('pointerdown', function (e) {
+    var c = e.target.closest ? e.target.closest('.cell') : null; clearTimeout(lpT); lpFired = false;
+    if (!c || !G || G.done || G.paused) return;
+    var i = +c.dataset.i; if (G.given[i] || G.hinted[i] || !G.grid[i]) return;
+    lpT = setTimeout(function () { showBubble(i); }, 420);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) { boardEl.addEventListener(n, function () { clearTimeout(lpT); }); });
+  boardEl.addEventListener('contextmenu', function (e) { e.preventDefault(); var c = e.target.closest ? e.target.closest('.cell') : null; if (c) showBubble(+c.dataset.i); });
+  document.addEventListener('pointerdown', function (e) { if (bub && e.target !== bub) hideBubble(); }, true);
+
   // ---------- pause ----------
   function pauseGame() {
     if (!G || G.done || G.paused || !el('overlay').hidden) return;
@@ -449,7 +477,7 @@
     if (time == null) { if (!G || !G.done) { toast('Finish this level first, then challenge a friend!'); return; } time = G.elapsed; level = G.level; }
     var name = myName();
     var inApp = location.hostname === 'appassets.androidplatform.net';
-    var base = inApp ? 'https://rovatics.com/games/sudoku.html' : location.href.split('?')[0].split('#')[0];
+    var base = inApp ? 'https://www.rovatics.com/games/sudoku.html' : location.href.split('?')[0].split('#')[0];
     var link = base + '?c=' + encodeURIComponent([level, G ? G.variant : 0, time, encodeURIComponent(name)].join('.'));
     var text = name + ' did Sudoku level ' + level + ' in ' + E.formatTime(time) + '. Can you beat it? ' + link;
     function shown() { el('chalNote').textContent = 'Link ready: ' + link; }
@@ -532,7 +560,8 @@
   if (incoming) {
     showOverlay('<div style="font-size:3rem">⚔️</div><h2>Sudoku Challenge!</h2><p><b>' + esc(incoming.name) + '</b> solved Level ' + incoming.level + ' in</p><div class="big">' +
       E.formatTime(incoming.time) + '</div><p>Can you beat it? Enter your name and play the very same puzzle.</p>' +
-      '<input type="text" id="cName" maxlength="16" placeholder="Your name" value="' + esc(store.name) + '"><div class="row"><button class="btn primary" id="cGo">Accept challenge ▶</button></div>');
+      '<input type="text" id="cName" maxlength="16" placeholder="Your name" value="' + esc(store.name) + '"><div class="row"><button class="btn primary" id="cGo">Accept challenge ▶</button><button class="btn" id="cNo">Decline</button></div>');
+    el('cNo').onclick = function () { hideOverlay(); incoming = null; startLevel(Math.min(store.unlocked, E.LEVELS)); };
     el('cGo').onclick = function () {
       var n = (el('cName').value || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
       if (n) { store.name = n; el('nameInput').value = n; save(); }
@@ -548,13 +577,13 @@
   // Android hardware Back: close dialog / pause; return true if handled
   window.__androidBack = function () {
     if (!el('overlay').hidden) { if (G && G.paused) resumeGame(); else hideOverlay(); return true; }
-    if (G && !G.done && G.running) { pauseGame(); return true; }
-    return false;
+    return false;                       // during play: let the app handle it (press twice to exit)
   };
   // test hook (used by automated tests)
   window.__sudoku = { get game() { return G; }, enter: enter, select: select, complete: complete, startLevel: startLevel, undo: undo, setNoteMode: setNoteMode, pause: pauseGame, resume: resumeGame };
 })();
 </script>
+<script src="open-in-app.js"></script>
 <!-- Rovatics brand badge -->
 <style>
   .rv-brand-badge{position:fixed;right:8px;bottom:8px;z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;opacity:.9;border-radius:999px;

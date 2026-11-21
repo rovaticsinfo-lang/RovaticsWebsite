@@ -38,11 +38,15 @@ document.getElementById('f').onload=()=>{try{
   d.getElementById('pauseBtn').click();
   ok(g2.paused && !d.getElementById('overlay').hidden && d.getElementById('board').style.visibility==='hidden','pause hides board + shows overlay');
   ok(w.__androidBack()===true && !g2.paused && d.getElementById('overlay').hidden,'Back resumes from pause');
-  ok(w.__androidBack()===true && g2.paused,'Back during play pauses');
-  d.getElementById('mResume').click();
+  ok(w.__androidBack()===false && !g2.paused,'Back during play does not pause (app handles it)');
   const mb=d.getElementById('muteBtn'); mb.click(); ok(mb.textContent==='🔇' && JSON.parse(w.localStorage.getItem('rovatics.sudoku.v1')).muted===true,'mute persists');
   mb.click(); ok(mb.textContent==='🔊','unmute');
   ok(JSON.parse(w.localStorage.getItem('rovatics.sudoku.v1')).stars[1]>=1 && /★/.test(d.querySelector('.lv').textContent),'level stars persisted and shown');
+  S.select(e2); S.enter(g2.solution[e2]%9+1);
+  d.querySelector('#board .cell[data-i="'+e2+'"]').dispatchEvent(new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true}));
+  ok(!!d.querySelector('.xbub'),'long-press on an entered number shows the round cross');
+  d.querySelector('.xbub').click(); ok(g2.grid[e2]===0 && !d.querySelector('.xbub'),'tapping the cross removes the number');
+  const gi=g2.given.findIndex(Boolean); d.querySelector('#board .cell[data-i="'+gi+'"]').dispatchEvent(new w.MouseEvent('contextmenu',{bubbles:true,cancelable:true})); ok(!d.querySelector('.xbub'),'no cross on given numbers');
   let ev=0; d.addEventListener('rv-haptic',()=>ev++); S.select(e2); S.enter(1); ok(ev>0,'haptic event fired');
  }
 }catch(e){ok(false,'exception '+e.message)}

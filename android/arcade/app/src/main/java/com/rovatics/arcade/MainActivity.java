@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl("https://" + HOST + "/assets/game/" + getString(R.string.start_page));
+        else web.loadUrl(gameUrl(getIntent()));
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -165,8 +165,31 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /** The bundled game page; a shared rovatics.com link keeps its query (?c=... challenge) so the game can react to it. */
+    private String gameUrl(Intent intent) {
+        String url = "https://" + HOST + "/assets/game/" + getString(R.string.start_page);
+        Uri d = intent == null ? null : intent.getData();
+        if (d != null && d.getEncodedQuery() != null) url += "?" + d.getEncodedQuery();
+        return url;
+    }
+
+    /** A link was tapped while the app is already running. */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (web != null && intent != null && intent.getData() != null) web.loadUrl(gameUrl(intent));
+    }
+
     /** What the game's JavaScript can ask the app to do. */
     private final class AppBridge {
+        /** mode: landscape | auto. Racers turns the phone sideways while a race is on. */
+        @JavascriptInterface
+        public void orientation(String mode) {
+            final int o = "landscape".equals(mode) ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER;
+            runOnUiThread(() -> setRequestedOrientation(o));
+        }
+
         @JavascriptInterface
         public void openAbout() {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, AboutActivity.class)));

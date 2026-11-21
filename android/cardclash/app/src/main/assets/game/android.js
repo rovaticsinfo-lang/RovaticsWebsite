@@ -28,19 +28,6 @@
       bar.insertBefore(b, bar.firstChild);
     }
 
-    // 3. A web page can't share an "invite link" from inside the app (its address is internal),
-    //    so hand the room code to the Android share sheet instead.
-    var copy = document.getElementById('copyBtn');
-    if (copy) {
-      copy.textContent = '📤 Invite friends';
-      copy.addEventListener('click', function (e) {
-        var code = (document.getElementById('roomCode') || {}).textContent || '';
-        if (!/^[A-Z0-9]{5}$/.test(code)) return;
-        e.preventDefault(); e.stopImmediatePropagation();
-        call('share', 'Join my Card Clash room! Open the app, tap "Join a friend" and enter the code: ' + code);
-      }, true);
-    }
-
     // 4. Lobby: dock "Start game" at the bottom so it is always on screen, and fold the three option rows into one line.
     var startBtn = document.getElementById('startBtn'), lobby = document.getElementById('lobby');
     if (startBtn && lobby && !document.getElementById('appDock')) {

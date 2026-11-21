@@ -82,6 +82,24 @@
     .sw{gap:4px}.swatch{border-width:2px}
     .sbtn{padding:5px 9px;font-size:.78rem}
   }
+/* rv-fullscreen: while racing, the track fills the whole screen; results/pause appear on top of it */
+body.racing{overflow:hidden;height:100vh;height:100dvh;background:#06122e}
+body.racing #raceScr{position:fixed;inset:0;max-width:none;padding:0;margin:0}
+body.racing .stage{width:100%;height:100%;margin:0;display:flex;align-items:center;justify-content:center;position:relative}
+body.racing #cv{width:min(100vw,calc(100vh * 1.40625));width:min(100vw,calc(100dvh * 1.40625));height:auto;aspect-ratio:900/640;border:0;border-radius:0}
+body.racing .bar{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);z-index:8;margin:0;flex-wrap:nowrap;gap:2px;opacity:.8}
+body.racing .bar b{display:none}
+body.racing .sbtn{margin:0 2px;padding:5px 10px;font-size:.78rem;background:rgba(6,18,46,.8)}
+body.racing #rtoast{top:14px}
+body.racing .pads{position:fixed;left:0;right:0;bottom:0;max-width:none;margin:0;z-index:7;display:block;pointer-events:none}
+body.racing .pad{background:none;border:0;padding:0;border-radius:0}
+body.racing .pname{display:none}
+body.racing .btns{display:flex;justify-content:space-between;gap:0;padding:0 max(10px,env(safe-area-inset-left)) 16px}
+body.racing .btns button{pointer-events:auto;width:clamp(84px,27vh,150px);height:clamp(84px,27vh,150px);padding:0;border-radius:50%;opacity:.45;font-size:2rem;border:3px solid rgba(255,255,255,.7)}
+body.racing .btns button small{display:none}
+body.racing .btns button.down{opacity:.9}
+body.racing .res{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:20;width:min(94vw,560px);max-height:92vh;max-height:92dvh;overflow:auto;margin:0;background:rgba(6,18,46,.95);box-shadow:0 12px 50px rgba(0,0,0,.6)}
+body.racing .rv-brand-badge{display:none}
 /* rv-power */
 .stage{position:relative}
 #rtoast{position:absolute;left:50%;top:64px;transform:translate(-50%,-8px);z-index:5;max-width:92%;padding:8px 16px;border-radius:999px;background:rgba(6,18,46,.88);border:2px solid #ffd23f;color:#fff;font-weight:800;font-size:1.05rem;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
@@ -355,7 +373,19 @@ window.addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden && (state==='race'||state==='countdown')){ paused=true; updatePause(); } });
 
 /* ---------- screens & buttons ---------- */
-function show(id){ ['menu','raceScr'].forEach(s=>{ $(s).className='screen'+(s===id?' on':''); }); }
+function show(id){
+  ['menu','raceScr'].forEach(s=>{ $(s).className='screen'+(s===id?' on':''); });
+  const racing=id==='raceScr';
+  document.body.classList.toggle('racing',racing);
+  try{ if(window.RovaticsApp&&window.RovaticsApp.orientation) window.RovaticsApp.orientation(racing?'landscape':'auto'); }catch(e){}
+  try{
+    if(!window.RovaticsApp){
+      if(racing && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+      else if(!racing && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+    }
+  }catch(e){}
+  window.scrollTo(0,0);
+}
 function updatePause(){ $('pauseBtn').textContent=paused?'\u25B6 Resume':'\u23F8 Pause'; }
 function togglePause(){ if(state!=='race'&&state!=='countdown') return; paused=!paused; updatePause(); }
 function goMenu(){ state='menu'; paused=false; show('menu'); refreshMenu(); }
@@ -365,7 +395,7 @@ $('againBtn').addEventListener('click',startRace);
 $('nextBtn').addEventListener('click',()=>{ if(level<LEVELS.length) level++; startRace(); });
 $('changeBtn').addEventListener('click',goMenu);
 $('shareBtn').addEventListener('click',()=>{
-  const r=lastRes, url='https://rovatics.com/games/kids-car-race-game.html';
+  const r=lastRes, url='https://www.rovatics.com/games/kids-car-race-game.html';
   const text=r&&r.ok?'I finished Level '+r.level+' in Rovatics Racers in '+r.place+ORD[r.place-1].slice(1)+' place ('+r.time.toFixed(1)+' s)! Can you beat me? '+url:'Come race me in Rovatics Racers! '+url;
   try{ if(window.RovaticsApp&&window.RovaticsApp.share){ window.RovaticsApp.share(text); return; } }catch(e){}
   if(navigator.share){ navigator.share({text:text}).catch(()=>{}); }

@@ -39,7 +39,7 @@ function must(haystack, needle, what) {
 fs.mkdirSync(DEST, { recursive: true });
 
 // --- plain copies ----------------------------------------------------------
-['cardclash-engine.js', 'cardclash-data.js'].forEach(function (f) {
+['cardclash-engine.js', 'cardclash-data.js', 'open-in-app.js', 'turn-config.js'].forEach(function (f) {
   fs.copyFileSync(path.join(SRC, f), path.join(DEST, f));
   console.log('copied   ' + f);
 });

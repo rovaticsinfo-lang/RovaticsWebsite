@@ -1,0 +1,6 @@
+[
+  {"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.rovatics.cardclash","sha256_cert_fingerprints":["56:4D:9C:AA:00:A9:14:04:2D:6F:0A:DE:2D:70:A0:D6:6A:1E:FB:79:18:F7:64:B6:E3:76:E0:D8:E1:F8:21:C9"]}},
+  {"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.rovatics.sudoku","sha256_cert_fingerprints":["56:4D:9C:AA:00:A9:14:04:2D:6F:0A:DE:2D:70:A0:D6:6A:1E:FB:79:18:F7:64:B6:E3:76:E0:D8:E1:F8:21:C9"]}},
+  {"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.rovatics.racers","sha256_cert_fingerprints":["56:4D:9C:AA:00:A9:14:04:2D:6F:0A:DE:2D:70:A0:D6:6A:1E:FB:79:18:F7:64:B6:E3:76:E0:D8:E1:F8:21:C9"]}},
+  {"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.rovatics.beambots","sha256_cert_fingerprints":["56:4D:9C:AA:00:A9:14:04:2D:6F:0A:DE:2D:70:A0:D6:6A:1E:FB:79:18:F7:64:B6:E3:76:E0:D8:E1:F8:21:C9"]}}
+]

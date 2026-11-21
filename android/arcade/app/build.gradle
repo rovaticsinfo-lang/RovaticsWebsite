@@ -22,9 +22,9 @@ android {
     // One codebase, three games: each flavor has its own id, icon, name, texts and bundled game files.
     flavorDimensions 'game'
     productFlavors {
-        sudoku   { dimension 'game'; applicationId 'com.rovatics.sudoku' }
-        racers   { dimension 'game'; applicationId 'com.rovatics.racers' }
-        beambots { dimension 'game'; applicationId 'com.rovatics.beambots' }
+        sudoku   { dimension 'game'; applicationId 'com.rovatics.sudoku';   manifestPlaceholders = [linkPath: '/games/sudoku.html'] }
+        racers   { dimension 'game'; applicationId 'com.rovatics.racers';   manifestPlaceholders = [linkPath: '/games/kids-car-race-game.html'] }
+        beambots { dimension 'game'; applicationId 'com.rovatics.beambots'; manifestPlaceholders = [linkPath: '/games/beambots.html'] }
     }
 
     signingConfigs {
