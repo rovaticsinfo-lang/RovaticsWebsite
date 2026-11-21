@@ -1,10 +1,11 @@
-# Rovatics Arcade — Android apps (Sudoku, Racers, Beam Bots)
+# Rovatics Arcade — Android apps (Card Clash, Sudoku, Racers, Beam Bots)
 
-One Gradle project, three Play Store apps (product flavors). Each app is a native shell (splash, welcome tour, About, haptics,
+One Gradle project, four Play Store apps (product flavors). Each app is a native shell (splash, welcome tour, About, haptics,
 share sheet, Back handling, edge-to-edge + keyboard-safe layout) around the offline web game from `games/`.
 
 | Flavor | Application ID | Game |
 |---|---|---|
+| cardclash | com.rovatics.cardclash | games/cardclash.html (only app with INTERNET, for online rooms) |
 | sudoku | com.rovatics.sudoku | games/sudoku.html |
 | racers | com.rovatics.racers | games/kids-car-race-game.html |
 | beambots | com.rovatics.beambots | games/beambots.html |
@@ -25,7 +26,7 @@ Enrol in Play App Signing when creating each app in Play Console.
 
 ## Play checklist
 - Listings, icons and feature graphics: `play-assets/<flavor>/`.
-- No permissions, no INTERNET, no ads, no data collected → simplest Data-safety form ("no data collected").
+- Sudoku / Racers / Beam Bots: no permissions, no INTERNET, no ads, no data collected → simplest Data-safety form. Card Clash: INTERNET only (online rooms; see below).
 - Privacy policy URL: https://rovatics.com/privacy.html (must be live).
 - Add 2-8 phone screenshots per app; complete content rating and target audience (Racers: see its listing note on Families policy).
 - New personal developer accounts must run a closed test (12 testers, 14 days) before production.
@@ -37,3 +38,18 @@ Enrol in Play App Signing when creating each app in Play Console.
 ## Verified
 Built (debug, release APK, release AAB) for all three flavors; installed on an Android emulator: splash, welcome tour, game screens,
 race popups and Back handling confirmed. **Test on a real phone before publishing.** Sudoku challenge links open rovatics.com in the friend's browser.
+
+## Card Clash: online rooms, invite links and the TURN relay
+- **Invite links** (`https://www.rovatics.com/games/cardclash.html?room=CODE`, and Sudoku `?c=...` challenge links) open the app (Android App Links) and show
+  "Join room / No thanks" (Sudoku: "Accept / Decline"). For Android to open them *automatically*, `/.well-known/assetlinks.json` (website repo root) must list the
+  SHA-256 of the key that signs the installed app. It lists the TEST key now. After your first Play upload add the **Play App Signing** SHA-256
+  (Play Console > Setup > App signing) for each package. Until then the link opens in the browser, which shows an "Open app" button.
+- **Phones on different mobile networks** usually need a TURN relay: put free credentials (e.g. https://www.metered.ca/) in `games/turn-config.js`, run
+  `node android/arcade/sync-assets.js`, rebuild. Without it rooms work on the same Wi-Fi / ordinary home networks only.
+- The host app keeps its room alive while backgrounded (flavor bool `keep_alive_in_background`); joiners retry for ~10 s.
+- Data safety: online rooms send IP addresses to PeerJS signalling / STUN (and your TURN) servers; declare accordingly in Play Console.
+- Card Clash upgrade note: the app is the same applicationId and signing key as before, so existing installs update in place.
+
+## Build outputs
+`./gradlew assembleDebug assembleRelease bundleRelease` then copy results to one folder, e.g. `E:/Android/arcade-builds/`
+(`<Game>-debug.apk`, `<Game>-release-TESTKEY.apk`, `<Game>-release-TESTKEY.aab`).

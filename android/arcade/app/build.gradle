@@ -24,6 +24,7 @@ android {
     productFlavors {
         sudoku   { dimension 'game'; applicationId 'com.rovatics.sudoku';   manifestPlaceholders = [linkPath: '/games/sudoku.html'] }
         racers   { dimension 'game'; applicationId 'com.rovatics.racers';   manifestPlaceholders = [linkPath: '/games/kids-car-race-game.html'] }
+        cardclash { dimension 'game'; applicationId 'com.rovatics.cardclash'; manifestPlaceholders = [linkPath: '/games/cardclash.html'] }
         beambots { dimension 'game'; applicationId 'com.rovatics.beambots'; manifestPlaceholders = [linkPath: '/games/beambots.html'] }
     }
 

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ob_emoji">
+        <item>🃏</item>
+        <item>🎯</item>
+        <item>🌐</item>
+        <item>⚡</item>
+    </string-array>
+    <string-array name="ob_titles">
+        <item>Welcome to Card Clash</item>
+        <item>Pick your best stat</item>
+        <item>Play with friends</item>
+        <item>Power Play</item>
+    </string-array>
+    <string-array name="ob_bodies">
+        <item>Fast top-trumps battles for 2–4 players. Cricket stars, wrestlers and robots — pick a deck, choose how many cards each, and play.</item>
+        <item>Look at your top card and choose the stat you think will beat everyone. The highest value wins every card on the table.</item>
+        <item>Create a room and share the 5-letter code to play online — or jump straight into a game against bots, even without internet.</item>
+        <item>Once per game, double the stakes. Win and every loser pays an extra card — lose and it costs you. Last player with cards wins!</item>
+    </string-array>
+    <string-array name="about_headings">
+        <item>About this game</item>
+        <item>Features</item>
+        <item>How to play</item>
+        <item>Please note</item>
+    </string-array>
+    <string-array name="about_bodies">
+        <item>Card Clash is a fast top-trumps card battle. Each player is dealt part of the deck and can only see their top card. The player whose turn it is picks a stat; everyone reveals, and the highest value takes every card on the table. Keep winning cards until you hold the whole deck.</item>
+        <item>• Three big decks: Cricket Stars, Wrestling Slam and Rovatics Bots — over 680 characters
+• Choose 6 to 50 cards each, with Quick, Standard or Marathon matches
+• 2–4 players — bots offline, or friends online with a room code
+• ⚡ Power Play: double the stakes, once per game
+• A fanfare and buzz when it is your turn, celebrations when you win
+• Free, with no ads and no account</item>
+        <item>1. Tap “Play vs bots”, or create a room and share the code.\n2. When it is your turn, tap the stat on your card you think is strongest.\n3. Everyone reveals — the highest value wins all the cards.\n4. Lose all your cards and you are out. The last player with cards wins.</item>
+        <item>All characters are fictional and every statistic is invented. Some names are playful parodies. Card Clash is not affiliated with or endorsed by any real player, team or organisation.</item>
+    </string-array>
+</resources>

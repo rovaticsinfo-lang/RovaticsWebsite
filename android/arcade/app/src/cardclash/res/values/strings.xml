@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Card Clash</string>
+    <string name="app_tagline">Top-trumps card battles for 2–4 players</string>
+    <string name="app_description">Fast top-trumps card battles for 2–4 players. Play bots offline or friends online with a room code. No ads, no account.</string>
+    <string name="start_page">cardclash.html</string>
+    <string name="share_app_text">Check out Card Clash by Rovatics — fast top-trumps card battles you can play with friends or bots! https://www.rovatics.com/games.html</string>
+    <string name="share_chooser">Share Card Clash</string>
+    <string name="contact_subject">Card Clash feedback</string>
+    <string name="about_privacy">• Internet — used only for online rooms. Games against bots work without it.\n• No camera, microphone, location, contacts or storage access.\n• No account, no ads and no analytics.\n• Your display name, win record and sound setting are saved on this device only. In an online room your name and moves are shared with the other players; connections are set up through the public PeerJS service.</string>
+    <string name="about_credits">Built by Rovatics.\nOnline play uses PeerJS (MIT License) — peerjs.com</string>
+</resources>

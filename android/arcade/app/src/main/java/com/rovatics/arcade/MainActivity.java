@@ -178,7 +178,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (web != null && intent != null && intent.getData() != null) web.loadUrl(gameUrl(intent));
+        if (web == null || intent == null || intent.getData() == null) return;
+        String room = intent.getData().getQueryParameter("room");
+        if (room != null && room.matches("[A-Za-z0-9]{5}")) {
+            // Card Clash invite while the app is open: show the Join / No thanks dialog without losing the current screen.
+            web.evaluateJavascript("window.__rvInvite && window.__rvInvite('" + room + "')", null);
+        } else {
+            web.loadUrl(gameUrl(intent));
+        }
     }
 
     /** What the game's JavaScript can ask the app to do. */
@@ -226,7 +233,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        web.onPause();
+        // Card Clash keeps running so its online room (and the host's code) survives while the app is in the background.
+        if (!getResources().getBoolean(R.bool.keep_alive_in_background)) web.onPause();
     }
 
     @Override

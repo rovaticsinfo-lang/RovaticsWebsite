@@ -4,10 +4,5 @@
     <color name="brand_bg2">#0A1D4A</color>
     <color name="brand_accent">#42E8F5</color>
     <color name="brand_blue">#0878F9</color>
-    <color name="text_primary">#F2F8FF</color>
-    <color name="text_muted">#A9C4EE</color>
-    <color name="card_bg">#14FFFFFF</color>
-    <color name="card_line">#3A8CC8FF</color>
-    <color name="dot_off">#44FFFFFF</color>
     <color name="ic_launcher_background">#6a11cb</color>
 </resources>

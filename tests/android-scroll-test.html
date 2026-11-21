@@ -7,7 +7,7 @@
 const out = [], ok = (c, m) => out.push((c ? 'PASS ' : 'FAIL ') + m);
 const done = () => { const t = out.join('\n') + '\nDONE'; document.getElementById('out').textContent = t; fetch('/result', { method: 'POST', body: t }).catch(() => {}); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const SRC = '../android/cardclash/app/src/main/assets/game/cardclash.html';
+const SRC = '../android/arcade/app/src/cardclash/assets/game/cardclash.html';
 const SIZES = [[320, 568, 'small 320x568'], [360, 640, 'phone 360x640'], [360, 740, 'phone 360x740'], [412, 915, 'tall 412x915'], [640, 360, 'landscape 640x360']];
 
 function frame(w, h) {

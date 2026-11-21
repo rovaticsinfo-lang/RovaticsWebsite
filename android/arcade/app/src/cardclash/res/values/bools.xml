@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Keep the page running in the background so an online room stays alive while the host shares the invite. -->
+    <bool name="keep_alive_in_background">true</bool>
+</resources>
