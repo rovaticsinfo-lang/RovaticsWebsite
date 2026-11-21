@@ -133,13 +133,21 @@ Be accurate here — it is the part most often filled in wrongly.
 
 ## 7. Things to decide before you publish
 
-**1. Real people's names (please read).** The Cricket deck uses real cricketers and the
-Wrestling deck real wrestlers, with made-up or approximate statistics. Publishing that
-commercially is a different matter from hosting it on your own site: names and personas can be
-protected by publicity rights, and "WWE" and wrestler names are trademarks. I am not a lawyer
-and this is not legal advice, but this is the single biggest risk in shipping this app as-is.
-The safest fix is to replace both decks with original characters — the Robots deck already
-shows the game plays just as well with invented ones. Say the word and I will do the swap.
+**1. Character names (please read).** The decks used to carry real cricketers and wrestlers, with
+statistics modelled on their careers. That has been replaced:
+
+- **All ~680 characters are now fictional and every statistic is invented.** Nothing is real career data, and
+  the real nations and the WWE name are gone.
+- **About 65 "nod" characters** (e.g. *Sach Endlukar*, *Jon Seenah*) have playful altered names that echo
+  famous figures. They are listed in `CRICKET_NODS` and `WRESTLING_NODS` at the top of `games/cardclash-data.js`.
+- Everyone else is an original character built from invented names.
+
+**This reduces the risk; it does not remove it.** A sound-alike name for a famous living person can still raise
+publicity-rights or trademark objections, and "parody" is a legal defence, not a guarantee. I am not a lawyer
+and this is not legal advice. The nods are exactly what carries the remaining risk. If you want the lowest-risk
+release, delete those two lists: the decks stay full and the game plays identically, because the generated
+characters already make up the bulk of every deck. Have a lawyer look at the nods before a commercial launch if
+you keep them.
 
 **2. The multiplayer broker.** Online play depends on the free public PeerJS server, which has
 no uptime guarantee. For a published app it would be worth running your own PeerJS server or

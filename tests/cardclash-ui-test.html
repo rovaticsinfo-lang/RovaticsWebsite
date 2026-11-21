@@ -15,6 +15,15 @@ f.onload=()=>{try{
   d.querySelectorAll('.deckbtn')[1].click();
   setTimeout(()=>{
    ok(d.querySelector('.deckbtn.sel b').textContent==='Wrestling Slam','deck switch works');
+   ok(d.querySelectorAll('#perChips .optbtn').length===10,'10 "cards each" choices (6 to 50)');
+   ok(d.querySelector('#perChips .optbtn.sel').textContent==='8','default is 8 cards each');
+   d.querySelectorAll('#perChips .optbtn')[0].click();
+   ok(w.__cc.host.lobby.perPlayer===6,'host can pick 6 each (host state)');
+   d.querySelectorAll('#perChips .optbtn')[9].click();
+   ok(w.__cc.host.lobby.perPlayer===50,'host can pick 50 each (host state)');
+   ok(d.querySelectorAll('#lenChips .optbtn').length===3 && d.querySelectorAll('#spdChips .optbtn').length===2,'match length + speed choices');
+   ok(/cards in play/.test(d.getElementById('setSummary').textContent),'summary shows cards in play: '+d.getElementById('setSummary').textContent);
+   d.querySelectorAll('#perChips .optbtn')[0].click(); d.querySelectorAll('#spdChips .optbtn')[1].click(); // 6 each, Fast
    d.querySelector('#seats .seat.full button.btn').click(); // remove one bot -> 2 players
    setTimeout(()=>{
     ok(d.querySelectorAll('.seat.full').length===2,'bot removed');
@@ -24,21 +33,36 @@ f.onload=()=>{try{
      $('startBtn').click();
      setTimeout(()=>{
       ok(!$('game').hidden,'game screen shown');
+      const cnt={turn:0,glow:0,cheer:0,edge:0};
+      const watch=(id,key,cls)=>new w.MutationObserver(()=>{ if(d.getElementById(id).classList.contains(cls)) cnt[key]++; }).observe(d.getElementById(id),{attributes:true,attributeFilter:['class']});
+      watch('turnFlash','turn','go'); watch('edgeGlow','edge','go'); watch('cheerSplash','cheer','go'); watch('myCardBox','glow','mycard-glow');
+      w.__cnt=cnt;
       ok(d.querySelectorAll('.pl').length===3,'3 player chips');
       ok(d.querySelectorAll('.card .attr').length===7,'my card shows 7 attributes (wwe)');
+      ok(!d.querySelector('.attr.best') && !d.querySelector('.card .bar') && !d.querySelector('.card .tier') && !d.querySelector('.card .attr .l::after'),'no star, no value bar, no rarity badge on the card');
+      ok(/Round/.test(d.getElementById('roundBar').textContent) && /18 cards in play/.test(d.getElementById('roundBar').textContent) && /of 30/.test(d.getElementById('roundBar').textContent),'round bar (3 players x 6 each, standard = 30 rounds): '+d.getElementById('roundBar').textContent);
+      const vals=[...d.querySelectorAll('.card .attr')].map(x=>getComputedStyle(x).backgroundColor+getComputedStyle(x).borderColor);
+      ok(new Set(vals).size===1,'every attribute row is styled identically');
       w.__cc.forceTeller('host'); let rounds=0, sawReveal=false, sawPower=false, sawEnd=false, iv=setInterval(()=>{
         const cc=w.__cc, v=cc.view;
         if(cc.busy && d.querySelector('.flip')) sawReveal=true;
         if(!$('overlay').hidden && /wins|Champion/.test($('modal').textContent)){sawEnd=true;}
         if(sawEnd){clearInterval(iv); out.push('DBG '+JSON.stringify(v&&{t:v.tellerId,you:v.you,over:v.over,pl:v.players.map(p=>p.id+':'+p.count)})+' busy='+cc.busy+' seq='+(v&&v.seq)+' modal='+$('modal').textContent.slice(0,80));
           ok(sawReveal,'reveal animation rendered');
-          ok(rounds>3,'played '+rounds+' rounds');
+          ok(w.__cnt.turn>0 && w.__cnt.edge>0 && w.__cnt.glow>0,'"YOUR TURN" alert fired (banner '+w.__cnt.turn+', edge glow '+w.__cnt.edge+', card pulse '+w.__cnt.glow+')');
+          ok(w.__cnt.cheer>0,'congratulations splash fired when I won a round ('+w.__cnt.cheer+' times)');
+          ok(rounds>=1,'host took '+rounds+' turn(s)');
           ok(/cards/.test($('modal').textContent),'end screen shows podium');
           ok(/record/.test($('record').textContent)||true,'record updated');
           done(); return;}
         if(v&&!cc.busy&&v.tellerId===v.you&&!v.over&&d.querySelector('button.attr')){
           if(!v.myPowerUsed&&rounds===1){ $('powerBtn').click(); sawPower=d.getElementById('powerBtn').classList.contains('on'); }
-          rounds++; d.querySelector('button.attr.best')?.click(); }
+          if(rounds===0){ // rig round 1: give the host the deck's strongest card for the first stat so a win (and its celebration) is certain
+            const G=w.__cc.host.G, dk=w.CardClashData.DECKS[G.deckId], key=dk.attrs[0].key, me=G.players.find(p=>p.id==='host');
+            const bestC=dk.cards.slice().sort((a,b)=>b.stats[key]-a.stats[key])[0].id, prevTop=me.hand[0];
+            G.players.forEach(p=>{const i=p.hand.indexOf(bestC); if(i>=0) p.hand[i]=prevTop;}); me.hand[0]=bestC;
+            w.__cc.forceTeller('host'); }
+          rounds++; d.querySelector('button.attr')?.click(); }
       },200);
      },300);},300);},300);},300);},300);
 }catch(e){ok(false,'exception '+e.message);done();}};

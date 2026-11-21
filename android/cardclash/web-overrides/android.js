@@ -48,6 +48,9 @@
     }
   });
 
+  // The game fires 'cc-turn' when it becomes the player's turn: give the phone a firm double-buzz.
+  document.addEventListener('cc-turn', function () { call('haptic', 'success'); setTimeout(function () { call('haptic', 'tick'); }, 140); });
+
   document.addEventListener('pointerdown', function (e) {
     var t = e.target && e.target.closest ? e.target.closest('button') : null;
     if (t && !t.disabled) call('haptic', 'tick');

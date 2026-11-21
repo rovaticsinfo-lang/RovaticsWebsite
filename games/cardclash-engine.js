@@ -13,7 +13,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var MIN_PLAYERS = 2, MAX_PLAYERS = 4, MAX_ROUNDS = 400;
+  var MIN_PLAYERS = 2, MAX_PLAYERS = 4, MAX_ROUNDS = 600;
 
   function mulberry32(a) {
     return function () {
@@ -28,16 +28,24 @@
     return arr;
   }
 
-  // deck: object from CardClashData.DECKS; players: [{id,name,bot}]
-  function createGame(deck, players, rng) {
-    rng = rng || Math.random;
+  // deck: object from CardClashData.DECKS; players: [{id,name,bot}].
+  // opts.perPlayer: how many cards each player is dealt, drawn at random from the whole deck
+  //   (default: the whole deck, split evenly). Larger decks than the hands dealt give every game a new mix.
+  // opts.roundLimit: end the match after this many rounds and award it to whoever holds the most cards
+  //   (0 / omitted = play until one player holds everything, with MAX_ROUNDS as a safety net).
+  function createGame(deck, players, rng, opts) {
+    rng = rng || Math.random; opts = opts || {};
     if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) throw new RangeError('2 to 4 players required');
     var ids = {}; players.forEach(function (p) { if (ids[p.id]) throw new Error('duplicate player id'); ids[p.id] = 1; });
-    var cardIds = shuffle(deck.cards.map(function (c) { return c.id; }), rng);
+    var per = opts.perPlayer == null ? Math.floor(deck.cards.length / players.length) : Math.floor(opts.perPlayer);
+    if (!(per >= 1)) throw new RangeError('perPlayer must be at least 1');
+    if (per * players.length > deck.cards.length) throw new RangeError('deck too small: ' + per + ' cards x ' + players.length + ' players');
+    var cardIds = shuffle(deck.cards.map(function (c) { return c.id; }), rng).slice(0, per * players.length);
     var ps = players.map(function (p) { return { id: p.id, name: p.name, bot: !!p.bot, hand: [], powerUsed: false, streak: 0, out: false, left: false }; });
     cardIds.forEach(function (cid, i) { ps[i % ps.length].hand.push(cid); });
     return {
-      deckId: deck.id, players: ps, tellerId: ps[Math.floor(rng() * ps.length)].id,
+      deckId: deck.id, players: ps, tellerId: ps[Math.floor(rng() * ps.length)].id, perPlayer: per, totalCards: cardIds.length,
+      roundLimit: Math.max(0, Math.floor(opts.roundLimit || 0)), endedBy: null, winnerIds: [],
       pot: [], round: 1, seq: 0, over: false, winnerId: null, lastResult: null, byId: null
     };
   }
@@ -99,14 +107,17 @@
   function finish(g, res) {
     var left = alive(g);
     g.round++;
-    if (left.length <= 1 || g.round > MAX_ROUNDS) {
+    var hitLimit = g.roundLimit > 0 && g.round > g.roundLimit, hitCap = g.round > MAX_ROUNDS;
+    if (left.length <= 1 || hitLimit || hitCap) {
       g.over = true;
-      var best = left.slice().sort(function (a, b) { return b.hand.length - a.hand.length; })[0];
-      g.winnerId = best ? best.id : null; if (res) res.gameOver = true;
+      g.endedBy = left.length <= 1 ? 'last' : hitLimit ? 'limit' : 'cap';
+      var most = left.reduce(function (m, p) { return Math.max(m, p.hand.length); }, 0);
+      g.winnerIds = left.filter(function (p) { return p.hand.length === most; }).map(function (p) { return p.id; });
+      g.winnerId = g.winnerIds.length ? g.winnerIds[0] : null;
+      if (res) res.gameOver = true;
     } else if (player(g, g.tellerId).out) {
       g.tellerId = left[0].id;
     }
-    // if a tie wiped the pot-holders out etc. keep teller valid
     if (!g.over && player(g, g.tellerId).out) g.tellerId = left[0].id;
     if (res) g.lastResult = res;
   }
@@ -137,7 +148,7 @@
   function viewFor(g, deck, pid) {
     var me = player(g, pid);
     return {
-      deckId: g.deckId, round: g.round, seq: g.seq, over: g.over, winnerId: g.winnerId, tellerId: g.tellerId,
+      deckId: g.deckId, perPlayer: g.perPlayer, totalCards: g.totalCards, roundLimit: g.roundLimit, endedBy: g.endedBy, winnerIds: g.winnerIds, round: g.round, seq: g.seq, over: g.over, winnerId: g.winnerId, tellerId: g.tellerId,
       pot: g.pot.length, you: pid,
       myTop: me && !me.out && me.hand.length ? me.hand[0] : null,
       myPowerUsed: me ? me.powerUsed : false,

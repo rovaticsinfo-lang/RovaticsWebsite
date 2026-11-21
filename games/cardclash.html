@@ -46,6 +46,29 @@
   .seat{padding:14px;border-radius:14px;border:1px dashed var(--line);min-height:84px;display:flex;align-items:center;gap:12px}
   .seat.full{border-style:solid;background:var(--panel)}
   .av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;color:#04142d;flex:none}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .optbtn{padding:8px 15px;border-radius:999px;border:2px solid var(--line);background:var(--panel);font-weight:700;min-width:48px}
+  .optbtn.sel{border-color:var(--accent);background:rgba(66,232,245,.18);color:var(--accent);box-shadow:0 0 12px rgba(66,232,245,.3)}
+  .optbtn:disabled{opacity:.35;cursor:not-allowed}
+  .roundbar{text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:8px;letter-spacing:.02em}
+  .roundbar b{color:var(--accent)}
+  /* "your turn" alert: a banner sweeps in and the card glows until you choose */
+  .turnflash{position:fixed;left:0;right:0;top:34%;z-index:65;display:flex;justify-content:center;pointer-events:none;opacity:0}
+  .turnflash div{padding:16px 34px;border-radius:999px;background:var(--grad);color:#04142d;font-weight:900;font-size:clamp(1.3rem,6vw,2rem);letter-spacing:.04em;
+    box-shadow:0 0 0 6px rgba(255,255,255,.25),0 14px 50px rgba(0,0,0,.55)}
+  .turnflash.go{animation:turnSweep 1.5s cubic-bezier(.2,.9,.3,1) both}
+  @keyframes turnSweep{0%{opacity:0;transform:translateX(-120%) scale(.8)}18%{opacity:1;transform:translateX(0) scale(1.08)}30%{transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:translateX(0) scale(1.15)}}
+  .edgeglow{position:fixed;inset:0;pointer-events:none;z-index:64;opacity:0;box-shadow:inset 0 0 90px 12px rgba(66,232,245,.55)}
+  .edgeglow.go{animation:edge 1.6s ease-out both}
+  @keyframes edge{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+  .mycard-glow .card{animation:cardPulse 1.1s ease-in-out 3,deal .6s cubic-bezier(.2,1.2,.4,1)}
+  @keyframes cardPulse{50%{box-shadow:0 0 0 4px rgba(66,232,245,.9),0 0 42px 8px rgba(66,232,245,.7)}}
+  /* round-win celebration */
+  .cheersplash{position:fixed;left:0;right:0;top:26%;z-index:66;text-align:center;pointer-events:none;opacity:0}
+  .cheersplash b{display:inline-block;font-size:clamp(1.8rem,8vw,3rem);font-weight:900;color:var(--gold);text-shadow:0 4px 0 rgba(0,0,0,.45),0 0 30px rgba(255,210,74,.75)}
+  .cheersplash small{display:block;margin-top:4px;color:#fff;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+  .cheersplash.go{animation:cheerPop 1.7s cubic-bezier(.2,1.3,.4,1) both}
+  @keyframes cheerPop{0%{opacity:0;transform:scale(.3) rotate(-8deg)}16%{opacity:1;transform:scale(1.18) rotate(2deg)}28%{transform:scale(1) rotate(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.1) translateY(-30px)}}
   .code{font-size:2.4rem;letter-spacing:.35em;font-weight:800;color:var(--accent);padding-left:.35em}
 
   /* table */
@@ -95,12 +118,9 @@
   .card .tier{position:absolute;top:8px;right:10px;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.45)}
   .card .nmrow{padding:8px 14px 2px} .card .nmrow b{font-size:1.25rem;display:block;line-height:1.1} .card .nmrow span{color:var(--muted);font-size:.85rem}
   .card .attrs{padding:6px 10px 12px;display:grid;gap:5px}
-  .attr{display:grid;grid-template-columns:26px 1fr auto;grid-template-areas:"i l v" "b b b";align-items:center;column-gap:8px;padding:6px 10px;border-radius:10px;
+  .attr{display:grid;grid-template-columns:26px 1fr auto;grid-template-areas:"i l v";align-items:center;column-gap:8px;padding:6px 10px;border-radius:10px;
         border:1px solid transparent;background:rgba(255,255,255,.05);text-align:left;width:100%}
   .attr .i{grid-area:i;font-size:1.1rem} .attr .l{grid-area:l;font-weight:600;font-size:.92rem} .attr .v{grid-area:v;font-weight:800;font-variant-numeric:tabular-nums;color:var(--accent)}
-  .attr .bar{grid-area:b;height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:4px;overflow:hidden}
-  .attr .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c1),var(--c2));transition:width .8s}
-  .attr.best .l::after{content:" ★";color:var(--gold)}
   button.attr:hover:not(:disabled){border-color:var(--accent);background:rgba(66,232,245,.15);transform:translateX(3px)}
   button.attr:disabled{cursor:default}
   .attr.pick{border-color:var(--gold);background:rgba(255,210,74,.2)}
@@ -172,12 +192,22 @@
     <div class="row"><button class="btn sm" id="copyBtn">📋 Copy invite link</button><span class="small muted" id="copyNote"></span></div>
   </div>
   <div class="card-panel" style="margin-bottom:14px"><div class="small muted" style="margin-bottom:8px">Choose a deck <span id="deckHostNote"></span></div><div class="decks" id="decks"></div></div>
+  <div class="card-panel" style="margin-bottom:14px" id="settingsBox">
+    <div class="small muted" style="margin-bottom:8px">Cards each <span id="setHostNote"></span></div>
+    <div class="opts" id="perChips"></div>
+    <div class="small muted" style="margin:14px 0 8px">Match length</div>
+    <div class="opts" id="lenChips"></div>
+    <div class="small muted" style="margin:14px 0 8px">Speed</div>
+    <div class="opts" id="spdChips"></div>
+    <p class="small muted" id="setSummary" style="margin:12px 0 0"></p>
+  </div>
   <div class="card-panel"><div class="small muted" style="margin-bottom:8px">Players (<span id="pcount">1</span>/4)</div><div class="seats" id="seats"></div>
     <div class="row" style="margin-top:14px"><button class="btn primary" id="startBtn">▶ Start game</button><span class="small muted" id="startNote"></span></div></div>
 </section>
 
 <!-- GAME -->
 <section class="screen" id="game" hidden>
+  <div class="roundbar" id="roundBar"></div>
   <div class="seatsbar" id="seatsbar"></div>
   <div class="arena" id="arena"><div class="banner" id="banner"></div><div class="plays" id="plays"></div></div>
   <div class="mine">
@@ -193,6 +223,9 @@
 </section>
 
 <div id="toast" role="status"></div>
+<div class="turnflash" id="turnFlash" aria-hidden="true"><div>🎤 YOUR TURN!</div></div>
+<div class="edgeglow" id="edgeGlow" aria-hidden="true"></div>
+<div class="cheersplash" id="cheerSplash" aria-hidden="true"><b id="cheerTxt"></b><small id="cheerSub"></small></div>
 <canvas id="confetti"></canvas>
 <div class="overlay" id="overlay" hidden><div class="modal" id="modal"></div></div>
 
@@ -203,7 +236,10 @@
 (function () {
   'use strict';
   var D = window.CardClashData, E = window.CardClashEngine;
-  var REVEAL_MS = 4200, TURN_MS = 25000;
+  var REVEAL_BASE = 4200, TURN_MS = 25000, SPD = 1;        // SPD scales every reveal animation (Fast = 0.55)
+  function revealMs() { return Math.round(REVEAL_BASE * SPD); }
+  var LEN_NAMES = { quick: 'Quick', standard: 'Standard', marathon: 'Marathon' }, SPEED_VALUES = { normal: 1, fast: .55 };
+  function roundLimitFor(len, per) { return len === 'marathon' ? 0 : len === 'quick' ? Math.max(10, Math.ceil(per * 2.5)) : Math.max(20, per * 5); }
   var $ = function (id) { return document.getElementById(id); };
   var BOT_NAMES = ['Bot Bolt', 'Bot Pixel', 'Bot Turbo', 'Bot Nova'];
   var REACTIONS = ['😂', '🔥', '👏', '😱', '😎', '🤯'];
@@ -249,30 +285,33 @@
     power: function () { [200, 400, 800, 1200].forEach(function (f, i) { tone(f, .12, 'sawtooth', i * .06, .08); }); },
     tick: function () { tone(900, .05, 'square', 0, .05); },
     fanfare: function () { [523, 659, 784, 1047, 784, 1047, 1319].forEach(function (f, i) { tone(f, .25, 'triangle', i * .13, .13); }); },
-    pop: function () { tone(660, .08, 'sine'); }
+    pop: function () { tone(660, .08, 'sine'); },
+    // "it's your turn": a bright rising chime that is unmistakable even with the screen off to the side
+    turn: function () { [659, 784, 988, 1319].forEach(function (f, i) { tone(f, .22, 'triangle', i * .075, .11); }); tone(1760, .35, 'sine', .32, .06); },
+    // round won: a short celebratory flourish
+    cheer: function () { [523, 659, 784, 1047, 1319, 1568].forEach(function (f, i) { tone(f, .18, 'square', i * .06, .07); }); tone(2093, .4, 'sine', .38, .05); }
   };
   document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); }, { once: true });
 
   // ================= card rendering =================
   function power(card, deck) { var s = 0, n = 0; deck.attrs.forEach(function (a) { s += card.stats[a.key] / deck.max[a.key]; n++; }); return s / n; }
   function tier(card, deck) { var p = power(card, deck); return p >= .8 ? 'legendary' : p >= .62 ? 'epic' : p >= .45 ? 'rare' : 'common'; }
-  function bestAttr(card, deck) { var b = null, bv = -1; deck.attrs.forEach(function (a) { var v = card.stats[a.key] / deck.max[a.key]; if (v > bv) { bv = v; b = a.key; } }); return b; }
   function fmt(v) { return v >= 1000 ? v.toLocaleString('en-US') : String(v); }
 
   // opts: {clickable, onPick, hl}
   function renderCard(card, deck, opts) {
     opts = opts || {};
-    var t = tier(card, deck), c = el('div', 'card tilt ' + t);
+    // Every card looks the same: no rarity frame, no star, no value bar -- nothing hints at a card's best stat.
+    var c = el('div', 'card tilt');
     c.style.setProperty('--h', card.hue);
     var inner = el('div', 'inner'), art = el('div', 'art');
-    art.appendChild(el('div', 'big', card.emoji)); art.appendChild(el('div', 'tier', t));
+    art.appendChild(el('div', 'big', card.emoji));
     var nr = el('div', 'nmrow'); nr.appendChild(el('b', '', card.name)); nr.appendChild(el('span', '', deck.emoji + ' ' + card.sub));
-    var at = el('div', 'attrs'), best = bestAttr(card, deck);
+    var at = el('div', 'attrs');
     deck.attrs.forEach(function (a, i) {
-      var b = el(opts.clickable ? 'button' : 'div', 'attr' + (a.key === best ? ' best' : '') + (opts.hl === a.key ? ' pick' : ''));
+      var b = el(opts.clickable ? 'button' : 'div', 'attr' + (opts.hl === a.key ? ' pick' : ''));
       if (opts.clickable) { b.type = 'button'; b.title = 'Press ' + (i + 1); b.dataset.attr = a.key; b.onclick = function () { opts.onPick(a.key); }; }
       b.appendChild(el('span', 'i', a.icon)); b.appendChild(el('span', 'l', a.label)); b.appendChild(el('span', 'v', fmt(card.stats[a.key])));
-      var bar = el('div', 'bar'), fill = el('i'); fill.style.width = (card.stats[a.key] / deck.max[a.key] * 100) + '%'; bar.appendChild(fill); b.appendChild(bar);
       at.appendChild(b);
     });
     inner.appendChild(art); inner.appendChild(nr); inner.appendChild(at); c.appendChild(inner);
@@ -308,7 +347,7 @@
   // ---------- host ----------
   function startHost(online) {
     me.id = 'host';
-    H = { code: null, online: online, conns: {}, lobby: { deckId: 'cricket', players: [{ id: 'host', name: me.name, bot: false }] }, G: null, turnT: 0, botT: 0, botN: 0 };
+    H = { code: null, online: online, conns: {}, lobby: { deckId: 'cricket', perPlayer: D.DEFAULT_PER_PLAYER, len: 'standard', speed: 'normal', players: [{ id: 'host', name: me.name, bot: false }] }, G: null, turnT: 0, botT: 0, botN: 0 };
     isHost = true;
     var go = function () { lobbyChanged(); show('lobby'); };
     if (!online) { H.lobby.players.push({ id: 'bot1', name: BOT_NAMES[0], bot: true }, { id: 'bot2', name: BOT_NAMES[1], bot: true }); H.botN = 2; return go(); }
@@ -344,7 +383,7 @@
     } else { H.lobby.players = H.lobby.players.filter(function (x) { return x.id !== id; }); lobbyChanged(); }
   }
   function lobbyChanged() {
-    var m = { t: 'lobby', deckId: H.lobby.deckId, players: H.lobby.players, code: H.code, online: H.online, hostId: 'host' };
+    var m = { t: 'lobby', deckId: H.lobby.deckId, perPlayer: H.lobby.perPlayer, len: H.lobby.len, speed: H.lobby.speed, players: H.lobby.players, code: H.code, online: H.online, hostId: 'host' };
     hostBroadcast(m);
   }
   function hostMsg(from, m) {
@@ -361,7 +400,19 @@
       hostBroadcast({ t: 'react', emoji: m.emoji, name: p ? p.name : '' });
     } else if (m.t === 'leave') { dropPlayer(from); }
   }
-  function hostSetDeck(id) { if (D.DECKS[id]) { H.lobby.deckId = id; lobbyChanged(); } }
+  function fitPerPlayer() {                       // keep "cards each" legal for this deck and head-count
+    var cap = D.maxPerPlayer(D.DECKS[H.lobby.deckId], Math.max(2, H.lobby.players.length)), best = D.PER_PLAYER_OPTIONS[0];
+    D.PER_PLAYER_OPTIONS.forEach(function (o) { if (o <= cap) best = o; });
+    if (H.lobby.perPlayer > cap) H.lobby.perPlayer = best;
+  }
+  function hostSetDeck(id) { if (D.DECKS[id]) { H.lobby.deckId = id; fitPerPlayer(); lobbyChanged(); } }
+  function hostSetOpt(k, v) {
+    if (k === 'perPlayer' && D.PER_PLAYER_OPTIONS.indexOf(v) >= 0 && v <= D.maxPerPlayer(D.DECKS[H.lobby.deckId], 4)) H.lobby.perPlayer = v;
+    else if (k === 'len' && LEN_NAMES[v]) H.lobby.len = v;
+    else if (k === 'speed' && SPEED_VALUES[v]) H.lobby.speed = v;
+    else return;
+    lobbyChanged();
+  }
   function hostAddBot() {
     if (H.lobby.players.length >= E.MAX_PLAYERS) return;
     H.botN++; H.lobby.players.push({ id: 'bot' + H.botN, name: BOT_NAMES[(H.botN - 1) % BOT_NAMES.length], bot: true }); lobbyChanged();
@@ -370,8 +421,11 @@
   function hostStart() {
     if (H.lobby.players.length < E.MIN_PLAYERS) return toast('Need at least 2 players — add a bot!');
     var d = D.DECKS[H.lobby.deckId];
-    H.G = E.createGame(d, H.lobby.players.map(function (p) { return { id: p.id, name: p.name, bot: p.bot }; }));
-    hostBroadcast({ t: 'start', deckId: d.id });
+    fitPerPlayer();
+    var per = H.lobby.perPlayer, limit = roundLimitFor(H.lobby.len, per);
+    H.G = E.createGame(d, H.lobby.players.map(function (p) { return { id: p.id, name: p.name, bot: p.bot }; }), null, { perPlayer: per, roundLimit: limit });
+    SPD = SPEED_VALUES[H.lobby.speed] || 1;
+    hostBroadcast({ t: 'start', deckId: d.id, perPlayer: per, roundLimit: limit, speed: H.lobby.speed });
     pushViews(); scheduleTurn(false);
   }
   function pushViews() {
@@ -382,7 +436,7 @@
     clearTimeout(H.turnT); clearTimeout(H.botT);
     var g = H.G; if (!g || g.over) return;
     var d = D.DECKS[g.deckId], t = E.player(g, g.tellerId);
-    var lead = (g.lastResult && !noReveal) ? REVEAL_MS : 0;
+    var lead = (g.lastResult && !noReveal) ? revealMs() : 0;
     if (t.bot) {
       H.botT = setTimeout(function () { var pk = E.autoPick(g, d, t.id); hostChoose(t.id, pk.attr, pk.double); }, lead + 1400 + Math.random() * 1800);
     } else {
@@ -422,9 +476,9 @@
   }
   function clientMsg(m) {
     if (!m) return;
-    if (m.t === 'lobby') { lobby = m; deck = D.DECKS[m.deckId]; applyTheme(deck); if ($('game').hidden || endShown) { hideOverlay(); show('lobby'); } renderLobby(); }
+    if (m.t === 'lobby') { lobby = m; SPD = SPEED_VALUES[m.speed] || 1; deck = D.DECKS[m.deckId]; applyTheme(deck); if ($('game').hidden || endShown) { hideOverlay(); show('lobby'); } renderLobby(); }
     else if (m.t === 'start') {
-      deck = D.DECKS[m.deckId]; applyTheme(deck); shownSeq = 0; busy = false; queued = null; endShown = false; view = null; logLines = []; $('log').innerHTML = '';
+      deck = D.DECKS[m.deckId]; SPD = SPEED_VALUES[m.speed] || 1; applyTheme(deck); lastTurnSeq = -1; shownSeq = 0; busy = false; queued = null; endShown = false; view = null; logLines = []; $('log').innerHTML = '';
       hideOverlay(); $('arena').querySelector('#plays').innerHTML = ''; $('banner').textContent = ''; show('game'); SFX.fanfare(); toast('🃏 Cards dealt — good luck!');
     }
     else if (m.t === 'view') { turnMs = m.turnMs || TURN_MS; onView(m.view); }
@@ -437,6 +491,25 @@
 
   // ================= lobby UI =================
   function applyTheme(d) { document.documentElement.style.setProperty('--c1', d.colors[0]); document.documentElement.style.setProperty('--c2', d.colors[1]); }
+  function optRow(boxId, items, current, enabled, onPick) {
+    var box = $(boxId); box.innerHTML = '';
+    items.forEach(function (it) {
+      var b = el('button', 'optbtn' + (it.v === current ? ' sel' : ''), it.label); b.type = 'button'; b.disabled = !enabled || it.off;
+      if (it.title) b.title = it.title; b.onclick = function () { SFX.pop(); onPick(it.v); }; box.appendChild(b);
+    });
+  }
+  function renderSettings(host) {
+    var d = D.DECKS[lobby.deckId], n = Math.max(2, lobby.players.length), per = lobby.perPlayer || D.DEFAULT_PER_PLAYER, cap = D.maxPerPlayer(d, 4);
+    $('setHostNote').textContent = host ? '' : '(host chooses)';
+    optRow('perChips', D.PER_PLAYER_OPTIONS.map(function (o) { return { v: o, label: String(o), off: o > cap, title: o + ' cards each' }; }), per, host, function (v) { hostSetOpt('perPlayer', v); });
+    optRow('lenChips', [{ v: 'quick', label: '⚡ Quick', title: 'Ends after about 2½ rounds per card each' }, { v: 'standard', label: '⚖️ Standard', title: 'Ends after 5 rounds per card each' },
+      { v: 'marathon', label: '🏃 Marathon', title: 'Play until one player holds every card (safety cap: 600 rounds)' }], lobby.len || 'standard', host, function (v) { hostSetOpt('len', v); });
+    optRow('spdChips', [{ v: 'normal', label: 'Normal' }, { v: 'fast', label: 'Fast' }], lobby.speed || 'normal', host, function (v) { hostSetOpt('speed', v); });
+    var lim = roundLimitFor(lobby.len || 'standard', per), secs = (lim || 600) * (revealBaseFor(lobby.speed) / 1000 + 3);
+    $('setSummary').textContent = n * per + ' cards in play · ' + (lim ? 'ends after ' + lim + ' rounds — most cards wins' : 'until one player holds them all') +
+      ' · about ' + Math.max(1, Math.round(secs / 60 * (lim ? .75 : .35))) + (lim ? '' : '+') + ' min with bots';
+  }
+  function revealBaseFor(sp) { return REVEAL_BASE * (SPEED_VALUES[sp] || 1); }
   function renderLobby() {
     if (!lobby) return;
     $('codeBox').hidden = !lobby.online;
@@ -466,6 +539,7 @@
       }
       st.appendChild(s);
     }
+    renderSettings(host);
     $('pcount').textContent = lobby.players.length;
     $('startBtn').hidden = !host; $('startBtn').disabled = lobby.players.length < E.MIN_PLAYERS;
     $('startNote').textContent = host ? (lobby.players.length < 2 ? 'Add a bot or wait for a friend.' : '') : 'Waiting for the host to start…';
@@ -487,6 +561,8 @@
   function renderGame() {
     var v = view; if (!v) return;
     var myTurn = v.tellerId === v.you && !v.over, meP = v.players.filter(function (p) { return p.id === v.you; })[0];
+    var rb = $('roundBar');
+    rb.innerHTML = 'Round <b>' + Math.min(v.round, v.roundLimit || v.round) + '</b>' + (v.roundLimit ? ' of <b>' + v.roundLimit + '</b>' : '') + ' · ' + v.totalCards + ' cards in play' + (v.pot ? ' · 🎁 pot ' + v.pot : '');
     // seats
     var bar = $('seatsbar'); bar.innerHTML = '';
     v.players.forEach(function (p) {
@@ -512,6 +588,7 @@
     var pb = $('powerBtn'); pb.hidden = !myTurn || v.myPowerUsed || picked; pb.classList.toggle('on', powerOn);
     pb.firstChild.nodeValue = powerOn ? '⚡ POWER PLAY armed — now pick a stat!' : '⚡ Power Play';
     startTimer(myTurn && !picked);
+    if (myTurn && !picked && lastTurnSeq !== v.seq) { lastTurnSeq = v.seq; alertMyTurn(); }
     if (v.over) showEnd(v);
   }
   function pick(attr) {
@@ -559,8 +636,8 @@
       var box = el('div'); box.appendChild(el('div', 'val', fmt(pl.value))); box.appendChild(el('div', 'al', attr.icon + ' ' + attr.label)); fr.appendChild(box);
       inn.appendChild(b); inn.appendChild(fr); f.appendChild(inn); slot.appendChild(f); plays.appendChild(slot); flips.push(f);
     });
-    flips.forEach(function (f, i) { setTimeout(function () { f.classList.add('up'); SFX.flip(); }, 600 + i * 450); });
-    var tEnd = 600 + flips.length * 450 + 300;
+    flips.forEach(function (f, i) { setTimeout(function () { f.classList.add('up'); SFX.flip(); }, (600 + i * 450) * SPD); });
+    var tEnd = (600 + flips.length * 450 + 300) * SPD;
     setTimeout(function () {
       var slots = plays.children, line = '';
       if (r.tie) {
@@ -583,17 +660,38 @@
         if (r.eliminated.length) sub.push('💀 ' + r.eliminated.map(function (id) { return pname(v, id); }).join(', ') + ' is out!');
         if (extra) line += ' (+' + extra + ' bonus)';
         if (sub.length) setTimeout(function () { toast(sub[0]); }, 500);
-        if (mine && !r.tie) cheer(v, wp);
+        if (mine && !r.tie) { cheer(v, wp); celebrateWin(r, wp); }
         else if (!mine && r.plays.some(function (x) { return x.playerId === v.you; })) consolation(v);
       }
       addLog(line);
     }, tEnd);
-    setTimeout(done, Math.max(REVEAL_MS, tEnd + 1500));
+    setTimeout(done, Math.max(revealMs(), tEnd + 1500 * SPD));
   }
   var CHEERS = ['Brilliant pick! 🌟', 'You are on fire! 🔥', 'Sharp thinking! 🧠', 'Unstoppable! 🚀', 'Smooth move! 😎'];
   var CONSOL = ['Shake it off — next round is yours! 💪', 'So close! Stay sharp 👀', 'Comeback time! 🔄', 'Pick the stat they fear! 😈'];
   var cheerN = 0;
   function cheer(v, wp) { if (wp && wp.streak >= 3) toast('🔥 ' + wp.streak + ' in a row — legendary!'); else if (Math.random() < .6) toast(CHEERS[cheerN++ % CHEERS.length]); }
+  var WIN_LINES = ['Congratulations!', 'Brilliant!', 'Take a bow!', 'Superb!', 'What a pick!', 'Magnificent!'], winN = 0, cheerT;
+  function celebrateWin(r, wp) {
+    var big = (wp && wp.streak >= 3) || r.moved >= 4, el1 = $('cheerSplash');
+    $('cheerTxt').textContent = (big ? '🏆 ' : '🎉 ') + (wp && wp.streak >= 3 ? 'UNSTOPPABLE!' : WIN_LINES[winN++ % WIN_LINES.length]);
+    $('cheerSub').textContent = 'You win ' + r.moved + ' card' + (r.moved > 1 ? 's' : '') + (wp && wp.streak >= 2 ? ' · ' + wp.streak + ' in a row 🔥' : '') + ' — you pick next!';
+    el1.classList.remove('go'); void el1.offsetWidth; el1.classList.add('go');
+    SFX.cheer(); burstConfetti(big ? 140 : 70);
+    try { if (navigator.vibrate) navigator.vibrate(big ? [40, 30, 40, 30, 90] : [30, 20, 50]); } catch (e) {}
+    clearTimeout(cheerT);
+  }
+  // "it's your turn": sound + a sweeping banner + a glowing card + a buzz, once per turn
+  var lastTurnSeq = -1;
+  function alertMyTurn() {
+    var f = $('turnFlash'), g = $('edgeGlow');
+    SFX.turn();
+    f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    g.classList.remove('go'); void g.offsetWidth; g.classList.add('go');
+    $('myCardBox').classList.add('mycard-glow'); setTimeout(function () { $('myCardBox').classList.remove('mycard-glow'); }, 3600);
+    try { if (navigator.vibrate) navigator.vibrate([70, 50, 70]); } catch (e) {}
+    try { document.dispatchEvent(new CustomEvent('cc-turn')); } catch (e) {}
+  }
   function consolation(v) { if (Math.random() < .5) toast(CONSOL[cheerN++ % CONSOL.length]); }
 
   // ---------- reactions ----------
@@ -607,11 +705,12 @@
   // ---------- end of game ----------
   function showEnd(v) {
     if (endShown) return; endShown = true; clearInterval(timerT);
-    var winner = v.players.filter(function (p) { return p.id === v.winnerId; })[0], iWon = v.winnerId === v.you;
+    var winner = v.players.filter(function (p) { return p.id === v.winnerId; })[0], draw = (v.winnerIds || []).length > 1, iWon = !draw && v.winnerId === v.you;
+    var byLimit = v.endedBy === 'limit' || v.endedBy === 'cap';
     save.games++; if (iWon) save.wins++; persist(); updateRecord();
-    var ranked = v.players.slice().sort(function (a, b) { return (b.id === v.winnerId) - (a.id === v.winnerId) || b.count - a.count; });
-    var html = '<div style="font-size:3rem">' + (iWon ? '🏆' : '🎖️') + '</div><h2>' + (iWon ? 'You are the Champion!' : esc(winner ? winner.name : '?') + ' wins!') + '</h2>' +
-      '<p class="muted">' + (iWon ? 'You collected every card. Legendary!' : 'Better luck next round — rematch?') + '</p><div class="podium">';
+    var ranked = v.players.slice().sort(function (a, b) { return b.count - a.count; });
+    var html = '<div style="font-size:3rem">' + (iWon ? '🏆' : '🎖️') + '</div><h2>' + (draw ? '🤝 It is a draw!' : iWon ? 'You are the Champion!' : esc(winner ? winner.name : '?') + ' wins!') + '</h2>' +
+      '<p class="muted">' + (draw ? 'You finished level on cards. Rematch?' : iWon ? (byLimit ? 'Most cards when time ran out. Brilliant!' : 'You collected every card. Legendary!') : byLimit ? 'Time was up — they held the most cards. Rematch?' : 'Better luck next round — rematch?') + '</p><div class="podium">';
     ranked.forEach(function (p, i) { html += '<div><span>' + ['🥇', '🥈', '🥉', '4️⃣'][i] + '</span><b>' + esc(p.name) + (p.id === v.you ? ' (you)' : '') + '</b><span style="margin-left:auto" class="muted">' + p.count + ' cards</span></div>'; });
     html += '</div><div class="row" style="justify-content:center">' + (isHost ? '<button class="btn primary" id="again">🔁 Play again</button>' : '<span class="muted small">Waiting for host to start a rematch…</span>') +
       '<button class="btn" id="quit">Leave</button></div>';
@@ -625,10 +724,11 @@
 
   // ---------- confetti ----------
   var cv = $('confetti'), cx = cv.getContext('2d'), parts = [], raf = 0;
-  function confetti() {
+  function burstConfetti(n) { confetti(n); }
+  function confetti(n) {
     cv.width = innerWidth; cv.height = innerHeight; parts = [];
     var cols = ['#42e8f5', '#0878f9', '#ffd24a', '#5dffa0', '#ff5d73', '#fff'];
-    for (var i = 0; i < 200; i++) parts.push({ x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * .6, vx: (Math.random() - .5) * 5, vy: 2 + Math.random() * 5, s: 5 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: cols[(Math.random() * cols.length) | 0] });
+    for (var i = 0, N = n || 200; i < N; i++) parts.push({ x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * .6, vx: (Math.random() - .5) * 5, vy: 2 + Math.random() * 5, s: 5 + Math.random() * 8, r: Math.random() * 6, vr: (Math.random() - .5) * .3, c: cols[(Math.random() * cols.length) | 0] });
     cancelAnimationFrame(raf);
     (function frame() {
       cx.clearRect(0, 0, cv.width, cv.height);
@@ -667,8 +767,8 @@
       '<p>• The <b>teller 👑</b> picks one stat on their card. Everyone reveals their top card.</p><p>• The <b>highest value wins every revealed card</b> and becomes the next teller.</p>' +
       '<p>• <b>Tie?</b> The cards go in a pot and the same teller goes again — the next winner takes the pot.</p>' +
       '<p>• <b>⚡ Power Play</b> (once per game): double the stakes! Every loser pays one extra card. If you lose your own Power Play, you pay two extra.</p>' +
-      '<p>• Run out of cards and you are out. Last player holding cards wins!</p><p>• Shortcut: press the <b>number keys</b> (1, 2, 3…) to pick a stat. You have 25 seconds per turn.</p>' +
-      '<p class="small">Cricket numbers are approximate career totals; wrestling values are fan-made ratings — for fun only.</p></div><button class="btn primary" id="rOk">Got it</button>';
+      '<p>• Run out of cards and you are out. Last player holding cards wins — or, in Quick and Standard matches, whoever holds the <b>most cards</b> when the rounds run out.</p><p>• The host picks the deck, <b>cards each</b> (6 to 50), match length and speed in the lobby.</p><p>• Shortcut: press the <b>number keys</b> (1, 2, 3…) to pick a stat. You have 25 seconds per turn.</p>' +
+      '<p class="small">All characters are fictional and every statistic is invented. Some names are playful parodies. Card Clash is not affiliated with or endorsed by any real player, team or organisation.</p></div><button class="btn primary" id="rOk">Got it</button>';
     $('overlay').hidden = false; $('rOk').onclick = hideOverlay;
   };
 
@@ -677,7 +777,7 @@
   var rm = /[?&]room=([A-Za-z0-9]{5})/.exec(location.search);
   if (rm) { $('codeIn').value = rm[1].toUpperCase(); $('homeNote').textContent = 'Invite detected — enter your name and tap Join room.'; }
 
-  window.__cc = { get host() { return H; }, get view() { return view; }, get busy() { return busy; }, pick: pick, hostStart: hostStart, forceTeller: function (id) { H.G.tellerId = id; pushViews(); scheduleTurn(false); }, REVEAL_MS: REVEAL_MS };
+  window.__cc = { get host() { return H; }, get view() { return view; }, get busy() { return busy; }, pick: pick, hostStart: hostStart, forceTeller: function (id) { H.G.tellerId = id; pushViews(); scheduleTurn(false); }, REVEAL_MS: REVEAL_BASE };
 })();
 </script>
 <!-- Rovatics brand badge -->

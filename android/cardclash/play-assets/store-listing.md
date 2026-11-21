@@ -23,10 +23,11 @@ Pick your best stat. Beat their card. Take the pile.
 
 Card Clash is a fast, fun top-trumps card battle for 2-4 players. You are dealt part of the deck and can only see your top card. When it is your turn, choose the stat you think will win - everyone reveals, and the highest value takes every card on the table. Keep winning cards until you hold the whole deck!
 
-🃏 THREE DECKS TO PLAY
-• Cricket Legends - runs, wickets, centuries and top scores
+🃏 THREE HUGE DECKS - OVER 680 CHARACTERS
+• Cricket Stars - runs, wickets, centuries and top scores
 • Wrestling Slam - strength, stamina, charisma and finishers
 • Rovatics Bots - our own robot roster, built for battle
+• Choose 6 to 50 cards each, so every game is different
 
 👥 PLAY YOUR WAY
 • Play against smart bots - no internet needed
@@ -51,7 +52,7 @@ Once per game, double the stakes. Win and every loser pays an extra card. Lose a
 
 Easy to learn in a minute, hard to put down. Challenge your friends and see who ends up with every card!
 
-Note: the Cricket and Wrestling decks use approximate statistics and fan-made ratings, for entertainment only. All names and trademarks belong to their owners. Card Clash is not affiliated with or endorsed by any player, team or organisation.
+Note: all characters are fictional and every statistic is invented. Some names are playful parodies. Card Clash is not affiliated with or endorsed by any real player, team or organisation.
 ```
 
 ## What's new (500 max) — for version 1.0.0
@@ -100,4 +101,4 @@ On a real phone press Power + Volume Down. Use portrait, and do not add device f
 ## Before you submit
 
 - Re-read the Data safety answers in `../README.md`. They are accurate for this build; they stop being accurate if you add ads, analytics or accounts.
-- The Wrestling and Cricket decks use real people's names. Read the warning in `../README.md` section 7 before publishing commercially.
+- Some Cricket and Wrestling character names are playful parodies of real figures. Read `../README.md` section 7 before publishing commercially - the risk is reduced, not removed.
