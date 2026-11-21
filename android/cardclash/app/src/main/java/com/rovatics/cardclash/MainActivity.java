@@ -58,9 +58,13 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         web = findViewById(R.id.web);
-        ViewCompat.setOnApplyWindowInsetsListener(web, (v, windowInsets) -> {
+        // Make room for the system bars, the notch AND the soft keyboard by padding the PARENT layout, so the WebView itself
+        // gets smaller and the page's own viewport (and scrolling) shrinks with it. Padding the WebView directly does not work:
+        // a WebView paints its page over its whole area and ignores its own padding, which left the keyboard covering the page.
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root), (v, windowInsets) -> {
             Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            v.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
             return WindowInsetsCompat.CONSUMED;
         });
         enterImmersive();
@@ -76,10 +80,15 @@ public class MainActivity extends AppCompatActivity {
         s.setAllowFileAccess(false);                    // not needed: assets are served over https
         s.setAllowContentAccess(false);
 
+        // Lets us inspect the page from a computer (chrome://inspect). Debug builds only: never in the release you ship.
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true);
+
         web.setBackgroundColor(0xFF06122E);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        web.setLongClickable(false);                    // no text-selection / context menu: it is a game, not a page
-        web.setOnLongClickListener(v -> true);
+        // Text selection and the context menu are blocked in the page itself (user-select + contextmenu); a native
+        // long-click blocker here can swallow slow drags on some phones and stop the page scrolling.
+        web.setVerticalScrollBarEnabled(true);
+        web.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
         web.setHapticFeedbackEnabled(true);
 
         // The game's Android layer (android.js) calls into these. Only our own bundled pages ever load here.

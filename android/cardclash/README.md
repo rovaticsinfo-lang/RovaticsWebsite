@@ -188,6 +188,30 @@ of them changes the Data safety answers and the content rating.
 **Not verified:** a physical phone and real hardware haptics, the Share sheet and e-mail hand-off (they open other
 apps), and online play between two devices. Please try those on your phone before uploading to Play.
 
+### Scrolling, the keyboard and small phones
+
+These are the things that went wrong once and are now guarded by a test, so please keep them in mind when editing
+`web-overrides/android.css` or `MainActivity.java`:
+
+- **"Start game" is docked.** `android.js` moves it into a fixed bar at the bottom of the lobby, and folds the three
+  option rows into one summary line, so the lobby no longer needs three screens of scrolling to reach Start.
+- **The soft keyboard must shrink the page.** Insets (status bar, notch, keyboard) are applied as padding on the
+  **parent layout** (`R.id.root`), never on the `WebView`: a `WebView` paints over its whole area and ignores its own
+  padding, so the keyboard used to cover the field being typed into and the buttons below it.
+- **Do not add `html{height:100%}`**, and do not put `overflow-x:hidden` on both `html` and `body` -- a known cause of stuck
+  scrolling on some WebViews. Do not add a native `setOnLongClickListener` either; text selection and the long-press
+  menu are blocked in the page instead.
+- **Any `MutationObserver` must not watch the element it edits** (an earlier version froze the page that way).
+- Short phones get a compact home screen (`@media (max-height: 720px)`), and landscape has its own rules.
+
+**Checking it:** `tests/android-scroll-test.html` opens the app's game at five phone sizes (320x568, 360x640, 360x740,
+412x915 and landscape 640x360) and, for every screen and key control, checks it can be scrolled into view and is what a
+finger would actually hit (not hidden under the app bar, the Start bar or the reaction bar), with no sideways scrolling.
+It fails on the previous build, which put Start game 1375px down on a 568px screen.
+
+The debug build also opens the WebView to `chrome://inspect` (guarded by the app's debuggable flag, so it is never on in a
+release), which is how the keyboard problem was diagnosed.
+
 ### Where the app differs from the website
 
 The website game in `games/` is unchanged. The app copy gets two extra files, `web-overrides/android.css` and

@@ -41,7 +41,39 @@
       }, true);
     }
 
-    // 4. Haptics: a light tick on every button, a firmer buzz when a dialog (win screen, rules...) opens.
+    // 4. Lobby: dock "Start game" at the bottom so it is always on screen, and fold the three option rows into one line.
+    var startBtn = document.getElementById('startBtn'), lobby = document.getElementById('lobby');
+    if (startBtn && lobby && !document.getElementById('appDock')) {
+      var dock = document.createElement('div'); dock.className = 'app-dock'; dock.id = 'appDock'; dock.hidden = true;
+      dock.appendChild(startBtn.parentNode);                       // the row holding Start + the "waiting for host" note
+      document.body.appendChild(dock);
+      var sync = function () { dock.hidden = lobby.hidden; };
+      sync(); if (window.MutationObserver) new MutationObserver(sync).observe(lobby, { attributes: true, attributeFilter: ['hidden'] });
+    }
+    var box = document.getElementById('settingsBox');
+    if (box && !box.querySelector('.opt-toggle')) {
+      var tg = document.createElement('button'); tg.type = 'button'; tg.className = 'opt-toggle';
+      box.classList.add('collapsed'); box.insertBefore(tg, box.firstChild);
+      var label = function () {
+        var sel = function (id) { var e = document.querySelector('#' + id + ' .optbtn.sel'); return e ? e.textContent.replace(/^[^A-Za-z0-9]+/, '').trim() : ''; };
+        var per = sel('perChips'), len = sel('lenChips'), sp = sel('spdChips');
+        var html = '<span>⚙️ Game options</span><small>' + (per ? per + ' cards each · ' + len + ' · ' + sp : 'tap to change') + (box.classList.contains('collapsed') ? ' ▾' : ' ▴') + '</small>';
+        if (tg.innerHTML !== html) tg.innerHTML = html;        // never rewrite an unchanged label: that would re-trigger the observer
+      };
+      tg.addEventListener('click', function () { box.classList.toggle('collapsed'); label(); if (!box.classList.contains('collapsed')) box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); });
+      // Watch ONLY the three option rows. (Watching the whole box would also see our own label update and loop forever.)
+      label(); if (window.MutationObserver) { var mo = new MutationObserver(label); ['perChips', 'lenChips', 'spdChips'].forEach(function (id) { var e = document.getElementById(id); if (e) mo.observe(e, { childList: true, subtree: true, attributes: true }); }); }
+    }
+
+    // 5. Keyboard: bring a focused field into view (the app also resizes the page for the keyboard).
+    document.addEventListener('focusin', function (e) {
+      var t = e.target; if (!t || (t.tagName !== 'INPUT' && t.tagName !== 'TEXTAREA')) return;
+      setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) {} }, 350);
+    });
+    // No long-press menu or text selection: handled here in the page, not by a native blocker that can interfere with scrolling.
+    document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+    // 6. Haptics: a light tick on every button, a firmer buzz when a dialog (win screen, rules...) opens.
     var ov = document.getElementById('overlay');
     if (ov && window.MutationObserver) {
       new MutationObserver(function () { if (!ov.hidden) call('haptic', 'heavy'); }).observe(ov, { attributes: true, attributeFilter: ['hidden'] });

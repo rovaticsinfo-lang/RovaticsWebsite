@@ -1,0 +1,114 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre><div id="host"></div>
+<script>
+// Scroll & reachability test for the ANDROID copy of Card Clash, at several phone sizes.
+// For every screen and every key control it checks: can the control be scrolled into view, is it fully inside the
+// viewport, and is it what a finger would actually hit (not hidden under the app bar, the Start dock, the reaction bar...).
+// Run over http (see tests/ notes) -- it posts the result to /result if a collector is listening.
+const out = [], ok = (c, m) => out.push((c ? 'PASS ' : 'FAIL ') + m);
+const done = () => { const t = out.join('\n') + '\nDONE'; document.getElementById('out').textContent = t; fetch('/result', { method: 'POST', body: t }).catch(() => {}); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const SRC = '../android/cardclash/app/src/main/assets/game/cardclash.html';
+const SIZES = [[320, 568, 'small 320x568'], [360, 640, 'phone 360x640'], [360, 740, 'phone 360x740'], [412, 915, 'tall 412x915'], [640, 360, 'landscape 640x360']];
+
+function frame(w, h) {
+  return new Promise(res => {
+    const f = document.createElement('iframe'); f.style.cssText = `width:${w}px;height:${h}px;border:0;display:block`; f.src = SRC;
+    // Animations do not tick under headless virtual time, which would leave the bottom-sheet dialogs parked off-screen
+    // mid-slide. Switch them off so the test measures each screen's real final layout.
+    f.onload = () => { const st = f.contentDocument.createElement('style'); st.textContent = '*,*::before,*::after{animation:none!important;transition:none!important}'; f.contentDocument.head.appendChild(st); res(f); };
+    document.getElementById('host').innerHTML = ''; document.getElementById('host').appendChild(f);
+  });
+}
+// scroll the control into view, then test what a finger would hit at its centre
+function reach(win, el, label, tag) {
+  if (!el) return ok(false, `${tag} ${label}: element missing`);
+  const d = win.document, H = win.innerHeight, W = win.innerWidth;
+  const fixed = !!el.closest('.app-dock, .topbar, .react');
+  if (!fixed) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const r = el.getBoundingClientRect();
+  const inside = r.top >= -1 && r.bottom <= H + 1 && r.left >= -1 && r.right <= W + 1;
+  const hit = d.elementFromPoint(Math.min(W - 1, Math.max(0, r.left + r.width / 2)), Math.min(H - 1, Math.max(0, r.top + r.height / 2)));
+  const ownsHit = hit && (hit === el || el.contains(hit) || hit.contains(el));
+  ok(inside && ownsHit, `${tag} ${label}` + (inside ? '' : ` [outside viewport: top ${Math.round(r.top)} bottom ${Math.round(r.bottom)} of ${H}]`) + (ownsHit ? '' : ` [covered by ${hit ? (hit.id || hit.className || hit.tagName) : 'nothing'}]`));
+}
+// is the control on screen right now, with NO scrolling, and is it what a finger would hit?
+function visibleNow(win, el, label, tag) {
+  if (!el) return ok(false, `${tag} ${label}: element missing`);
+  const d = win.document, H = win.innerHeight, W = win.innerWidth, r = el.getBoundingClientRect();
+  const inside = r.top >= 0 && r.bottom <= H && r.left >= 0 && r.right <= W;
+  const hit = d.elementFromPoint(Math.min(W - 1, Math.max(0, r.left + r.width / 2)), Math.min(H - 1, Math.max(0, r.top + r.height / 2)));
+  const own = hit && (hit === el || el.contains(hit) || hit.contains(el));
+  ok(inside && own, `${tag} ${label} is visible WITHOUT scrolling` + (inside ? '' : ` [top ${Math.round(r.top)}, bottom ${Math.round(r.bottom)}, screen ${H}]`) + (own ? '' : ' [covered]'));
+}
+function noSideways(win, tag, screen) {
+  const e = win.document.documentElement; ok(e.scrollWidth <= e.clientWidth + 1, `${tag} ${screen}: no sideways scrolling (content ${e.scrollWidth}px in ${e.clientWidth}px)`);
+}
+// can the page really scroll to its very bottom, and is the last thing on it reachable?
+function bottomReachable(win, lastEl, tag, screen) {
+  win.scrollTo(0, 1e6); const d = win.document.documentElement, atEnd = Math.abs(win.scrollY + win.innerHeight - d.scrollHeight) < 3 || d.scrollHeight <= win.innerHeight;
+  ok(atEnd, `${tag} ${screen}: page can scroll all the way to the bottom`);
+  if (lastEl) reach(win, lastEl, `${screen} last item`, tag);
+}
+
+(async () => {
+  try {
+    for (const [W, H, name] of SIZES) {
+      const f = await frame(W, H), w = f.contentWindow, d = w.document, $ = id => d.getElementById(id), tag = `[${name}]`;
+      w.localStorage.setItem('rovatics.cardclash.v1', JSON.stringify({ name: 'Asha', wins: 1, games: 2 }));
+      await sleep(200);
+
+      // ---- HOME
+      ok(w.document.getElementById('home') && !$('home').hidden, `${tag} home is showing`);
+      ['nameIn', 'soloBtn', 'createBtn', 'codeIn', 'joinBtn'].forEach(id => reach(w, $(id), 'home #' + id, tag));
+      if (H >= 640 && W < H) { w.scrollTo(0, 0); visibleNow(w, $('joinBtn'), 'home Join room', tag); visibleNow(w, $('soloBtn'), 'home Play vs bots', tag); }
+      noSideways(w, tag, 'home'); bottomReachable(w, $('joinBtn'), tag, 'home');
+      w.scrollTo(0, 0);
+
+      // ---- LOBBY (host, vs bots)
+      $('nameIn').value = 'Asha'; $('soloBtn').click(); await sleep(300);
+      ok(!$('lobby').hidden && $('home').hidden, `${tag} lobby is showing and home is hidden`);
+      reach(w, $('startBtn'), 'lobby Start game (docked)', tag);
+      const dock = $('appDock'); ok(dock && !dock.hidden && dock.contains($('startBtn')), `${tag} Start game lives in the docked bar`);
+      w.scrollTo(0, 0); visibleNow(w, $('startBtn'), 'lobby Start game (page at the top)', tag);
+      reach(w, $('startBtn'), 'lobby Start game with the page scrolled to the TOP', tag);
+      w.scrollTo(0, 1e6); visibleNow(w, $('startBtn'), 'lobby Start game (page at the bottom)', tag);
+      reach(w, $('startBtn'), 'lobby Start game with the page scrolled to the BOTTOM', tag);
+      w.scrollTo(0, 0);
+      d.querySelectorAll('.deckbtn').forEach((b, i) => reach(w, b, 'lobby deck ' + (i + 1), tag));
+      const tg = d.querySelector('.opt-toggle'); ok(!!tg, `${tag} game options are folded into one row`); reach(w, tg, 'lobby options row', tag);
+      tg.click(); await sleep(250);                                     // open the options
+      ['#perChips .optbtn:first-child', '#perChips .optbtn:last-child', '#lenChips .optbtn:last-child', '#spdChips .optbtn:last-child'].forEach(sel => reach(w, d.querySelector(sel), 'lobby option ' + sel.replace('.optbtn', '').trim(), tag));
+      tg.click(); await sleep(150);
+      const addBot = [...d.querySelectorAll('#seats button')].find(b => /Add bot/.test(b.textContent)); if (addBot) reach(w, addBot, 'lobby + Add bot', tag);
+      noSideways(w, tag, 'lobby'); bottomReachable(w, d.querySelector('#seats .seat:last-child'), tag, 'lobby');
+      // the last player seat must not hide behind the dock
+      const last = [...d.querySelectorAll('#seats .seat')].pop(), dr = dock.getBoundingClientRect(), lr = last.getBoundingClientRect();
+      w.scrollTo(0, 1e6); ok(last.getBoundingClientRect().bottom <= dock.getBoundingClientRect().top + 2, `${tag} lobby: last seat clears the Start bar when scrolled to the bottom`);
+      w.scrollTo(0, 0);
+
+      // ---- RULES dialog (a bottom sheet that must scroll inside itself)
+      $('rulesBtn').click(); await sleep(700);   // let the slide-up animation finish before measuring
+      const ov = $('overlay'), md = $('modal'); ok(!ov.hidden, `${tag} rules dialog opens`);
+      const mr = md.getBoundingClientRect(); ok(mr.height <= w.innerHeight + 1, `${tag} rules dialog fits the screen (${Math.round(mr.height)}px of ${w.innerHeight}px)`);
+      const okBtn = md.querySelector('button.primary'); md.scrollTo(0, 1e6); reach(w, okBtn, 'rules dialog OK button after scrolling the dialog', tag);
+      okBtn.click(); await sleep(150);
+
+      // ---- GAME
+      $('startBtn').click(); await sleep(500);
+      ok(!$('game').hidden, `${tag} game is showing`); ok($('appDock').hidden, `${tag} Start bar is hidden during the game`);
+      w.__cc.forceTeller('host'); await sleep(900);
+      const attrs = d.querySelectorAll('button.attr'); ok(attrs.length >= 6, `${tag} my card has ${attrs.length} tappable stats`);
+      attrs.forEach((b, i) => reach(w, b, `game stat ${i + 1}/${attrs.length}`, tag));
+      reach(w, $('powerBtn'), 'game Power Play button', tag); reach(w, $('leaveBtn'), 'game Leave button (app bar)', tag);
+      reach(w, d.querySelector('.react button'), 'game reaction button', tag);
+      noSideways(w, tag, 'game');
+      // with the page scrolled to the bottom, the Power Play button must clear the floating reaction bar
+      w.scrollTo(0, 1e6); await sleep(100);
+      const pb = $('powerBtn'), rb = d.querySelector('.react').getBoundingClientRect(), pr = pb.getBoundingClientRect();
+      if (!pb.hidden) ok(pr.bottom <= rb.top + 2 || pr.top >= rb.bottom, `${tag} game: Power Play clears the reaction bar at the bottom of the page (power bottom ${Math.round(pr.bottom)}, bar top ${Math.round(rb.top)})`);
+      w.scrollTo(0, 0);
+    }
+  } catch (e) { ok(false, 'exception ' + e.message + ' ' + (e.stack || '').split('\n')[1]); }
+  done();
+})();
+</script>
