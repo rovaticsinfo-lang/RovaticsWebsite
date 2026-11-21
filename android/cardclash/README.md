@@ -152,15 +152,30 @@ of them changes the Data safety answers and the content rating.
 
 ## 8. What has and has not been tested
 
-**Verified by building:** `./gradlew assembleDebug` and `./gradlew bundleRelease` both succeed. The APK has
-package `com.rovatics.cardclash`, target SDK 35, the INTERNET permission, the launcher activity, and all
-five game files bundled.
+**Run on an Android 15 emulator** (x86_64, Google APIs), installing the debug APK as a first-time user:
 
-**Verified in a browser:** the exact bundled game files pass the full Card Clash test suite (lobby, all
-three decks, bots, a complete game to the winner screen) with the bundled PeerJS and no CDN access.
+- the branded splash, then the **4-page welcome tour** (only on first launch, never again after)
+- the game in full-screen: home, lobby, and a bot game with card flips, reveals and the reactions bar
+- the **About** screen from the app bar: version read from the installed app, what the game is, features,
+  how to play, permissions & privacy, notice, credits, and the Share / Rate / tour / privacy / website /
+  contact buttons
+- typing a name on the Android keyboard
+- **Back button**: one press stays in the game, a second press exits
+- no crash from Card Clash at any point
 
-**Not verified:** behaviour on a real phone or emulator, and online play between two devices. Install the
-debug APK on a phone and play one bot game and one online game before uploading to Play.
+**Built:** `./gradlew assembleDebug` and `./gradlew bundleRelease` succeed.
+
+**Verified in a browser:** the bundled game passes the full Card Clash test suite.
+
+**Not verified:** a physical phone and real hardware haptics, the Share sheet and e-mail hand-off (they open other
+apps), and online play between two devices. Please try those on your phone before uploading to Play.
+
+### Where the app differs from the website
+
+The website game in `games/` is unchanged. The app copy gets two extra files, `web-overrides/android.css` and
+`android.js`, injected by `sync-assets.js`. They give it an app-style launcher home, phone-sized lobby and game
+layouts, an app bar, no text selection, a floating reactions bar, bottom-sheet dialogs, haptics, and a native share
+sheet in place of an invite link (which would have pointed at the app's internal address).
 
 ### First-time setup on a new machine
 
@@ -170,3 +185,9 @@ in a properties file is an escape character and silently corrupts the path:
 ```
 sdk.dir=C:/Users/you/AppData/Local/Android/Sdk
 ```
+
+### Before you publish
+
+- The About screen's **Rate on Google Play** and **Share the app** buttons point at the Play listing id and
+  rovatics.com. Once the app is live, change the share text in `res/values/strings.xml` to the Play Store URL.
+- The listing text for the Play Console is ready to paste from `play-assets/store-listing.md`.
