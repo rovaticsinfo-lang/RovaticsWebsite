@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Copies the four web games into the Android app (one assets folder per product flavor) and applies the few
+ * Copies the web games into the Android app (one assets folder per product flavor) and applies the few
  * changes the app build needs. Run it after editing any game:
  *
  *     node android/arcade/sync-assets.js
@@ -8,7 +8,7 @@
  * What it changes in the bundled copy, and why:
  *   1. The Rovatics badge image points at a bundled, circle-masked logo.
  *   2. viewport-fit=cover, so the page reaches under rounded corners and cutouts.
- *   3. web-overrides/<game>.css (+ common.css/common.js for the three offline games) are linked in: the app skin
+ *   3. web-overrides/<game>.css (+ common.css/common.js for the offline games) are linked in: the app skin
  *      and native behaviour. The website never loads them.
  *   4. Card Clash only: PeerJS is loaded from a bundled copy (no CDN, no remote code), and a window.__androidBack()
  *      hook closes a dialog, then leaves the room, before the app will exit. The other games define that hook themselves.
@@ -27,6 +27,7 @@ const GAMES = {
   sudoku:   { page: 'sudoku.html',             extra: ['sudoku-engine.js', 'open-in-app.js'], common: true },
   racers:   { page: 'kids-car-race-game.html', extra: [],                                      common: true },
   beambots: { page: 'beambots.html',           extra: ['beambots-engine.js'],                  common: true },
+  sceneblocks: { page: 'scene-blocks.html',    extra: [],                                      common: true },
   cardclash: {
     page: 'cardclash.html', extra: ['cardclash-engine.js', 'cardclash-data.js', 'open-in-app.js', 'turn-config.js'], common: false,
     vendor: ['peerjs.min.js'],
@@ -79,7 +80,8 @@ Object.keys(GAMES).forEach(function (flavor) {
   const VP_PLAIN = '<meta name="viewport" content="width=device-width, initial-scale=1">';
   const VP_FIT = '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">';
   if (html.indexOf(VP_PLAIN) >= 0) html = html.replace(VP_PLAIN, VP_FIT);
-  else must(html, VP_FIT, 'the viewport meta tag');
+  // A game may already carry its own viewport meta (e.g. Scene Blocks adds user-scalable=no); all we need is viewport-fit=cover.
+  else must(html, 'viewport-fit=cover', 'a viewport meta tag with viewport-fit=cover');
 
   must(html, '</head>', 'the closing head tag');
   must(html, '</body>', 'the closing body tag');

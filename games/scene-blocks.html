@@ -10,7 +10,9 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#050a1a;color:var(--txt);
   font-family:'Inter','Segoe UI',system-ui,-apple-system,Roboto,sans-serif;user-select:none;-webkit-user-select:none}
 #bg{position:fixed;inset:0;width:100%;height:100%;display:block}
-.app{position:relative;z-index:1;height:100%;max-width:460px;margin:0 auto;padding:10px 12px 8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+/* --reserve = empty strip at the bottom for the Rovatics badge (and, in the Android app, the About button) */
+:root{--reserve:34px}
+.app{position:relative;z-index:1;height:100%;max-width:460px;margin:0 auto;padding:10px 12px var(--reserve);display:flex;flex-direction:column;align-items:center;gap:8px}
 .top{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
 h1{margin:0;font-size:1.05rem;letter-spacing:.14em;text-transform:uppercase;font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.5)}
 h1 b{color:var(--acc)}
@@ -22,7 +24,8 @@ h1 b{color:var(--acc)}
 .stat small{display:block;font-size:.6rem;letter-spacing:.18em;opacity:.7;text-transform:uppercase}
 .stat b{font-size:1.1rem;font-variant-numeric:tabular-nums}
 .stat.hi b{color:var(--acc)}
-.stage{position:relative;width:min(100%,calc((100dvh - 190px)*360/520));min-width:230px}
+/* vh line first: WebViews older than Chrome 108 do not know dvh and would drop the whole width rule */
+.stage{position:relative;width:min(100%,calc((100vh - 182px - var(--reserve))*360/520));width:min(100%,calc((100dvh - 182px - var(--reserve))*360/520));min-width:230px}
 #game{display:block;width:100%;aspect-ratio:360/520;touch-action:none;cursor:grab}
 .chips{width:100%;display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
@@ -86,6 +89,10 @@ h1 b{color:var(--acc)}
 (()=>{
 'use strict';
 /* ================= helpers ================= */
+/* Canvas roundRect is Chrome 99+; polyfill so an out-of-date Android System WebView does not crash the game. */
+if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+  r=Math.min(typeof r==='number'?r:(r&&r[0])||0,w/2,h/2);this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);
+  this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath()}}
 const $=id=>document.getElementById(id);
 const rnd=(a,b)=>a+Math.random()*(b-a), ri=(a,b)=>Math.floor(rnd(a,b+1));
 const hex=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
@@ -277,7 +284,10 @@ function loadLevel(L,first){
 function tone(f,d=.12,type='sine',v=.12,delay=0){if(!sndOn)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
   const o=ac.createOscillator(),gn=ac.createGain(),t=ac.currentTime+delay;o.type=type;o.frequency.value=f;gn.gain.setValueAtTime(v,t);
   gn.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(gn).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
-const buzz=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}};
+// In the Android app the native haptic bridge is used (needs no VIBRATE permission); on the web, navigator.vibrate.
+const buzz=n=>{try{
+  if(window.RovaticsApp&&RovaticsApp.haptic)RovaticsApp.haptic(Array.isArray(n)?'success':n>=50?'heavy':'tick');
+  else navigator.vibrate&&navigator.vibrate(n)}catch(e){}};
 
 /* ---------- scene control ---------- */
 function sceneFor(){return mode==='journey'?byId(JOURNEY[(cfg.world-1)%JOURNEY.length]):byId(mode)}
@@ -420,7 +430,29 @@ $('snd').onclick=()=>{sndOn=!sndOn;$('snd').textContent=sndOn?'🔊':'🔇';pers
 $('snd').textContent=sndOn?'🔊':'🔇';
 
 cfg=levelCfg(level);resizeBG();buildChips();loadLevel(level,true);requestAnimationFrame(frame);
+
+// Android hardware Back: close the level picker, or open it from a win/lose card. Return true if handled;
+// false at plain gameplay lets the app ask "press back again to exit".
+window.__androidBack=function(){
+  if($('lvls').classList.contains('show')){$('lvls').classList.remove('show');return true}
+  if($('over').classList.contains('show')){openLevels();return true}
+  return false};
+
+// Test hook (used by tests/sceneblocks-ui-test.html)
+window.__sceneBlocks={
+  get level(){return level},get cfg(){return cfg},get grid(){return grid},get pieces(){return pieces},
+  get score(){return score},get linesDone(){return linesDone},get movesLeft(){return movesLeft},
+  get over(){return over},get won(){return won},get unlocked(){return unlocked},get stars(){return stars},
+  loadLevel,place,rot,canPlace,fitsAnywhere,levelCfg,rotatePiece,SHAPES,MAXLV};
 })();
 </script>
+<!-- Rovatics brand badge -->
+<style>
+  .rv-brand-badge{position:fixed;right:8px;bottom:8px;z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;opacity:.9;border-radius:999px;
+    background:rgba(4,14,40,.72);border:1px solid rgba(66,232,245,.45);backdrop-filter:blur(6px);color:#7fe6ff;font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;
+    letter-spacing:.04em;pointer-events:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+</style>
+<div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="../assets/rovatics-logo.png" alt=""><span>Rovatics</span></div>
 </body>
 </html>

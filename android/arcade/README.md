@@ -1,6 +1,6 @@
-# Rovatics Arcade — Android apps (Card Clash, Sudoku, Racers, Beam Bots)
+# Rovatics Arcade — Android apps (Card Clash, Sudoku, Racers, Beam Bots, Scene Blocks)
 
-One Gradle project, four Play Store apps (product flavors). Each app is a native shell (splash, welcome tour, About, haptics,
+One Gradle project, five Play Store apps (product flavors). Each app is a native shell (splash, welcome tour, About, haptics,
 share sheet, Back handling, edge-to-edge + keyboard-safe layout) around the offline web game from `games/`.
 
 | Flavor | Application ID | Game |
@@ -9,6 +9,7 @@ share sheet, Back handling, edge-to-edge + keyboard-safe layout) around the offl
 | sudoku | com.rovatics.sudoku | games/sudoku.html |
 | racers | com.rovatics.racers | games/kids-car-race-game.html |
 | beambots | com.rovatics.beambots | games/beambots.html |
+| sceneblocks | com.rovatics.sceneblocks | games/scene-blocks.html |
 
 ## Build
 ```
@@ -26,18 +27,26 @@ Enrol in Play App Signing when creating each app in Play Console.
 
 ## Play checklist
 - Listings, icons and feature graphics: `play-assets/<flavor>/`.
-- Sudoku / Racers / Beam Bots: no permissions, no INTERNET, no ads, no data collected → simplest Data-safety form. Card Clash: INTERNET only (online rooms; see below).
+- Sudoku / Racers / Beam Bots / Scene Blocks: no permissions, no INTERNET, no ads, no data collected → simplest Data-safety form. Card Clash: INTERNET only (online rooms; see below).
 - Privacy policy URL: https://rovatics.com/privacy.html (must be live).
 - Add 2-8 phone screenshots per app; complete content rating and target audience (Racers: see its listing note on Families policy).
 - New personal developer accounts must run a closed test (12 testers, 14 days) before production.
 
 ## Tests
 `node tests/sudoku.test.js`, `node tests/beambots.test.js`, and the headless-Chrome pages `tests/ui-test.html`,
-`tests/racers-ui-test.html`, `tests/beambots-ui-test.html` (open with `chrome --headless --dump-dom`).
+`tests/racers-ui-test.html`, `tests/beambots-ui-test.html`, `tests/sceneblocks-ui-test.html` (open with `chrome --headless --dump-dom`).
 
 ## Verified
 Built (debug, release APK, release AAB) for all three flavors; installed on an Android emulator: splash, welcome tour, game screens,
 race popups and Back handling confirmed. **Test on a real phone before publishing.** Sudoku challenge links open rovatics.com in the friend's browser.
+
+## Scene Blocks
+Offline canvas puzzle (1000 levels, rotatable shapes, animated scenes). It follows the same contract as the other offline games:
+Rovatics badge, `window.__androidBack`, haptics through `RovaticsApp.haptic`, and `viewport-fit=cover`. Two things are specific to it:
+- The page keeps a bottom strip free through the CSS variable `--reserve` (34px on the web for the badge). `web-overrides/sceneblocks.css`
+  raises it to 64px in the app, so the floating About button has room too, and removes `common.css`'s own body padding.
+- Back closes the level picker, or opens it from a win/lose card; during play it falls through to "press back again to exit".
+Scene Blocks has no invite or challenge links. Its `assetlinks.json` entry only exists to keep every package listed in one place.
 
 ## Card Clash: online rooms, invite links and the TURN relay
 - **Invite links** (`https://www.rovatics.com/games/cardclash.html?room=CODE`, and Sudoku `?c=...` challenge links) open the app (Android App Links) and show

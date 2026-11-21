@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ob_emoji">
+        <item>🧱</item>
+        <item>🔄</item>
+        <item>🌅</item>
+        <item>🏆</item>
+    </string-array>
+    <string-array name="ob_titles">
+        <item>Welcome to Scene Blocks</item>
+        <item>Tap a shape to rotate it</item>
+        <item>Worlds that come alive</item>
+        <item>1000 levels to master</item>
+    </string-array>
+    <string-array name="ob_bodies">
+        <item>Drag the three shapes onto the 8×8 grid. Fill a whole row or column to clear it, and chain clears for combos.</item>
+        <item>Tap any shape in the tray to turn it 90°. While you are dragging, tap with a second finger to rotate it again.</item>
+        <item>Pick Live Sky and the scene follows your real clock, from sunrise to starry night. Or travel space, ocean, forest, candy land, neon city and snow peaks as you climb.</item>
+        <item>Each level sets a goal, clear a number of lines or reach a score, before your moves run out. Earn up to 3 stars on every level.</item>
+    </string-array>
+    <string-array name="about_headings">
+        <item>About this game</item>
+        <item>Features</item>
+        <item>How to play</item>
+        <item>Levels and stars</item>
+    </string-array>
+    <string-array name="about_bodies">
+        <item>Rovatics Scene Blocks is a calm, colourful block puzzle. You are given three shapes at a time and place them on an 8×8 grid. Complete a row or a column and it clears. The trick is that you can rotate every shape, so there is always a clever fit.</item>
+        <item>• 1000 levels, each with a clear goal and a move limit\n• Rotate any shape with a tap\n• Live Sky that follows your real clock\n• Six animated worlds: space, ocean, forest, candy land, neon city and snow peaks\n• Combos, perfect clears, particles, sounds and haptics (all can be muted)\n• Free, with no ads and no account</item>
+        <item>1. Drag a shape from the tray onto the grid. A glow shows which lines it will clear.\n2. Tap a shape to rotate it before you place it.\n3. Reach the level goal before you run out of moves.\n4. No room for any shape in any rotation means the level is over, so tap Retry and try a different plan.</item>
+        <item>Finish a level to earn 1 to 3 stars, depending on how many moves you have left, and to unlock the next one. Open the Levels screen at any time to replay a level and collect every star. Your progress is saved on this device.</item>
+    </string-array>
+</resources>

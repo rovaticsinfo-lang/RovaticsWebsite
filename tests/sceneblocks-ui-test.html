@@ -1,0 +1,88 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<!-- Run:  chrome --headless --allow-file-access-from-files --virtual-time-budget=20000 --dump-dom tests/sceneblocks-ui-test.html -->
+<iframe id="f" src="../games/scene-blocks.html" style="width:420px;height:860px"></iframe>
+<script>
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let loads=0;
+document.getElementById('f').onload=async()=>{try{
+ // first load: wipe saved progress and reload once so the game starts from a clean slate; second load runs the tests
+ if(loads++===0){ try{ f.contentWindow.localStorage.removeItem('sceneblocks.v2'); }catch(e){} f.contentWindow.location.reload(); return; }
+ if(loads>2) return;
+ await wait(300);
+ const w2=f.contentWindow,d2=w2.document,S=w2.__sceneBlocks;
+ ok(!!S,'test hook present');
+ ok(S.level===1 && S.cfg.type==='lines' && S.cfg.goal>0 && S.movesLeft===S.cfg.moves,'starts on level 1 with a goal and a move budget');
+ ok(d2.querySelector('.rv-brand-badge img') && /rovatics-logo/.test(d2.querySelector('.rv-brand-badge img').getAttribute('src')),'Rovatics badge present (sync-assets needs it)');
+ ok(/viewport-fit=cover/.test(d2.querySelector('meta[name=viewport]').content),'viewport-fit=cover present');
+
+ // ---- 1000 generated levels are sane and deterministic ----
+ let bad=[],prevGoal=0;
+ for(let L=1;L<=S.MAXLV;L++){
+   const a=S.levelCfg(L),b=S.levelCfg(L);
+   if(JSON.stringify(a)!==JSON.stringify(b)) bad.push('L'+L+' not deterministic');
+   if(!(a.goal>0&&a.moves>0)) bad.push('L'+L+' bad goal/moves');
+   for(let k=0;k<8;k++){ if(a.obst.filter(o=>o[0]===k).length>=8||a.obst.filter(o=>o[1]===k).length>=8) bad.push('L'+L+' prefilled line'); }
+   if(a.obst.length>40) bad.push('L'+L+' board too full');
+   if(a.world!==Math.floor((L-1)/10)+1) bad.push('L'+L+' wrong world');
+ }
+ ok(bad.length===0,'all 1000 levels valid and deterministic'+(bad.length?' :: '+bad.slice(0,3).join('; '):''));
+
+ // ---- rotation ----
+ const m0=[[1,0],[1,0],[1,1]];
+ let m=m0; for(let i=0;i<4;i++) m=S.rot(m);
+ ok(JSON.stringify(m)===JSON.stringify(m0),'four rotations return the original shape');
+ ok(JSON.stringify(S.rot([[1,1,1]]))==='[[1],[1],[1]]','a row rotates into a column');
+ // a 5-long bar fits only vertically when just a column is free; rotation must count for game-over
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++) S.grid[r][c]=(c===3)?-1:0;
+ ok(S.fitsAnywhere([[1,1,1,1,1]])===true,'fit check considers rotation (bar fits the free column)');
+ S.loadLevel(1);
+ const before=JSON.stringify(S.pieces[0].m); S.rotatePiece(0);
+ ok(JSON.stringify(S.pieces[0].m)!==before || before===JSON.stringify(S.rot(S.pieces[0].m)),'rotatePiece turns the tray shape');
+
+ // ---- clearing a line scores and counts ----
+ S.loadLevel(1);
+ const one=()=>({m:[[1]],col:0,spin:0});
+ for(let c=0;c<7;c++) S.grid[7][c]=0;
+ S.pieces[0]=one();S.pieces[1]=one();S.pieces[2]=one();
+ const s0=S.score; S.place(0,7,7);
+ ok(S.linesDone===1 && S.score>s0 && S.grid[7].every(v=>v<0),'filling a row clears it, counts the line and scores');
+ ok(S.movesLeft===S.cfg.moves-1,'each placement spends one move');
+
+ // ---- winning level 1 saves stars and unlocks level 2 ----
+ for(let line=0; S.linesDone<S.cfg.goal && line<10; line++){
+   const r=line%8; for(let c=0;c<7;c++) S.grid[r][c]=0;
+   S.pieces[0]=one();S.pieces[1]=one();S.pieces[2]=one(); S.place(0,r,7);
+ }
+ ok(S.won===true,'reaching the line goal wins the level');
+ await wait(900);
+ ok(d2.getElementById('over').classList.contains('show') && /complete/i.test(d2.getElementById('ovt').textContent),'win card shown');
+ ok(/★/.test(d2.getElementById('ovs').textContent),'stars shown');
+ const sv=JSON.parse(w2.localStorage.getItem('sceneblocks.v2')||'{}');
+ ok(sv.unlocked>=2 && sv.stars && sv.stars[1]>=1,'progress and stars saved (unlocked '+sv.unlocked+')');
+ ok(w2.__androidBack()===true && d2.getElementById('lvls').classList.contains('show'),'Back on the win card opens the level picker');
+ ok(w2.__androidBack()===true && !d2.getElementById('lvls').classList.contains('show'),'Back again closes the picker');
+
+ // ---- running out of moves loses ----
+ S.loadLevel(2);
+ ok(!d2.getElementById('over').classList.contains('show'),'loading a level clears the overlay');
+ ok(w2.__androidBack()===false,'Back during play lets the app handle it (press twice to exit)');
+ let placed=0;
+ for(let r=0;r<4&&S.movesLeft>0;r++)for(let c=0;c<4&&S.movesLeft>0;c++){ S.pieces[0]=one();S.pieces[1]=one();S.pieces[2]=one(); S.place(0,r,c); placed++; }
+ for(let r=4;r<8&&S.movesLeft>0;r++){ S.pieces[0]=one();S.pieces[1]=one();S.pieces[2]=one(); S.place(0,r,r); placed++; }
+ ok(S.movesLeft<=0 && S.over && !S.won,'spending every move without the goal loses the level');
+ await wait(700);
+ ok(/moves|space/i.test(d2.getElementById('ovt').textContent),'lose card shown: '+d2.getElementById('ovt').textContent);
+
+ // ---- level picker ----
+ d2.getElementById('lvbtn').click();
+ ok(d2.getElementById('lvls').classList.contains('show'),'Levels button opens the picker');
+ const open=[...d2.querySelectorAll('#lvg button')].filter(b=>!b.disabled).length;
+ ok(open>=2 && open<25,'picker unlocks only reached levels ('+open+' of 25 open)');
+ // ---- haptic bridge is used when present ----
+ let kinds=[]; w2.RovaticsApp={haptic:k=>kinds.push(k)};
+ S.loadLevel(1); for(let c=0;c<7;c++) S.grid[0][c]=0; S.pieces[0]=one();S.pieces[1]=one();S.pieces[2]=one(); S.place(0,0,7);
+ ok(kinds.length>0,'native haptic bridge called on a clear ('+kinds.join(',')+')');
+}catch(e){ok(false,'exception '+e.message+' '+(e.stack||'').split('\n')[1])}
+ document.getElementById('out').textContent=out.join('\n')+'\nDONE';};
+</script>

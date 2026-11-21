@@ -1,0 +1,4 @@
+/* Scene Blocks: the page already keeps a strip at the bottom free (--reserve) for the Rovatics badge, so use it for the
+   floating About button too, and drop common.css's own 64px body padding so the space is not counted twice. */
+:root { --reserve: 64px; }
+body { padding-bottom: 0; }
