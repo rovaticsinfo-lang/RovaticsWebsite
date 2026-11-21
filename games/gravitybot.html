@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rovatics Gravity Bot</title>
+<!-- rv-sling: slingshot aiming -->
 <style>
   :root{--panel:rgba(255,255,255,.07);--line:rgba(140,170,255,.3);--text:#f2f6ff;--muted:#a9b9ee;--accent:#7be8ff;
         --grad:linear-gradient(110deg,#6a5cff,#7be8ff);--good:#5dffa0;--bad:#ff5d73;--gold:#ffd24a}
@@ -49,7 +50,7 @@
   .fuel{display:inline-block;width:70px;height:10px;border-radius:6px;background:rgba(255,255,255,.15);overflow:hidden;vertical-align:middle;margin-left:4px}
   .fuel i{display:block;height:100%;background:linear-gradient(90deg,#ff7b3d,#ffd24a);transition:width .1s}
   .boardbox{display:flex;justify-content:center}
-  canvas#cv{border-radius:18px;border:1px solid var(--line);background:#050820;touch-action:none;cursor:crosshair;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+  canvas#cv{border-radius:18px;border:1px solid var(--line);background:#050820;touch-action:none;cursor:grab;max-width:100%;box-shadow:0 10px 40px rgba(0,0,0,.6)}
   .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
   .tip{text-align:center;color:var(--muted);font-size:.92rem;min-height:1.4em;margin:10px 0 0}
   #toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-300%);padding:11px 22px;border-radius:999px;background:var(--grad);color:#050a24;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.45);transition:transform .35s cubic-bezier(.2,1.4,.4,1);z-index:80;max-width:92vw;text-align:center}
@@ -72,15 +73,6 @@
   .sw{display:flex;gap:4px} .sw i{width:16px;height:16px;border-radius:50%}
   .aitem{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--panel)} .aitem.off{opacity:.4;filter:grayscale(1)}
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:75}
-  /* rv-aim: instrument readouts */
-  .readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:760px;margin:10px auto 0}
-  .stat{padding:8px 6px;border-radius:14px;background:var(--panel);border:1px solid var(--line);text-align:center}
-  .stat small{display:block;color:var(--muted);font-size:.68rem;letter-spacing:.12em;font-weight:700}
-  .stat b{display:block;font-size:1.35rem;color:var(--accent);font-variant-numeric:tabular-nums}
-  .stat.gold b{color:var(--gold)}
-  .readout.hint .stat{border-color:var(--gold);box-shadow:0 0 14px rgba(255,210,74,.5)}
-  .tune{gap:6px}.tune .btn{padding:9px 12px;font-size:.9rem;touch-action:manipulation;user-select:none}
-  @media (max-width:520px){.stat b{font-size:1.05rem}.stat small{font-size:.58rem}}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
 </head>
@@ -94,7 +86,7 @@
       <div class="pl" style="width:26px;height:26px;animation-delay:1s;background:radial-gradient(circle at 30% 30%,#ffa8e8,#c02b9a 60%,#4a0a3a)"></div>
     </div>
     <h1>🛰️ <span class="glow">Gravity Bot</span></h1>
-    <p class="sub">Set your angle and pull, then launch your robot probe! Go straight for the station or bank it off the mirror walls, bend around swaying planets, suns and black holes — and remember: the lighter your pull, the higher your score.</p>
+    <p class="sub">Pull your robot probe back like a slingshot and let go! Go straight for the station or bank it off the mirror walls, bend around swaying planets, suns and black holes — and remember: the lighter your pull, the higher your score.</p>
     <div class="rank" id="rankBox"></div>
   </div>
   <div class="modes">
@@ -115,15 +107,6 @@
     <div class="chips"><span class="chip" id="titleChip">Level 1</span><span class="chip" id="shotChip"></span><span class="chip" id="orbChip"></span></div>
   </div>
   <div class="boardbox"><canvas id="cv" aria-label="Gravity Bot play field"></canvas></div>
-  <div class="readout" id="readout" aria-live="polite">
-    <div class="stat"><small>ANGLE</small><b id="rdAngle">—</b></div><div class="stat"><small>PULL</small><b id="rdPower">—</b></div>
-    <div class="stat"><small>SPEED</small><b id="rdSpeed">—</b></div><div class="stat gold"><small>PULL BONUS</small><b id="rdBonus">—</b></div>
-  </div>
-  <div class="acts tune" id="tune">
-    <button class="btn" id="angP" type="button" title="Rotate counter-clockwise (Left arrow)">⟲ Angle +</button><button class="btn" id="angM" type="button" title="Rotate clockwise (Right arrow)">⟳ Angle −</button>
-    <button class="btn" id="powP" type="button" title="Pull harder (Up arrow)">⬆ Pull +</button><button class="btn" id="powM" type="button" title="Pull lighter (Down arrow)">⬇ Pull −</button>
-    <button class="btn primary" id="goBtn" type="button">🚀 Launch</button>
-  </div>
   <div class="acts">
     <button class="btn" id="hintBtn">💡 Hint (3)</button>
     <button class="btn" id="ffBtn">⏩ Skip flight</button>
@@ -206,6 +189,32 @@
     goal: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, .22, 'triangle', i * .1, .11); }); },
     fanfare: function () { [659, 784, 988, 1319].forEach(function (f, i) { tone(f, .2, 'triangle', i * .09, .09); }); }
   };
+  // rv-sling: the stretch hum rises with the pull, ticks every 10%, and letting go gives a twang + whoosh
+  function actx() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) {} return ac; }
+  var stretch = {
+    osc: null, gain: null, tick: -1,
+    begin: function () {
+      if (save.muted || !actx()) return;
+      try { var o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = 110; g.gain.value = .0001; o.connect(g); g.connect(ac.destination); o.start(); this.osc = o; this.gain = g; this.tick = -1; } catch (e) {}
+    },
+    update: function (p) {
+      if (!this.osc) return; var t = ac.currentTime;
+      this.osc.frequency.setTargetAtTime(110 + p * 460, t, .03); this.gain.gain.setTargetAtTime(p > .03 ? .025 + .06 * p : .0001, t, .04);
+      var st = Math.floor(p * 10); if (st !== this.tick) { if (this.tick >= 0 && p > .05) tone(260 + st * 95, .05, 'square', 0, .03); this.tick = st; }
+    },
+    end: function () { if (!this.osc) return; try { var t = ac.currentTime; this.gain.gain.setTargetAtTime(.0001, t, .02); this.osc.stop(t + .15); } catch (e) {} this.osc = null; }
+  };
+  function whoosh(p) {
+    if (save.muted || !actx()) return;
+    try {
+      var len = Math.floor(ac.sampleRate * .5), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0), i;
+      for (i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
+      s.buffer = buf; f.type = 'bandpass'; f.Q.value = 1.2; f.frequency.setValueAtTime(500, t); f.frequency.exponentialRampToValueAtTime(2200 + p * 3200, t + .4);
+      g.gain.setValueAtTime(.05 + .15 * p, t); g.gain.exponentialRampToValueAtTime(.001, t + .5); s.connect(f); f.connect(g); g.connect(ac.destination); s.start(t);
+    } catch (e) {}
+  }
+  SFX.release = function (p) { tone(200 + p * 320, .38, 'sine', 0, .11, 70); tone(90 + p * 80, .25, 'triangle', 0, .09, 40); whoosh(p); SFX.launch(p); };
   document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); });
 
   // ---------- state ----------
@@ -245,14 +254,14 @@
   // ---------- starting levels ----------
   function setupLevel(level) {
     L = level; shots = 3; shotsUsed = 0; phase = 'aim'; drag = null; flight = null; ghost = null; aim = null; bumpsSeen = 0; parts = []; rings = []; collected = {}; warpsSeen = 0; usedWarp = false;
-    show('play'); resize(); updateHud(); updateReadout();
+    show('play'); resize(); updateHud();
   }
   function startLevel(n) {
     mode = 'campaign'; lvN = n; hintsLeft = 3; var lv = LD.LEVELS[n - 1]; if (!lv.portals) lv.portals = [];
     setupLevel(lv);
     $('titleChip').textContent = 'Galaxy ' + (lv.world + 1) + ' · Level ' + n;
     var moving = lv.bodies.some(function (b) { return b.mv; });
-    $('tip').textContent = n === 1 ? '👆 Drag BACK from anywhere to set angle + pull (nothing is predicted — read the dials!), fine-tune with the buttons, then press 🚀 Launch. The walls are mirrors.' : (GE.WORLDS[lv.world].blurb + (moving ? '  ⏱️ Worlds sway as soon as you launch.' : '') + (lv.bank ? '  🪞 This one needs a bank shot.' : ''));
+    $('tip').textContent = n === 1 ? '👆 Grab the bot and pull it back like a slingshot. The ring shows how hard you pull (lighter pull = more points) and the little arrow shows where it will fly. Let go to launch! The walls are mirrors.' : (GE.WORLDS[lv.world].blurb + (moving ? '  ⏱️ Worlds sway as soon as you launch.' : '') + (lv.bank ? '  🪞 This one needs a bank shot.' : ''));
     updateHud();
   }
   function startEndless() {
@@ -267,7 +276,7 @@
   }
   function enterSector() {
     hintsLeft = endless.hints; setupLevel(endless.cur);
-    $('titleChip').textContent = '♾️ Sector ' + endless.k; $('tip').textContent = 'Each sector is brand new! Out of shots costs a hull. Read the dials, bank off the walls, and keep your pull light for a bigger score.'; updateHud();
+    $('titleChip').textContent = '♾️ Sector ' + endless.k; $('tip').textContent = 'Each sector is brand new! Out of shots costs a hull. Pull back, let go, bank off the walls — and keep your pull light for a bigger score.'; updateHud();
     var k = endless.k, sd = endless.seed; // prefetch the next sector while the player thinks
     setTimeout(function () { if (mode === 'endless' && endless.k === k && endless.seed === sd && !endless.next) { try { endless.next = { k: k + 1, L: GE.endlessLevel(sd, k + 1) }; } catch (e) {} } }, 2500);
   }
@@ -278,66 +287,52 @@
     $('shotChip').innerHTML = (mode === 'endless' ? '❤ ' + endless.hulls + ' · Score <b>' + fmt(endless.score) + '</b> · ' : '') + 'Shots <b>' + shots + '</b>';
     $('orbChip').innerHTML = '🔋 <b>' + Object.keys(collected).length + '</b>/' + L.orbs.length;
     $('hintBtn').textContent = '💡 Hint (' + hintsLeft + ')'; $('hintBtn').disabled = hintsLeft <= 0 || phase !== 'aim';
-    $('ffBtn').hidden = phase !== 'fly'; $('tune').hidden = phase !== 'aim'; $('goBtn').disabled = !aim || phase !== 'aim';
+    $('ffBtn').hidden = phase !== 'fly';
   }
 
   // ---------- coordinates & input ----------
   function resize() {
     var avail = Math.min($('play').clientWidth || 800, 980); if (avail < 200) avail = 800;
-    var maxH = window.innerHeight * .6, w = Math.min(avail, maxH / .6);
+    var maxH = window.innerHeight * .72, w = Math.min(avail, maxH / .6);
     sc = w / W; dpr = window.devicePixelRatio || 1;
     cv.style.width = w + 'px'; cv.style.height = (H * sc) + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(H * sc * dpr);
   }
   window.addEventListener('resize', resize);
   function worldPt(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
 
-  // The aim is a pull-back vector: its direction is the launch direction, its length the pull (max 150 units). NOTHING is predicted:
-  // the player reads ANGLE (0 = right, 90 = up), PULL % and SPEED from the dials, so they have to judge gravity, walls and drift themselves.
-  var PULL_MAX = 150;
-  function setAimVec(dx, dy) { var len = Math.sqrt(dx * dx + dy * dy); if (len < 1e-6) return; var cl = Math.min(len, PULL_MAX); aim = { dx: dx / len * cl, dy: dy / len * cl, len: cl }; }
+  // rv-sling: grab the bot and pull it back like a slingshot; letting go launches it at once. The pull vector's direction is the launch
+  // direction and its length the pull (max 150 units). Nothing is predicted: judge angle and strength yourself — the ring shows the pull %.
+  var PULL_MAX = 150, lastAim = null, snap = null;
   function setAimNumbers(angleDeg, power) { power = Math.max(.05, Math.min(1, power)); var a = angleDeg * Math.PI / 180; aim = { dx: Math.cos(a) * power * PULL_MAX, dy: -Math.sin(a) * power * PULL_MAX, len: power * PULL_MAX }; }
   function aimVel() { return aim ? GE.dragToVelocity(aim.dx, aim.dy, PULL_MAX) : null; }
-  function aimNumbers() { if (!aim) return null; var v = aimVel(), r = GE.aimReadout(v); return { angle: r.angle, power: v.power, powerPct: r.power, speed: r.speed }; }
-  function updateReadout() {
-    var n = aimNumbers();
-    $('rdAngle').textContent = n ? n.angle.toFixed(1) + '°' : '—'; $('rdPower').textContent = n ? n.powerPct + '%' : '—';
-    $('rdSpeed').textContent = n ? n.speed.toFixed(2) : '—'; $('rdBonus').textContent = n ? '+' + fmt(GE.pullBonus(n.power)) : '—';
+  function dragMove(p) {
+    var dx = drag.origin.x - p.x, dy = drag.origin.y - p.y, len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 6) aim = null; else { var cl = Math.min(len, PULL_MAX); aim = { dx: dx / len * cl, dy: dy / len * cl, len: cl }; }
+    stretch.update(aim ? aim.len / PULL_MAX : 0);
   }
   cv.addEventListener('pointerdown', function (e) {
-    if (!L || phase !== 'aim') return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
-    drag = { origin: worldPt(e) }; ghost = null; $('readout').classList.remove('hint');
+    if (!L || phase !== 'aim') return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); var p = worldPt(e);
+    // grabbing the bot (or near it) pulls from the bot itself; anywhere else pulls relative to where you pressed
+    drag = { origin: Math.hypot(p.x - L.start.x, p.y - L.start.y) <= 90 ? { x: L.start.x, y: L.start.y } : p }; ghost = null; aim = null; cv.style.cursor = 'grabbing'; stretch.begin(); dragMove(p);
   });
-  cv.addEventListener('pointermove', function (e) {
-    if (!drag) return; var p = worldPt(e), dx = drag.origin.x - p.x, dy = drag.origin.y - p.y;
-    if (Math.sqrt(dx * dx + dy * dy) >= 8) { setAimVec(dx, dy); updateReadout(); updateHud(); }
-  });
-  function release() { if (!drag) return; drag = null; if (aim && aim.len < 14) { aim = null; updateReadout(); } updateHud(); }
+  cv.addEventListener('pointermove', function (e) { if (drag) dragMove(worldPt(e)); });
+  function release() {
+    if (!drag) return; drag = null; cv.style.cursor = 'grab'; stretch.end();
+    var v = aim && aim.len >= 14 ? aimVel() : null;
+    if (v) { var pulled = pulledPos(aim), a0 = aim; lastAim = aim; aim = null; launch(v, pulled, a0); } else aim = null;   // a tiny pull just cancels
+  }
   cv.addEventListener('pointerup', release);
-  cv.addEventListener('pointercancel', function () { drag = null; });
-  // fine tuning (buttons hold-to-repeat, arrow keys; Shift = x5) and launching
-  function nudge(dAng, dPow) {
-    if (phase !== 'aim' || !L) return; var cur = aimNumbers() || { angle: 45, powerPct: 50 };
-    var ang = Math.round(((cur.angle + dAng) % 360 + 360) % 360 * 2) / 2, pw = Math.max(5, Math.min(100, cur.powerPct + dPow)) / 100;
-    setAimNumbers(ang, pw); $('readout').classList.remove('hint'); updateReadout(); updateHud();
-  }
-  function bindNudge(id, da, dp) {
-    var b = $(id), t = 0, iv = 0, stop = function () { clearTimeout(t); clearInterval(iv); };
-    b.addEventListener('pointerdown', function (e) { e.preventDefault(); nudge(da, dp); stop(); t = setTimeout(function () { iv = setInterval(function () { nudge(da, dp); }, 70); }, 380); });
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (n) { b.addEventListener(n, stop); });
-  }
-  bindNudge('angP', .5, 0); bindNudge('angM', -.5, 0); bindNudge('powP', 0, 1); bindNudge('powM', 0, -1);
-  function fireAim() { var v = aimVel(); if (phase === 'aim' && v) launch(v); }
-  $('goBtn').onclick = fireAim;
-  document.addEventListener('keydown', function (e) {
-    if ($('play').hidden || !$('overlay').hidden || phase !== 'aim') return; var m = e.shiftKey ? 5 : 1;
-    if (e.key === 'ArrowLeft') { nudge(.5 * m, 0); e.preventDefault(); } else if (e.key === 'ArrowRight') { nudge(-.5 * m, 0); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { nudge(0, m); e.preventDefault(); } else if (e.key === 'ArrowDown') { nudge(0, -m); e.preventDefault(); }
-    else if ((e.key === 'Enter' || e.key === ' ') && aim) { fireAim(); e.preventDefault(); }
-  });
+  cv.addEventListener('pointercancel', function () { if (drag) { drag = null; aim = null; stretch.end(); cv.style.cursor = 'grab'; } });
 
   // ---------- flight ----------
-  function launch(vel) {
-    phase = 'fly'; shotsUsed++; shots--; collected = {}; SFX.launch(vel.power); ghost = null; warpsSeen = 0; usedWarp = false; bumpsSeen = 0; $('readout').classList.remove('hint');
+  function launch(vel, pulled, a0) {
+    phase = 'fly'; shotsUsed++; shots--; collected = {}; SFX.release(vel.power); ghost = null; warpsSeen = 0; usedWarp = false; bumpsSeen = 0;
+    if (pulled && a0) {   // the bands snap back: shockwave at the sling, sparks along the shot, a little shake
+      snap = { x: pulled.x, y: pulled.y, t: performance.now(), dx: a0.dx, dy: a0.dy, pw: vel.power };
+      rings.push({ x: L.start.x, y: L.start.y, r: 8, life: 1, c: '#7be8ff' }); rings.push({ x: L.start.x, y: L.start.y, r: 2, life: 1, c: '#fff' }); shake = 3 + vel.power * 9;
+      var ang = Math.atan2(a0.dy, a0.dx);
+      for (var k = 0; k < 18 + Math.round(vel.power * 22); k++) { var sp = 2 + Math.random() * (3 + vel.power * 5), sa = ang + (Math.random() - .5) * .7; parts.push({ x: L.start.x, y: L.start.y, vx: Math.cos(sa) * sp, vy: Math.sin(sa) * sp, life: .9, c: k % 3 ? '#7be8ff' : '#fff', r: 2 + Math.random() * 3 }); }
+    }
     var F = GE.createFlight(L, vel); flight = { F: F, speed: 2, acc: 0, done: false, jumpSet: {}, orbsSeen: 0, power: vel.power }; updateHud();
   }
   $('ffBtn').onclick = function () { if (flight) flight.speed = 8; };
@@ -356,9 +351,9 @@
   function endFlight() {
     var F = flight.F, last = { x: F.x, y: F.y };
     if (F.result === 'goal') return win(F, last);
-    if (F.result === 'crash') { explode(last.x, last.y, '#ffb347'); SFX.crash(); shake = 14; toast('💥 Crashed! ' + (shots > 0 ? shots + ' shot' + (shots === 1 ? '' : 's') + ' left — your aim is kept, nudge it!' : '')); }
+    if (F.result === 'crash') { explode(last.x, last.y, '#ffb347'); SFX.crash(); shake = 14; toast('💥 Crashed! ' + (shots > 0 ? shots + ' shot' + (shots === 1 ? '' : 's') + ' left — the faint ring marks your last pull!' : '')); }
     else { SFX.lost(); toast(F.result === 'lost' ? '💫 Too many bounces!' : '⏳ Drifting forever…'); }
-    setTimeout(function () { flight = null; collected = {}; if (shots > 0) { phase = 'aim'; updateHud(); updateReadout(); } else outOfShots(); }, 750);
+    setTimeout(function () { flight = null; collected = {}; if (shots > 0) { phase = 'aim'; updateHud(); } else outOfShots(); }, 750);
   }
   function explode(x, y, col) {
     rings.push({ x: x, y: y, r: 6, life: 1, c: col }); rings.push({ x: x, y: y, r: 2, life: 1, c: '#fff' });
@@ -401,7 +396,7 @@
   }
   function outOfShots() {
     if (mode === 'campaign') {
-      showModal('<div style="font-size:3rem">🔧</div><h2>Out of shots!</h2><p>Every level can be solved — change the angle or the pull, or bank off a wall. A 💡 hint shows the angle and pull of a working shot.</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🌌 Map</button></div>');
+      showModal('<div style="font-size:3rem">🔧</div><h2>Out of shots!</h2><p>Every level can be solved — change your angle or pull, or bank off a wall. A 💡 hint shows a golden ghost bot pulled to a working shot.</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🌌 Map</button></div>');
       $('mRetry').onclick = function () { startLevel(lvN); }; $('mMap').onclick = function () { renderMap(); show('map'); };
     } else {
       endless.hulls--; updateHud();
@@ -421,17 +416,17 @@
   $('resetBtn').onclick = function () { if (!L) return; mode === 'campaign' ? startLevel(lvN) : (flight = null, setupLevel(L), updateHud()); };
   $('hintBtn').onclick = function () {
     if (phase !== 'aim' || hintsLeft <= 0) return; hintsLeft--; if (mode === 'endless') endless.hints = hintsLeft;
-    var sp = Math.sqrt(L.solution.vx * L.solution.vx + L.solution.vy * L.solution.vy), pw = Math.round(sp / GE.VMAX * 1000) / 1000, ang = GE.aimReadout(L.solution).angle;
-    setAimNumbers(ang, pw); updateReadout(); $('readout').classList.add('hint'); ghost = { until: performance.now() + 9000 };
-    toast('💡 Try angle ' + ang.toFixed(1) + '° and pull ' + Math.round(pw * 100) + '% — then 🚀 Launch!'); updateHud();
+    var sol = L.solution, pw = Math.sqrt(sol.vx * sol.vx + sol.vy * sol.vy) / GE.VMAX;
+    ghost = { aim: { dx: sol.vx / GE.VMAX * PULL_MAX, dy: sol.vy / GE.VMAX * PULL_MAX, len: pw * PULL_MAX }, pw: pw, until: performance.now() + 9000 };
+    toast('💡 The golden ghost shows a working pull (about ' + Math.round(pw * 100) + '%). Drag the bot to match it, then let go!'); updateHud();
   };
   $('howBtn').onclick = function () {
-    showModal('<h2>🛰️ How to play</h2><ul class="how"><li><b>Press and drag BACK</b> (like a slingshot) to set your shot. Nothing is predicted for you — read the <b>ANGLE</b>, <b>PULL %</b> and <b>SPEED</b> dials under the board.</li>' +
-      '<li>Fine-tune with the <b>⟲ ⟳ ⬆ ⬇ buttons</b> (or arrow keys, Shift = bigger steps), then press <b>🚀 Launch</b>. After a miss your aim is kept — just nudge it.</li>' +
+    showModal('<h2>🛰️ How to play</h2><ul class="how"><li><b>Grab the bot and pull it back</b> like a slingshot. The <b>ring</b> around it fills as you pull harder and shows the <b>pull %</b>; a little <b>arrow</b> on the bot shows the direction it will fly. <b>Let go and it launches at once.</b></li>' +
+      '<li>Nothing is predicted for you — judge the angle and strength yourself. Pull too little and you stop short; the rubber bands change colour as they tighten.</li>' +
       '<li>🪞 The four <b>walls are mirrors</b>: the probe bounces off them, angle in = angle out. Hit the station directly or bank your shot!</li>' +
       '<li>🪶 <b>The lighter your pull, the higher your score</b> — a 20% pull earns far more than a 90% pull.</li>' +
       '<li>⏱️ Planets and stars <b>sway</b> once you launch (a little more every galaxy), but there is always a gap to dock. 🪐 Planets and ☀️ suns pull you in (touch = crash), 🕳️ black holes pull hard, ✨ repulsors push you away, ☄️ asteroids just smash you, 🌀 portals teleport you.</li>' +
-      '<li>Dock at the <b>green station</b>. ⭐ for: reaching it · all 🔋 cells · 2 shots or fewer. Stuck? A 💡 hint shows the angle and pull of a working shot.</li>' +
+      '<li>Dock at the <b>green station</b>. ⭐ for: reaching it · all 🔋 cells · 2 shots or fewer. Stuck? A 💡 hint shows a golden ghost bot pulled to a working shot.</li>' +
       '<li>Earn ⭐ to rank up from Cadet to Legend. ♾️ <b>Deep Space</b> is endless — 3 hulls, how far can you go?</li></ul><div class="row"><button class="btn primary" id="hOk">Launch!</button></div>');
     $('hOk').onclick = function () { $('overlay').hidden = true; };
   };
@@ -545,24 +540,62 @@
     for (var y = 20; y < H - 10; y += 34) { cx.moveTo(m + 3, y); cx.lineTo(m + 12, y + 9); cx.moveTo(W - m - 3, y); cx.lineTo(W - m - 12, y + 9); }
     cx.stroke(); cx.restore();
   }
-  // Protractor ring + needle + pull handle: the instruments the player aims with.
-  function drawAim(now) {
-    var sx0 = L.start.x, sy0 = L.start.y, R = 62, i;
-    cx.save(); cx.lineWidth = 1.5; cx.strokeStyle = 'rgba(255,255,255,.22)'; cx.beginPath(); cx.arc(sx0, sy0, R, 0, 6.283); cx.stroke();
-    cx.beginPath(); for (i = 0; i < 360; i += 15) { var a = i * Math.PI / 180, r2 = R + (i % 90 === 0 ? 11 : i % 45 === 0 ? 8 : 5); cx.moveTo(sx0 + Math.cos(a) * R, sy0 - Math.sin(a) * R); cx.lineTo(sx0 + Math.cos(a) * r2, sy0 - Math.sin(a) * r2); }
-    cx.stroke(); cx.fillStyle = 'rgba(255,255,255,.4)'; cx.font = '600 11px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
-    [[0, '0°'], [90, '90°'], [180, '180°'], [270, '270°']].forEach(function (t) { var a2 = t[0] * Math.PI / 180; cx.fillText(t[1], sx0 + Math.cos(a2) * (R + 26), sy0 - Math.sin(a2) * (R + 22)); });
-    if (aim) {
-      var n = aimNumbers(), ang = n.angle * Math.PI / 180, dirx = Math.cos(ang), diry = -Math.sin(ang), hint = ghost && now < ghost.until;
-      cx.fillStyle = hint ? 'rgba(255,210,74,.16)' : 'rgba(123,232,255,.14)'; cx.beginPath(); cx.moveTo(sx0, sy0); cx.arc(sx0, sy0, R - 6, 0, -ang, true); cx.closePath(); cx.fill();   // angle wedge from 0°
-      cx.strokeStyle = hint ? '#ffd24a' : '#fff'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(sx0 + dirx * 24, sy0 + diry * 24); cx.lineTo(sx0 + dirx * (R + 22), sy0 + diry * (R + 22)); cx.stroke();   // needle
-      cx.beginPath(); cx.moveTo(sx0 + dirx * (R + 30), sy0 + diry * (R + 30)); cx.lineTo(sx0 + dirx * (R + 14) - diry * 7, sy0 + diry * (R + 14) + dirx * 7); cx.lineTo(sx0 + dirx * (R + 14) + diry * 7, sy0 + diry * (R + 14) - dirx * 7); cx.closePath(); cx.fillStyle = cx.strokeStyle; cx.fill();
-      var hx = sx0 - aim.dx, hy = sy0 - aim.dy;   // pull handle: where the finger is (opposite side)
-      cx.setLineDash([3, 5]); cx.strokeStyle = 'rgba(255,255,255,.4)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(sx0, sy0); cx.lineTo(hx, hy); cx.stroke(); cx.setLineDash([]);
-      cx.fillStyle = hint ? '#ffd24a' : '#fff'; cx.beginPath(); cx.arc(hx, hy, 6, 0, 6.283); cx.fill();
-      cx.font = 'bold 14px Segoe UI'; cx.textAlign = 'left'; cx.fillText(n.angle.toFixed(1) + '° · ' + n.powerPct + '%', Math.min(W - 120, sx0 + dirx * (R + 40) + 6), Math.max(16, Math.min(H - 12, sy0 + diry * (R + 40))));
-    }
+  // ---- the sling: two glowing posts, rubber bands that change colour as they tighten, the bot you pull, a pull ring and a direction arrow ----
+  // Where the bot is DRAWN when pulled: along the pull direction, but never off the board (the ring still shows the true pull %).
+  function pulledPos(a) {
+    var s0 = L.start, len = Math.sqrt(a.dx * a.dx + a.dy * a.dy) || 1, ux = -a.dx / len, uy = -a.dy / len, tm = a.len, M = 30;
+    if (ux < -1e-6) tm = Math.min(tm, (s0.x - M) / -ux); else if (ux > 1e-6) tm = Math.min(tm, (W - M - s0.x) / ux);
+    if (uy < -1e-6) tm = Math.min(tm, (s0.y - M) / -uy); else if (uy > 1e-6) tm = Math.min(tm, (H - M - s0.y) / uy);
+    tm = Math.max(0, tm); return { x: s0.x + ux * tm, y: s0.y + uy * tm };
+  }
+  function tension(pw, l, a) { return 'hsla(' + Math.round(190 - 190 * pw) + ',95%,' + l + '%,' + (a == null ? 1 : a) + ')'; }
+  function drawBands(bx, by, dx, dy, pw, alpha) {
+    var s0 = L.start, len = Math.sqrt(dx * dx + dy * dy) || 1, nx = -dy / len, ny = dx / len, p1 = { x: s0.x + nx * 20, y: s0.y + ny * 20 }, p2 = { x: s0.x - nx * 20, y: s0.y - ny * 20 };
+    cx.save(); cx.globalAlpha = alpha; cx.lineCap = 'round'; cx.shadowColor = tension(pw, 60); cx.shadowBlur = 10 + pw * 14;
+    [p1, p2].forEach(function (p, i) {
+      var sag = (1 - pw) * 12 * (i ? 1 : -1), mx = (p.x + bx) / 2 + nx * sag, my = (p.y + by) / 2 + ny * sag;
+      cx.strokeStyle = tension(pw, 62); cx.lineWidth = 6 - pw * 3; cx.beginPath(); cx.moveTo(p.x, p.y); cx.quadraticCurveTo(mx, my, bx, by); cx.stroke();
+      cx.strokeStyle = 'rgba(255,255,255,.55)'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(p.x, p.y); cx.quadraticCurveTo(mx, my, bx, by); cx.stroke();
+    });
     cx.restore();
+  }
+  function drawSling(now) {
+    var s0 = L.start, pw = aim ? aim.len / PULL_MAX : 0, pp = aim ? pulledPos(aim) : null, bx = pp ? pp.x : s0.x, by = pp ? pp.y : s0.y, pulse = Math.sin(now / 260);
+    var px = aim ? -aim.dy : 0, py = aim ? aim.dx : 1, pl = Math.sqrt(px * px + py * py) || 1; px /= pl; py /= pl;
+    // posts + base
+    cx.save(); cx.shadowColor = '#7be8ff'; cx.shadowBlur = 16; cx.fillStyle = 'rgba(30,50,90,.9)'; cx.strokeStyle = '#7be8ff'; cx.lineWidth = 2;
+    cx.beginPath(); cx.arc(s0.x, s0.y, 11 + (aim ? 0 : pulse), 0, 6.283); cx.fill(); cx.stroke();
+    [-1, 1].forEach(function (k) { cx.beginPath(); cx.arc(s0.x + px * 20 * k, s0.y + py * 20 * k, 5.5, 0, 6.283); cx.fillStyle = tension(pw, 70); cx.fill(); cx.stroke(); }); cx.restore();
+    // previous attempt, faint, so a near miss is easy to correct
+    if (lastAim && !aim) { cx.save(); cx.globalAlpha = .28; cx.strokeStyle = '#fff'; cx.setLineDash([4, 5]); cx.lineWidth = 2; cx.beginPath(); var lp = pulledPos(lastAim); cx.arc(lp.x, lp.y, 15, 0, 6.283); cx.stroke(); cx.setLineDash([]);
+      cx.fillStyle = '#fff'; cx.font = '600 11px Segoe UI'; cx.textAlign = 'center'; cx.fillText('last ' + Math.round(lastAim.len / PULL_MAX * 100) + '%', lp.x, lp.y - 24); cx.restore(); }
+    // golden hint ghost: a bot pulled to a working shot
+    if (ghost && ghost.aim && now < ghost.until) {
+      var ga = ghost.aim, gpos = pulledPos(ga), gx = gpos.x, gy = gpos.y, gp = Math.sqrt(ga.dx * ga.dx + ga.dy * ga.dy) || 1, al = .55 + .35 * Math.sin(now / 150);
+      cx.save(); cx.globalAlpha = al; cx.strokeStyle = '#ffd24a'; cx.lineWidth = 3; cx.setLineDash([8, 6]); cx.beginPath(); cx.moveTo(s0.x + px * 0, s0.y); cx.lineTo(gx, gy); cx.stroke(); cx.setLineDash([]);
+      cx.beginPath(); cx.arc(gx, gy, 17, 0, 6.283); cx.stroke(); cx.fillStyle = 'rgba(255,210,74,.18)'; cx.fill();
+      var gdx = ga.dx / gp, gdy = ga.dy / gp; cx.fillStyle = '#ffd24a'; cx.beginPath(); cx.moveTo(gx + gdx * 36, gy + gdy * 36); cx.lineTo(gx + gdx * 26 - gdy * 6, gy + gdy * 26 + gdx * 6); cx.lineTo(gx + gdx * 26 + gdy * 6, gy + gdy * 26 - gdx * 6); cx.closePath(); cx.fill();
+      cx.font = 'bold 13px Segoe UI'; cx.textAlign = 'center'; cx.fillText('≈ ' + Math.round(ghost.pw * 100) + '%', gx, gy - 28); cx.restore();
+    }
+    if (aim) drawBands(bx, by, aim.dx, aim.dy, pw, 1);
+    // the bot itself — always visible, follows your pull
+    drawProbe(bx, by, aim ? aim.dx : 1, aim ? aim.dy : 0, now, false);
+    if (!aim) { cx.strokeStyle = 'rgba(255,255,255,.28)'; cx.setLineDash([4, 6]); cx.lineWidth = 2; cx.beginPath(); cx.arc(s0.x, s0.y, 34 + 4 * pulse, 0, 6.283); cx.stroke(); cx.setLineDash([]); return; }
+    // pull ring: fills as you pull harder
+    var R = 30, col = tension(pw, 60);
+    cx.save(); cx.lineCap = 'round'; cx.strokeStyle = 'rgba(255,255,255,.18)'; cx.lineWidth = 5; cx.beginPath(); cx.arc(bx, by, R, 0, 6.283); cx.stroke();
+    cx.shadowColor = col; cx.shadowBlur = 12 + pw * 10; cx.strokeStyle = col; cx.lineWidth = 5; cx.beginPath(); cx.arc(bx, by, R, -Math.PI / 2, -Math.PI / 2 + pw * 6.283); cx.stroke(); cx.restore();
+    // direction arrow on the bot's circle (where it will fly once you let go)
+    var ux = aim.dx / aim.len, uy = aim.dy / aim.len, ar = R + 4;
+    cx.save(); cx.fillStyle = '#fff'; cx.strokeStyle = '#fff'; cx.shadowColor = '#7be8ff'; cx.shadowBlur = 10; cx.lineWidth = 3; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(bx + ux * (ar - 4), by + uy * (ar - 4)); cx.lineTo(bx + ux * (ar + 6), by + uy * (ar + 6)); cx.stroke();
+    cx.beginPath(); cx.moveTo(bx + ux * (ar + 16), by + uy * (ar + 16)); cx.lineTo(bx + ux * (ar + 4) - uy * 7, by + uy * (ar + 4) + ux * 7); cx.lineTo(bx + ux * (ar + 4) + uy * 7, by + uy * (ar + 4) - ux * 7); cx.closePath(); cx.fill(); cx.restore();
+    // pull % and bonus, above or below the bot so they never cover the arrow or run off the board
+    var lx = Math.max(56, Math.min(W - 56, bx)), ly = by > 86 && !(uy < -.5) ? by - 50 : by + 58;   // above the bot (below if there is no room or the arrow points up)
+    cx.save(); cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.lineWidth = 4; cx.strokeStyle = 'rgba(4,8,30,.85)'; cx.font = '800 22px Segoe UI'; var txt = Math.round(pw * 100) + '%' + (pw >= .995 ? ' MAX' : '');
+    cx.strokeText(txt, lx, ly - 6); cx.fillStyle = col; cx.fillText(txt, lx, ly - 6);
+    cx.font = '700 12px Segoe UI'; var bt = '+' + fmt(GE.pullBonus(pw)) + ' bonus'; cx.strokeText(bt, lx, ly + 13); cx.fillStyle = '#ffd24a'; cx.fillText(bt, lx, ly + 13); cx.restore();
+    if (pw > .5 && Math.random() < pw * .6) parts.push({ x: bx + (Math.random() - .5) * 26, y: by + (Math.random() - .5) * 26, vx: (Math.random() - .5) * 1.4, vy: (Math.random() - .5) * 1.4, life: .6, c: Math.random() < .5 ? '#fff' : col, r: 1.5 + Math.random() * 2 });
   }
   function trailColor(i, n) { var sk = skin(); return sk.c.length > 2 ? sk.c[Math.floor(i / n * sk.c.length) % sk.c.length] : sk.c[0]; }
 
@@ -580,18 +613,17 @@
     L.bodies.forEach(function (b) { drawBody(b, GE.bodyPos(b, tStep), now); });
     if (L.goal) drawGoal(L.goal, now);
     L.orbs.forEach(function (o, k) { if (!collected[k]) drawOrb(o, now, k); });
-    // aim instruments (no path is predicted)
-    if (phase === 'aim') drawAim(now);
     // flight
     if (flight && !flight.done) {
       var F = flight.F, total = F.pts.length / 2 - 1, from = Math.max(0, total - 110), thr = false;
       cx.lineCap = 'round';
       for (var t = from; t < total; t++) { if (flight.jumpSet[t + 1]) continue; var f2 = (t - from) / Math.max(1, total - from); cx.strokeStyle = trailColor(t, 900); cx.globalAlpha = f2 * .85; cx.lineWidth = 2 + f2 * 8; cx.beginPath(); cx.moveTo(F.pts[t * 2], F.pts[t * 2 + 1]); cx.lineTo(F.pts[(t + 1) * 2], F.pts[(t + 1) * 2 + 1]); cx.stroke(); } cx.globalAlpha = 1;
-      if (!F.result) drawProbe(F.x, F.y, F.vx || 1, F.vy, now, true, thr);
-    } else if (phase === 'aim') {
-      var dv = aim; drawProbe(L.start.x, L.start.y, dv ? dv.dx : 1, dv ? dv.dy : 0, now, false);
-      if (!aim) { cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.setLineDash([4, 6]); cx.lineWidth = 2; cx.beginPath(); cx.arc(L.start.x, L.start.y, 34 + 4 * Math.sin(now / 300), 0, 6.283); cx.stroke(); cx.setLineDash([]); }
-    }
+      if (!F.result) {
+        var px = F.x, py = F.y;
+        if (snap && now - snap.t < 200) { var kk = (now - snap.t) / 200, ee = 1 - (1 - kk) * (1 - kk); px = snap.x + (F.x - snap.x) * ee; py = snap.y + (F.y - snap.y) * ee; drawBands(px, py, snap.dx, snap.dy, snap.pw, (1 - kk) * .9); }
+        drawProbe(px, py, F.vx || 1, F.vy, now, true, thr);
+      }
+    } else if (phase === 'aim') { drawSling(now); }
     rings = rings.filter(function (q) { return q.life > 0; });
     rings.forEach(function (q) { q.r += 3.2; q.life -= .035; cx.strokeStyle = q.c; cx.globalAlpha = Math.max(0, q.life); cx.lineWidth = 4 * q.life + 1; cx.beginPath(); cx.arc(q.x, q.y, q.r, 0, 6.283); cx.stroke(); cx.globalAlpha = 1; });
     parts = parts.filter(function (q) { return q.life > 0; });
@@ -600,7 +632,7 @@
   }
 
   window.__gb = { get L() { return L; }, get phase() { return phase; }, get shots() { return shots; }, get flight() { return !!flight; }, get save() { return save; }, get fuel() { return flight ? flight.F.fuel : -1; }, get thrustUsed() { return flight ? flight.F.thrustUsed : -1; },
-    startLevel: startLevel, startEndless: startEndless, aim: function (a, p) { setAimNumbers(a, p); updateReadout(); updateHud(); }, launchAim: fireAim, get aimNow() { return aimNumbers(); }, fire: function (v) { if (phase === 'aim') launch(v); }, get collected() { return Object.keys(collected).length; } };
+    startLevel: startLevel, startEndless: startEndless, get pull() { return aim ? aim.len / PULL_MAX : 0; }, fire: function (v) { if (phase === 'aim') launch(v); }, get collected() { return Object.keys(collected).length; } };
 
   refreshMenu(); requestAnimationFrame(frame);
   if (!save.seenHow) { save.seenHow = true; persist(); $('howBtn').click(); }

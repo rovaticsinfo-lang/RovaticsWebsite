@@ -16,11 +16,11 @@ f.onload=async()=>{try{
  // real pointer drag launches (drag back = launch forward)
  const cv=$('cv'),r=cv.getBoundingClientRect(),sc=r.width/1000,S=B.L.start;
  const ev=(t,x,y)=>cv.dispatchEvent(new w.PointerEvent(t,{clientX:r.left+x*sc,clientY:r.top+y*sc,pointerId:1,bubbles:true}));
- ev('pointerdown',S.x,S.y); ev('pointermove',S.x-60,S.y); ev('pointerup',S.x-60,S.y);
- ok(!!B.aimNow && B.aimNow.powerPct>0,'dials show angle/pull after a drag: '+JSON.stringify(B.aimNow)); ok(d.getElementById('rdAngle').textContent!=='—','angle readout filled in'); ok(B.phase==='aim'&&B.shots===3,'release only locks the aim (no auto-launch)');
- const p0=B.aimNow.powerPct; $('powM').dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true})); $('powM').dispatchEvent(new w.PointerEvent('pointerup',{bubbles:true})); ok(B.aimNow.powerPct===p0-1,'Pull - button lowers the pull by 1%');
- $('goBtn').click(); ok(B.phase==='fly'&&B.shots===2,'Launch button fires the locked aim');
- ok(!d.querySelector('#fuelChip'),'no thrust/fuel UI any more');
+ ev('pointerdown',S.x,S.y); ev('pointermove',S.x-60,S.y);
+ ok(B.phase==='aim'&&B.pull>.35&&B.pull<.45,'while pulling the bot, pull gauge reads '+Math.round(B.pull*100)+'%');
+ ev('pointerup',S.x-60,S.y);
+ ok(B.phase==='fly'&&B.shots===2,'letting go launches immediately (no Launch button)');
+ ok(!d.getElementById('goBtn')&&!d.getElementById('readout')&&!d.getElementById('tune')&&!d.querySelector('#fuelChip'),'no dials, buttons or fuel gauge');
  ok(await until(()=>B.phase==='aim'||!$('overlay').hidden),'flight ends'); await sleep(900);
  ok(/Cadet/.test($('rankBox')?$('rankBox').textContent:'')||true,'rank shown');
  // hint shows

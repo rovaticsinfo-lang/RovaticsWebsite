@@ -290,8 +290,8 @@
   function verify(L) { return simulate(L, L.solution, {}); }
 
   var WORLDS = [
-    { name: 'Training Orbit', blurb: 'One planet, one station. Pull back to set angle and power — the lighter your pull, the higher your score. The walls are mirrors!', cfg: { types: ['p'], bodies: [1, 2], movers: [0, 1], orbit: .3, preview: [500, 420], dev: [40, 70], orbs: [1, 2], allowDirect: true, robust: 8 } },
-    { name: 'Twin Worlds', blurb: 'Two planets, two pulls — and they sway. Read the angle, trust the numbers.', cfg: { types: ['p', 'p'], bodies: [2, 3], movers: [1, 2], orbit: .5, preview: [380, 300], dev: [70, 100], orbs: [2, 2], robust: 7 } },
+    { name: 'Training Orbit', blurb: 'One planet, one station. Pull the bot back like a slingshot — the lighter your pull, the higher your score. The walls are mirrors!', cfg: { types: ['p'], bodies: [1, 2], movers: [0, 1], orbit: .3, preview: [500, 420], dev: [40, 70], orbs: [1, 2], allowDirect: true, robust: 8 } },
+    { name: 'Twin Worlds', blurb: 'Two planets, two pulls — and they sway. Judge the angle and the strength.', cfg: { types: ['p', 'p'], bodies: [2, 3], movers: [1, 2], orbit: .5, preview: [380, 300], dev: [70, 100], orbs: [2, 2], robust: 7 } },
     { name: 'Solar Slingshot', blurb: 'A giant sun that drifts, planets orbiting it. Bank a shot off the wall to curve in.', cfg: { types: ['s', 'p'], bodies: [3, 4], movers: [1, 3], orbit: .9, preview: [300, 230], dev: [90, 130], orbs: [2, 3] } },
     { name: 'Moving Targets', blurb: 'Everything drifts. Timing is everything.', cfg: { types: ['p', 'p', 'm'], bodies: [3, 4], movers: [2, 4], orbit: .6, preview: [260, 190], dev: [80, 120], orbs: [2, 3] } },
     { name: 'Repulsor Reef', blurb: 'Repulsors push you away. Bounce off their force fields!', cfg: { types: ['r', 'p'], bodies: [3, 5], movers: [2, 4], orbit: .6, preview: [220, 160], dev: [80, 120], orbs: [2, 3] } },
