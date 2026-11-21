@@ -1,0 +1,77 @@
+plugins { id 'com.android.application' }
+
+// Release signing is read from keystore.properties, which is NOT in git (see keystore.properties.example).
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+def hasKeystore = keystorePropertiesFile.exists()
+if (hasKeystore) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace 'com.rovatics.arcade'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    // One codebase, three games: each flavor has its own id, icon, name, texts and bundled game files.
+    flavorDimensions 'game'
+    productFlavors {
+        sudoku   { dimension 'game'; applicationId 'com.rovatics.sudoku' }
+        racers   { dimension 'game'; applicationId 'com.rovatics.racers' }
+        beambots { dimension 'game'; applicationId 'com.rovatics.beambots' }
+    }
+
+    signingConfigs {
+        if (hasKeystore) {
+            release {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasKeystore) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// AndroidX libraries pull in different Kotlin stdlib generations, which fails the build with "Duplicate class kotlin.*".
+configurations.configureEach {
+    resolutionStrategy {
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
+}

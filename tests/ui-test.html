@@ -26,6 +26,25 @@ document.getElementById('f').onload=()=>{try{
  ok(S.game.level===2 && S.game.clues===0,'level 2 started, clues reset');
  ok(d.querySelectorAll('.lv:not(:disabled)').length===2,'only 2 levels unlocked');
  ok(d.querySelector('#board-lb').textContent.length>0,'leaderboard renders');
+ // ---- power features (level 2 now running)
+ {
+  const g2=S.game; const e2=g2.grid.findIndex((v,i)=>!v&&!g2.given[i]);
+  S.select(e2); S.setNoteMode(true); S.enter(3); S.enter(5);
+  ok((g2.notes[e2]||[]).length===2 && !!d.querySelector('.cell .nt'),'pencil notes recorded and drawn');
+  S.setNoteMode(false); S.enter(g2.solution[e2]);
+  ok(g2.grid[e2]===g2.solution[e2] && !g2.notes[e2],'placing a digit clears its notes');
+  S.undo(); ok(g2.grid[e2]===0 && (g2.notes[e2]||[]).length===2,'undo restores empty cell with notes');
+  S.undo(); S.undo(); ok((g2.notes[e2]||[]).length===0,'undo walks back note history');
+  d.getElementById('pauseBtn').click();
+  ok(g2.paused && !d.getElementById('overlay').hidden && d.getElementById('board').style.visibility==='hidden','pause hides board + shows overlay');
+  ok(w.__androidBack()===true && !g2.paused && d.getElementById('overlay').hidden,'Back resumes from pause');
+  ok(w.__androidBack()===true && g2.paused,'Back during play pauses');
+  d.getElementById('mResume').click();
+  const mb=d.getElementById('muteBtn'); mb.click(); ok(mb.textContent==='🔇' && JSON.parse(w.localStorage.getItem('rovatics.sudoku.v1')).muted===true,'mute persists');
+  mb.click(); ok(mb.textContent==='🔊','unmute');
+  ok(JSON.parse(w.localStorage.getItem('rovatics.sudoku.v1')).stars[1]>=1 && /★/.test(d.querySelector('.lv').textContent),'level stars persisted and shown');
+  let ev=0; d.addEventListener('rv-haptic',()=>ev++); S.select(e2); S.enter(1); ok(ev>0,'haptic event fired');
+ }
 }catch(e){ok(false,'exception '+e.message)}
  document.getElementById('out').textContent=out.join('\n')+'\nDONE';};
 </script>

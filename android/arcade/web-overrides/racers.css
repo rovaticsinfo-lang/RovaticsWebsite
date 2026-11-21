@@ -1,0 +1,3 @@
+/* Racers: the About button must never sit on top of the steering pads. */
+body:has(#raceScr.on) #appAbout { display: none; }
+body:has(#raceScr.on) { padding-bottom: 0; }

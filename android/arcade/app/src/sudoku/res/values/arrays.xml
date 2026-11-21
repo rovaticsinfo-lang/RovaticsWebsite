@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ob_emoji">
+        <item>🧩</item>
+        <item>✏️</item>
+        <item>✅</item>
+        <item>🏆</item>
+    </string-array>
+    <string-array name="ob_titles">
+        <item>Welcome to Sudoku</item>
+        <item>Notes, undo and clues</item>
+        <item>Check when you are done</item>
+        <item>Collect every star</item>
+    </string-array>
+    <string-array name="ob_bodies">
+        <item>Fill every row, column and 3×3 box with the numbers 1 to 9, each exactly once.</item>
+        <item>Jot pencil notes, undo any move, and take up to 5 clues on each level if you get stuck.</item>
+        <item>Nothing is checked while you play. Press Submit when you think you have it and we will show you what to fix.</item>
+        <item>Climb 10 levels, earn up to 3 stars on each, and challenge a friend to beat your time on the same puzzle.</item>
+    </string-array>
+    <string-array name="about_headings">
+        <item>About this game</item>
+        <item>Features</item>
+        <item>How to play</item>
+        <item>Challenge a friend</item>
+    </string-array>
+    <string-array name="about_bodies">
+        <item>Rovatics Sudoku is the classic number puzzle. Fill the 9×9 grid so that every row, every column and every 3×3 box contains the numbers 1 to 9 exactly once. There are 10 levels, and every one is a different puzzle that is harder than the last.</item>
+        <item>• 10 levels, each a unique puzzle\n• Pencil notes and unlimited undo\n• Up to 5 clues on every level\n• 1–3 star ratings and best times\n• Challenge a friend: share a link to the same puzzle\n• Celebrations, encouragement, sounds and haptics (all can be muted)\n• Free, with no ads and no account</item>
+        <item>1. Tap a cell, then tap a number. Turn on Notes to pencil in possibilities.\n2. Nothing is checked while you play.\n3. Press Submit when the grid is full. Mistakes are highlighted so you can fix them.\n4. Stuck? Take a clue, and the game fills in one number for you.</item>
+        <item>After you finish a level you can share a link. Your friend opens it in any web browser, plays the exact same puzzle and sees how their time compares to yours.</item>
+    </string-array>
+</resources>

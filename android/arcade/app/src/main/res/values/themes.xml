@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Arcade" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/brand_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="colorAccent">@color/brand_accent</item>
+    </style>
+
+    <!-- Branded splash shown while the game starts (native splash on Android 12+, a compat one before) -->
+    <style name="Theme.Arcade.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Arcade</item>
+    </style>
+</resources>

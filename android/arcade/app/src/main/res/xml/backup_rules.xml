@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Keeps the player's progress, scores and settings across a device restore. -->
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
+</full-backup-content>

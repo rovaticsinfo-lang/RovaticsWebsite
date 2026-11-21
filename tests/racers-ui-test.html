@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><body><pre id="out">RUNNING</pre>
+<iframe id="f" src="../games/kids-car-race-game.html" style="width:900px;height:900px"></iframe>
+<script>
+const out=[];const ok=(c,m)=>out.push((c?'PASS ':'FAIL ')+m);
+document.getElementById('f').onload=()=>{try{
+ const w=f.contentWindow,d=w.document,R=w.__racers;
+ try{ w.localStorage.removeItem('rovatics.racers.v1'); }catch(e){}
+ ok(R.state==='menu' && R.unlocked===1,'starts on menu, level 1 only');
+ ok(d.querySelectorAll('#lv .lvb:not(:disabled)').length===1,'only level 1 selectable');
+ R.startRace(); ok(R.state==='countdown','race starts with countdown');
+ let n=0; while(R.state==='countdown'&&n++<200) R.update(.05); ok(R.state==='race','countdown -> race');
+ ok(/Go go go/.test(d.getElementById('rtoast').textContent),'start popup shown');
+ ok(w.__androidBack()===true && R.paused,'Back pauses the race');
+ ok(w.__androidBack()===true && !R.paused,'Back again resumes');
+ // make the human drive the best line: fast-forward AI-free by pushing the human car
+ let guard=0; while(R.state==='race'&&guard++<6000){ R.players[0].dist+=14; R.update(.05); }
+ ok(R.state==='finished','race ends');
+ const res=d.getElementById('res'); ok(!res.hidden,'results shown');
+ ok(d.getElementById('resStars').textContent.indexOf('⭐')>=0,'stars drawn');
+ ok(d.getElementById('resNote').textContent.length>5,'encouragement line: '+d.getElementById('resNote').textContent);
+ const sv=JSON.parse(w.localStorage.getItem('rovatics.racers.v1'));
+ ok(sv && sv.unlocked>=2 && sv.stars[1]>=2 && sv.best[1]>0,'progress, stars and best time saved');
+ ok(R.unlocked>=2,'level 2 unlocked');
+ ok(!d.getElementById('shareBtn').hidden,'share button present');
+ ok(w.__androidBack()===true && R.state==='menu','Back from results returns to menu');
+ ok(w.__androidBack()===false,'Back on menu lets the app exit');
+ ok(/★/.test(d.querySelector('#lv .lvb').textContent),'level button shows stars/best');
+ let ev=0; d.addEventListener('rv-haptic',()=>ev++); d.getElementById('muteBtn').click();
+ ok(JSON.parse(w.localStorage.getItem('rovatics.racers.v1')).muted===true,'mute persisted');
+ R.startRace(); n=0; while(R.state==='countdown'&&n++<200) R.update(.05); ok(ev>0,'haptic event fired on race start');
+}catch(e){ok(false,'exception '+e.message+' '+(e.stack||'').split('\n')[1])}
+ document.getElementById('out').textContent=out.join('\n')+'\nDONE';};
+</script>

@@ -82,6 +82,16 @@
   .vs div{padding:12px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
   .vs .win{border-color:var(--gold);box-shadow:0 0 18px rgba(255,210,74,.35)}
   .small{font-size:.8rem;color:var(--muted)}
+/* rv-power */
+.chipbtn{cursor:pointer;font:inherit;color:inherit}
+.chipbtn:active{transform:scale(.95)}
+.cell .nt{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;font-size:.5rem;line-height:1;font-weight:600;color:#8fb4ff;pointer-events:none}
+.cell .nt i{font-style:normal;display:flex;align-items:center;justify-content:center}
+.btn.on{outline:2px solid #ffd24a;background:rgba(255,210,74,.18)}
+.lv .st{display:block;font-size:.5rem;line-height:1;margin-top:1px;letter-spacing:-1px}
+.bump{animation:rvbump .5s ease}
+@keyframes rvbump{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+.modal .pausebig{font-size:3rem}
 </style>
 </head>
 <body>
@@ -91,6 +101,8 @@
     <span class="chip">Level <b id="lvNum">1</b> · <span id="lvName">Warm-up</span></span>
     <span class="chip">⏱ <b id="timer">0:00</b></span>
     <span class="chip">💡 Clues left <b id="clueLeft">5</b></span>
+    <button class="chip chipbtn" id="pauseBtn" type="button" aria-label="Pause">⏸ Pause</button>
+    <button class="chip chipbtn" id="muteBtn" type="button" aria-label="Sound on or off">🔊</button>
   </div>
 </div>
 
@@ -99,6 +111,8 @@
     <div id="board" role="grid" aria-label="Sudoku board"></div>
     <div class="pad" id="pad"></div>
     <div class="actions">
+      <button class="btn" id="noteBtn" type="button" aria-pressed="false">✏️ Notes</button>
+      <button class="btn" id="undoBtn" type="button">↩ Undo</button>
       <button class="btn" id="clueBtn">💡 Take a clue</button>
       <button class="btn primary" id="submitBtn">✅ Submit</button>
       <button class="btn" id="resetBtn">↺ Restart</button>
@@ -137,7 +151,7 @@
   var KEY = 'rovatics.sudoku.v1';
 
   // ---------- persistence ----------
-  var store = { name: '', unlocked: 1, best: {}, scores: [] };
+  var store = { name: '', unlocked: 1, best: {}, scores: [], stars: {}, muted: false };
   try { var s = JSON.parse(localStorage.getItem(KEY)); if (s) store = Object.assign(store, s); } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
 
@@ -177,13 +191,48 @@
     b.addEventListener('click', function () { enter(v); }); return b;
   }
 
+  // ---------- sound + haptics ----------
+  var AC = null;
+  function ac() {
+    if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = false; } }
+    if (AC && AC.state === 'suspended') { try { AC.resume(); } catch (e) {} }
+    return AC;
+  }
+  function tone(f, d, type, vol, when) {
+    if (store.muted) return; var a = ac(); if (!a) return;
+    try {
+      var t = a.currentTime + (when || 0), o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || .12, t + .01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + .02);
+    } catch (e) {}
+  }
+  var SFX = {
+    tap: function () { tone(520, .06, 'triangle', .08); },
+    place: function () { tone(660, .09, 'sine', .12); },
+    note: function () { tone(880, .04, 'square', .04); },
+    erase: function () { tone(300, .08, 'triangle', .08); },
+    clue: function () { tone(660, .1, 'sine', .12); tone(990, .16, 'sine', .12, .09); },
+    bad: function () { tone(200, .22, 'sawtooth', .09); },
+    cheer: function () { tone(784, .1, 'triangle', .1); tone(1047, .16, 'triangle', .1, .08); },
+    win: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, .28, 'triangle', .14, i * .11); }); }
+  };
+  function sfx(n) { try { SFX[n](); } catch (e) {} }
+  function haptic(kind) {
+    try { document.dispatchEvent(new CustomEvent('rv-haptic', { detail: kind })); } catch (e) {}
+    try { if (window.RovaticsApp && RovaticsApp.haptic) RovaticsApp.haptic(kind); else if (navigator.vibrate) navigator.vibrate(kind === 'success' ? [30, 40, 60] : kind === 'error' ? 80 : 12); } catch (e) {}
+  }
+  function paintMute() { var b = el('muteBtn'); b.textContent = store.muted ? '🔇' : '🔊'; b.setAttribute('aria-pressed', String(!!store.muted)); }
+  el('muteBtn').addEventListener('click', function () { store.muted = !store.muted; save(); paintMute(); if (!store.muted) sfx('cheer'); });
+  paintMute();
+
   // ---------- game flow ----------
   function startLevel(level, variant, opts) {
     var p = E.makePuzzle(level, variant || 0);
     G = {
       level: level, variant: variant || 0, solution: p.solution,
       given: p.puzzle.map(Boolean), grid: p.puzzle.slice(), hinted: {},
-      clues: 0, sel: -1, elapsed: 0, running: false, done: false,
+      clues: 0, sel: -1, elapsed: 0, running: false, done: false, notes: {}, hist: [], paused: false,
       challenge: (opts && opts.challenge) || null, startedAt: 0, firstMilestone: {}
     };
     el('lvNum').textContent = level; el('lvName').textContent = E.LEVEL_NAMES[level - 1];
@@ -204,14 +253,18 @@
   }
   document.addEventListener('visibilitychange', function () {   // pause when tab hidden
     if (!G || G.done) return;
-    if (document.hidden) { tick(); stopTimer(); } else startTimer();
+    if (document.hidden) { if (G.running) { tick(); stopTimer(); } } else if (!G.paused) startTimer();
   });
 
   function render(errSet) {
     var sv = G.sel >= 0 ? G.grid[G.sel] : 0;
     for (var i = 0; i < 81; i++) {
       var c = cells[i], v = G.grid[i];
-      c.textContent = v || '';
+      var nts = G.notes && G.notes[i];
+      if (!v && nts && nts.length) {
+        var nh = ''; for (var k = 1; k <= 9; k++) nh += '<i>' + (nts.indexOf(k) >= 0 ? k : '') + '</i>';
+        c.innerHTML = '<span class="nt">' + nh + '</span>';
+      } else c.textContent = v || '';
       var cls = 'cell' + (i % 9 === 2 || i % 9 === 5 ? ' bR' : '') + (((i / 9) | 0) === 2 || ((i / 9) | 0) === 5 ? ' bB' : '');
       if (G.given[i]) cls += ' given'; else if (G.hinted[i]) cls += ' hint'; else if (v) cls += ' user';
       if (G.sel >= 0) {
@@ -231,10 +284,41 @@
     if (!G || G.done || G.sel < 0) { if (G && !G.done && G.sel < 0) toast('Tap a cell first 👆'); return; }
     var i = G.sel;
     if (G.given[i] || G.hinted[i]) { toast('That cell is locked 🔒'); return; }
-    G.grid[i] = v; el('issues').hidden = true; setMsg('');
+    el('issues').hidden = true; setMsg('');
+    var prevNotes = (G.notes[i] || []).slice();
+    if (noteMode && v && !G.grid[i]) {          // pencil marks
+      var arr = G.notes[i] || (G.notes[i] = []), at = arr.indexOf(v);
+      G.hist.push({ i: i, v: G.grid[i], notes: prevNotes });
+      if (at >= 0) arr.splice(at, 1); else arr.push(v);
+      sfx('note'); haptic('tick'); render(); return;
+    }
+    G.hist.push({ i: i, v: G.grid[i], notes: prevNotes });
+    if (G.hist.length > 300) G.hist.shift();
+    G.grid[i] = v; delete G.notes[i];
+    if (v) clearPeerNotes(i, v);
     render();
-    if (v) { cells[i].classList.add('flash'); encourage(); }
+    if (v) { cells[i].classList.add('flash'); sfx('place'); haptic('tick'); encourage(); } else { sfx('erase'); haptic('tick'); }
   }
+  function clearPeerNotes(i, v) {
+    var r = (i / 9) | 0, c = i % 9;
+    for (var j = 0; j < 81; j++) {
+      var nj = G.notes[j]; if (!nj || !nj.length) continue;
+      var rj = (j / 9) | 0, cj = j % 9;
+      if (rj === r || cj === c || (((rj / 3) | 0) === ((r / 3) | 0) && ((cj / 3) | 0) === ((c / 3) | 0))) {
+        var k = nj.indexOf(v); if (k >= 0) nj.splice(k, 1);
+      }
+    }
+  }
+  var noteMode = false;
+  function setNoteMode(on) { noteMode = on; var b = el('noteBtn'); b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? '✏️ Notes: ON' : '✏️ Notes'; }
+  el('noteBtn').addEventListener('click', function () { setNoteMode(!noteMode); sfx('tap'); haptic('tick'); });
+  function undo() {
+    if (!G || G.done || !G.hist.length) { toast('Nothing to undo'); return; }
+    var h = G.hist.pop();
+    G.grid[h.i] = h.v; if (h.notes && h.notes.length) G.notes[h.i] = h.notes; else delete G.notes[h.i];
+    G.sel = h.i; render(); sfx('erase'); haptic('tick');
+  }
+  el('undoBtn').addEventListener('click', undo);
 
   // ---------- encouragement ----------
   var CHEER = ['You are doing good! 👍', 'Nice move! ✨', 'Keep it up! 🔥', 'Great thinking! 🧠', 'You are on a roll! 🎯', 'Sharp eyes! 👀'];
@@ -250,7 +334,7 @@
     else if (pct >= .5 && !G.firstMilestone.c) { G.firstMilestone.c = 1; msg = 'Halfway there — you are doing great! 💪'; }
     else if (pct >= .25 && !G.firstMilestone.d) { G.firstMilestone.d = 1; msg = 'Good start, keep going! 🌱'; }
     else if (filled > 0 && filled % 4 === 0) msg = CHEER[cheerCount++ % CHEER.length];
-    if (msg) toast(msg);
+    if (msg) { toast(msg); sfx('cheer'); }
   }
   var toastT;
   function toast(m) {
@@ -272,7 +356,8 @@
     if (!h) { toast('Nothing left to fill — hit Submit!'); return; }
     G.grid[h.index] = h.value; G.hinted[h.index] = true; G.clues++;
     G.sel = h.index; el('issues').hidden = true; setMsg('');
-    render(); cells[h.index].classList.add('flash'); updateClues();
+    delete G.notes[h.index]; clearPeerNotes(h.index, h.value); G.hist = [];
+    render(); cells[h.index].classList.add('flash'); updateClues(); sfx('clue'); haptic('tick');
     toast('💡 Clue used — ' + (MAX_CLUES - G.clues) + ' left. Don\'t give up!');
   });
 
@@ -292,10 +377,10 @@
     if (r.emptyCells.length) parts.push(r.emptyCells.length + ' empty cell' + (r.emptyCells.length > 1 ? 's' : ''));
     if (r.conflictCells.length) parts.push('duplicates (red)');
     setMsg('Not quite yet: ' + parts.join(' and ') + '. Every row, column and 3×3 box needs 1–9 exactly once.', 'bad');
-    toast('Almost! Check the red cells 🔍');
+    toast('Almost! Check the red cells 🔍'); sfx('bad'); haptic('error');
   });
 
-  el('resetBtn').addEventListener('click', function () { if (G) startLevel(G.level, G.variant, { challenge: G.challenge }); });
+  el('resetBtn').addEventListener('click', function () { if (G) { sfx('tap'); startLevel(G.level, G.variant, { challenge: G.challenge }); } });
 
   // ---------- completion ----------
   function stars(sec, level, clues) {
@@ -308,6 +393,7 @@
     tick(); stopTimer(); G.done = true; updateClues();
     var sec = G.elapsed, lv = G.level;
     if (lv >= store.unlocked && lv < E.LEVELS) store.unlocked = lv + 1;
+    var st0 = stars(sec, lv, G.clues); if (!store.stars) store.stars = {}; if ((store.stars[lv] || 0) < st0) store.stars[lv] = st0;
     var isBest = !store.best[lv] || sec < store.best[lv];
     if (isBest) store.best[lv] = sec;
     var entry = { name: store.name || 'Player', level: lv, time: sec, clues: G.clues, date: Date.now() };
@@ -315,8 +401,8 @@
     store.scores.sort(function (a, b) { return a.time - b.time; });
     store.scores = store.scores.slice(0, 200);
     save(); renderLevels(); renderLB();
-    celebrate();
-    var st = stars(sec, lv, G.clues);
+    celebrate(); sfx('win'); haptic('success');
+    var st = st0;
     var html = '<div class="stars">' + '⭐'.repeat(st) + '<span style="opacity:.25">' + '⭐'.repeat(3 - st) + '</span></div>' +
       '<h2>' + (lv === E.LEVELS ? '🏆 You are a Sudoku Legend!' : '🎉 Level ' + lv + ' Complete!') + '</h2>' +
       '<p>Every row, column and box is perfect.</p><div class="big">' + E.formatTime(sec) + '</div>' +
@@ -340,6 +426,19 @@
   function showOverlay(h) { el('modal').innerHTML = h; el('overlay').hidden = false; }
   function hideOverlay() { el('overlay').hidden = true; }
 
+  // ---------- pause ----------
+  function pauseGame() {
+    if (!G || G.done || G.paused || !el('overlay').hidden) return;
+    tick(); stopTimer(); G.paused = true; boardEl.style.visibility = 'hidden';
+    showOverlay('<div class="pausebig">⏸</div><h2>Paused</h2><p>Your timer is stopped. Take a breather — you are doing great!</p><div class="row"><button class="btn primary" id="mResume">▶ Resume</button></div>');
+    el('mResume').onclick = resumeGame;
+  }
+  function resumeGame() {
+    if (!G || !G.paused) return;
+    G.paused = false; boardEl.style.visibility = ''; hideOverlay(); startTimer(); sfx('tap');
+  }
+  el('pauseBtn').addEventListener('click', function () { if (G && G.paused) resumeGame(); else pauseGame(); });
+
   // ---------- challenge ----------
   function myName() {
     var n = (el('nameInput').value || '').replace(/[^\w \-]/g, '').trim().slice(0, 16);
@@ -349,10 +448,12 @@
   function makeChallenge(level, time) {
     if (time == null) { if (!G || !G.done) { toast('Finish this level first, then challenge a friend!'); return; } time = G.elapsed; level = G.level; }
     var name = myName();
-    var base = location.href.split('?')[0].split('#')[0];
+    var inApp = location.hostname === 'appassets.androidplatform.net';
+    var base = inApp ? 'https://rovatics.com/games/sudoku.html' : location.href.split('?')[0].split('#')[0];
     var link = base + '?c=' + encodeURIComponent([level, G ? G.variant : 0, time, encodeURIComponent(name)].join('.'));
     var text = name + ' did Sudoku level ' + level + ' in ' + E.formatTime(time) + '. Can you beat it? ' + link;
     function shown() { el('chalNote').textContent = 'Link ready: ' + link; }
+    if (window.RovaticsApp && RovaticsApp.share) { try { RovaticsApp.share(text); shown(); return; } catch (e) {} }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function () { toast('Challenge link copied! Send it to a friend 📨'); shown(); },
         function () { shown(); toast('Copy the link shown under Challenge'); });
@@ -367,6 +468,8 @@
     var box = el('levels'); box.innerHTML = '';
     for (var l = 1; l <= E.LEVELS; l++) (function (l) {
       var b = document.createElement('button'); b.type = 'button'; b.textContent = l;
+      var sn = (store.stars && store.stars[l]) || 0;
+      if (sn) { var sp = document.createElement('span'); sp.className = 'st'; sp.textContent = '★'.repeat(sn); b.appendChild(sp); }
       b.className = 'lv' + (G && G.level === l ? ' cur' : '') + (store.best[l] ? ' done' : '');
       b.disabled = l > store.unlocked && !(incoming && incoming.level === l);
       b.title = E.LEVEL_NAMES[l - 1] + (store.best[l] ? ' · best ' + E.formatTime(store.best[l]) : '');
@@ -392,8 +495,12 @@
 
   // ---------- keyboard ----------
   document.addEventListener('keydown', function (e) {
-    if (!G || e.target.tagName === 'INPUT' || !el('overlay').hidden) return;
-    if (/^[1-9]$/.test(e.key)) enter(+e.key);
+    if (!G || e.target.tagName === 'INPUT' || !el('overlay').hidden && !(G && G.paused)) return;
+    if (G.paused && e.key !== 'p' && e.key !== 'P') return;
+    if (e.key === 'n' || e.key === 'N') setNoteMode(!noteMode);
+    else if (e.key === 'u' || e.key === 'U') undo();
+    else if (e.key === 'p' || e.key === 'P') (G.paused ? resumeGame() : pauseGame());
+    else if (/^[1-9]$/.test(e.key)) enter(+e.key);
     else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') enter(0);
     else if (e.key.indexOf('Arrow') === 0) {
       e.preventDefault();
@@ -438,8 +545,14 @@
     startLevel(Math.min(store.unlocked, E.LEVELS));
   }
 
+  // Android hardware Back: close dialog / pause; return true if handled
+  window.__androidBack = function () {
+    if (!el('overlay').hidden) { if (G && G.paused) resumeGame(); else hideOverlay(); return true; }
+    if (G && !G.done && G.running) { pauseGame(); return true; }
+    return false;
+  };
   // test hook (used by automated tests)
-  window.__sudoku = { get game() { return G; }, enter: enter, select: select, complete: complete, startLevel: startLevel };
+  window.__sudoku = { get game() { return G; }, enter: enter, select: select, complete: complete, startLevel: startLevel, undo: undo, setNoteMode: setNoteMode, pause: pauseGame, resume: resumeGame };
 })();
 </script>
 <!-- Rovatics brand badge -->

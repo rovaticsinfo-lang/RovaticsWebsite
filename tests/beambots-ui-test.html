@@ -42,5 +42,16 @@ f.onload=async()=>{try{
    for(const s of LL.solution){ d.querySelector('.tool[data-tool="'+s.type+'"]').click(); B.act({x:s.x,y:s.y}); if(s.o===1)B.act({x:s.x,y:s.y}); }
    if(!B.done) ok(false,'level '+n+' not solved'); }
  ok(true,'all 12 levels solvable in the real UI');
+ // power features
+ { let ev=0; d.addEventListener('rv-haptic',()=>ev++);
+   B.startLevel(1); await sleep(20); const s1=B.L.solution[0]; d.querySelector('.tool[data-tool="'+s1.type+'"]').click(); B.act({x:s1.x,y:s1.y});
+   ok(ev>0,'haptic event on placing a piece');
+   ok(w.__androidBack()===true && !$('menu').hidden,'Back from a level returns to the menu');
+   ok(w.__androidBack()===false,'Back on the menu lets the app exit');
+   B.startLevel(1); await sleep(20); for(const s of B.L.solution){ d.querySelector('.tool[data-tool="'+s.type+'"]').click(); B.act({x:s.x,y:s.y}); if(s.o===1)B.act({x:s.x,y:s.y}); }
+   await sleep(1700); ok(!!$('mShare'),'win dialog has a Share button');
+   ok(w.__androidBack()===true && $('overlay').hidden,'Back closes the win dialog');
+ }
+
 }catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
 </script>

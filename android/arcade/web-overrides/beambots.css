@@ -1,0 +1,2 @@
+/* Beam Bots: keep the About button off the puzzle screen (tool tray lives at the bottom). */
+body:has(#play:not([hidden])) #appAbout { display: none; }

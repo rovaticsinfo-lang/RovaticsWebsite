@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ob_emoji">
+        <item>🏎️</item>
+        <item>👆</item>
+        <item>⚡</item>
+        <item>🏆</item>
+    </string-array>
+    <string-array name="ob_titles">
+        <item>Welcome to Rovatics Racers</item>
+        <item>Steer with your thumbs</item>
+        <item>Grab the boosts</item>
+        <item>Win the Champion Cup</item>
+    </string-array>
+    <string-array name="ob_bodies">
+        <item>Race two computer cars through five levels. Pick your favourite car colour and take the lead!</item>
+        <item>Hold the big left and right buttons to steer. Dodge the cones and splash through puddles as little as you can.</item>
+        <item>Drive over the lightning pads for a burst of speed. Finish in the top 2 to unlock the next level.</item>
+        <item>The rivals get faster and smarter every level. Collect medals and finish 1st in the last race to become Champion!</item>
+    </string-array>
+    <string-array name="about_headings">
+        <item>About this game</item>
+        <item>Features</item>
+        <item>How to play</item>
+        <item>Tips</item>
+    </string-array>
+    <string-array name="about_bodies">
+        <item>Rovatics Racers is a fast, friendly racing game. You race against two computer cars on a track full of cones, puddles and speed boosts. There are five levels, and the rivals get faster and smarter each time.</item>
+        <item>• 5 levels, from Easy Start to the Champion Cup\n• 8 car colours to choose from\n• Speed-boost pads, cones and puddles\n• Medals, celebrations, sound and haptics (all can be muted)\n• Your unlocked levels and best times are saved\n• Free, with no ads and no account</item>
+        <item>1. Pick your car and a level, then tap Start race.\n2. Hold the left and right buttons to steer.\n3. Dodge the cones, avoid the puddles and drive over the ⚡ pads for a boost.\n4. Finish in the top 2 to unlock the next level. Win the last race to become Champion.</item>
+        <item>• Cones slow you down a lot; puddles slow you a little.\n• You can pause any time, and the game pauses by itself if you leave the app.\n• Small, gentle steering is faster than swerving.</item>
+    </string-array>
+</resources>

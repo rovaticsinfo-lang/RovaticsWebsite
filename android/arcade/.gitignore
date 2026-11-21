@@ -1,0 +1,13 @@
+# Android build output and local settings
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.cxx/
+
+# Signing material -- never commit these
+keystore.properties
+*.jks
+*.keystore

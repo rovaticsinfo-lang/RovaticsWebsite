@@ -138,6 +138,18 @@
     err: function () { tone(180, .18, 'sawtooth', 0, .06); },
     win: function () { [523, 659, 784, 1047, 784, 1047, 1319].forEach(function (f, i) { tone(f, .25, 'triangle', i * .12, .12); }); }
   };
+  // rv-power: haptics + idle nudge
+  function haptic(kind) {
+    try { document.dispatchEvent(new CustomEvent('rv-haptic', { detail: kind })); } catch (e) {}
+    try { if (window.RovaticsApp && RovaticsApp.haptic) RovaticsApp.haptic(kind); else if (navigator.vibrate) navigator.vibrate(kind === 'success' ? [30, 40, 60] : kind === 'error' ? 70 : 12); } catch (e) {}
+  }
+  var HK = { place: 'tick', rotate: 'tick', erase: 'tick', wake: 'tick', err: 'error', win: 'success' };
+  Object.keys(HK).forEach(function (n) { var f = SFX[n]; if (f) SFX[n] = function () { haptic(HK[n]); return f.apply(this, arguments); }; });
+  var lastActAt = Date.now(), nudged = false;
+  setInterval(function () {
+    if (!$('play') || $('play').hidden || done || !$('overlay').hidden) return;
+    if (!nudged && Date.now() - lastActAt > 50000) { nudged = true; toast('Stuck? 💡 Take a hint — you are closer than you think!'); }
+  }, 5000);
   document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); });
 
   // ---------- state ----------
@@ -171,6 +183,7 @@
   function startLevel(n) { mode = 'level'; levelNo = n; load(E.getLevel(n), 'Level ' + n + ' · ' + E.LEVEL_NAMES[n - 1]); }
   function startDaily() { mode = 'daily'; dailyKey = today(); load(E.getDaily(dailyKey), '📅 Daily ' + dailyKey); }
   function load(level, label) {
+    lastActAt = Date.now(); nudged = false;
     L = level; placed = {}; moves = 0; hintsUsed = 0; undoStack = []; done = false; hintGhost = null; particles = []; awakeAt = {}; wrongToast = {}; lastAwake = 0; winAt = 0;
     tool = L.inventory.m ? 'm' : 's';
     $('menu').hidden = true; $('play').hidden = false; $('overlay').hidden = true;
@@ -227,7 +240,7 @@
       if (left[tool] <= 0) { toast('No ' + (tool === 'm' ? 'mirrors' : 'splitters') + ' left — remove one first'); SFX.err(); return; }
       pushUndo(); placed[k] = { type: tool, o: 0 }; SFX.place(); burst(c.x, c.y, '#ffffff', 10);
     }
-    moves++; hintGhost = null; retrace(false); updateHud();
+    moves++; hintGhost = null; lastActAt = Date.now(); nudged = false; retrace(false); updateHud();
   }
   var bumps = {};
   function bump(c) { bumps[K(c.x, c.y)] = performance.now(); }
@@ -280,13 +293,20 @@
       '<div class="bigstars" style="color:var(--gold)">';
     for (var i = 0; i < 3; i++) html += '<span style="animation-delay:' + (i * .25 + .2) + 's;' + (i < stars ? '' : 'opacity:.25') + '">★</span>';
     html += '</div><p>Moves: <b>' + moves + '</b> · Par: <b>' + L.par + '</b>' + (hintsUsed ? ' · Hints: ' + hintsUsed : '') + '</p><p>' +
-      (stars === 3 ? 'Flawless engineering! 🌟' : hintsUsed && stars < 3 ? 'Try without hints for 3 stars!' : 'Try fewer moves for 3 stars!') + '</p><div class="row">';
+      (stars === 3 ? ['Flawless engineering! 🌟', 'Genius-level wiring! 🧠', 'Those robots love you! 💙'][moves % 3] : hintsUsed && stars < 3 ? 'Try without hints for 3 stars!' : 'Try fewer moves for 3 stars!') + '</p><div class="row">';
     if (mode === 'level' && levelNo < E.LEVELS) html += '<button class="btn primary" id="mNext">Next level ▶</button>';
-    html += '<button class="btn" id="mAgain">↺ Replay</button><button class="btn" id="mMenu">☰ Levels</button></div>';
+    html += '<button class="btn" id="mAgain">↺ Replay</button><button class="btn" id="mShare">📣 Share</button><button class="btn" id="mMenu">☰ Levels</button></div>';
     $('modal').innerHTML = html; $('overlay').hidden = false;
     var nx = $('mNext'); if (nx) nx.onclick = function () { startLevel(levelNo + 1); };
     $('mAgain').onclick = function () { mode === 'daily' ? startDaily() : startLevel(levelNo); };
     $('mMenu').onclick = function () { $('backBtn').click(); };
+    $('mShare').onclick = function () {
+      var url = 'https://rovatics.com/games/beambots.html';
+      var text = 'I woke up all the robots in Rovatics Beam Bots (' + (mode === 'daily' ? 'Daily Lab' : 'Level ' + levelNo) + ') with ' + '\u2605'.repeat(stars) + ' in ' + moves + ' moves! Can you beat me? ' + url;
+      try { if (window.RovaticsApp && RovaticsApp.share) { RovaticsApp.share(text); return; } } catch (e) {}
+      if (navigator.share) navigator.share({ text: text }).catch(function () {});
+      else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Copied! Paste it to a friend 📨'); }, function () {});
+    };
   }
   function showHow() {
     $('modal').innerHTML = '<h2>🔦 How to play</h2><ul class="how"><li>Every <b>sleeping robot 🤖</b> needs light of <b>exactly</b> the colour shown on its visor ring.</li>' +
@@ -438,6 +458,12 @@
     particles.forEach(function (p) { p.x += p.vx * 16; p.y += p.vy * 16; p.life -= .03; cx.globalAlpha = Math.max(0, p.life); cx.fillStyle = p.c; cx.beginPath(); cx.arc(p.x * cs, p.y * cs, p.r, 0, 6.283); cx.fill(); cx.globalAlpha = 1; });
   }
 
+  // Android hardware Back: dialog -> close/menu, level -> menu, menu -> let the app exit
+  window.__androidBack = function () {
+    if (!$('overlay').hidden) { if (done) $('backBtn').click(); else $('overlay').hidden = true; return true; }
+    if (!$('play').hidden) { $('backBtn').click(); return true; }
+    return false;
+  };
   // test hook
   window.__bb = { get L() { return L; }, get placed() { return placed; }, get done() { return done; }, get moves() { return moves; }, startLevel: startLevel, startDaily: startDaily, act: act, get tr() { return tr; }, cell: function (x, y) { return { x: x, y: y }; } };
 

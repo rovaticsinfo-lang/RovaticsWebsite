@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ob_emoji">
+        <item>🔦</item>
+        <item>🪞</item>
+        <item>🌈</item>
+        <item>📅</item>
+    </string-array>
+    <string-array name="ob_titles">
+        <item>Welcome to Beam Bots</item>
+        <item>Bounce and split beams</item>
+        <item>Mix the colours</item>
+        <item>A new puzzle every day</item>
+    </string-array>
+    <string-array name="ob_bodies">
+        <item>The Rovatics lab went dark and the robots fell asleep! Wake every robot with exactly the colour of light it needs.</item>
+        <item>Place mirrors and splitters on the grid to steer the laser. Tap a piece again to rotate it.</item>
+        <item>Tinted glass filters light, and beams of different colours mix: red and green make yellow.</item>
+        <item>Finish the 12 levels, then try the Daily Lab: a brand-new puzzle every day, the same for everyone.</item>
+    </string-array>
+    <string-array name="about_headings">
+        <item>About this game</item>
+        <item>Features</item>
+        <item>How to play</item>
+        <item>Colours</item>
+    </string-array>
+    <string-array name="about_bodies">
+        <item>Rovatics Beam Bots is a laser puzzle. Every sleeping robot needs light of one exact colour. Place mirrors and splitters to guide the beams and wake them all, using as few moves as you can.</item>
+        <item>• 12 levels that teach splitters, tinted glass and colour mixing\n• A brand-new Daily Lab puzzle every day\n• 3 hints per level and unlimited undo\n• 1–3 star ratings\n• Glowing beams, waking robots, celebrations, sound and haptics (all can be muted)\n• Free, with no ads and no account</item>
+        <item>1. Choose a tool: mirror, splitter or eraser.\n2. Tap the board to place it. Tap a piece to rotate it.\n3. Beams stop at walls. Tinted glass lets only its own colour through.\n4. Wake every robot with exactly the colour on its ring.</item>
+        <item>Light mixes like real light: red + green = yellow, red + blue = magenta, green + blue = cyan, and all three = white.</item>
+    </string-array>
+</resources>

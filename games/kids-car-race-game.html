@@ -82,6 +82,14 @@
     .sw{gap:4px}.swatch{border-width:2px}
     .sbtn{padding:5px 9px;font-size:.78rem}
   }
+/* rv-power */
+.stage{position:relative}
+#rtoast{position:absolute;left:50%;top:64px;transform:translate(-50%,-8px);z-index:5;max-width:92%;padding:8px 16px;border-radius:999px;background:rgba(6,18,46,.88);border:2px solid #ffd23f;color:#fff;font-weight:800;font-size:1.05rem;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#rtoast.show{opacity:1;transform:translate(-50%,0)}
+.rstars{font-size:2rem;letter-spacing:4px;margin:0 0 4px}
+.rstars .off{opacity:.25}
+.rnote{margin:0 0 10px;color:#b4cdf3;font-weight:600}
+.lvb em{display:block;font-style:normal;font-size:.62rem;line-height:1.1;color:#ffd23f;margin-top:2px}
 </style>
 </head>
 <body>
@@ -107,14 +115,18 @@
         <button class="sbtn" id="menuBtn" type="button">🚗 Change cars</button>
       </span>
     </div>
+    <div id="rtoast" role="status" aria-live="polite"></div>
     <canvas id="cv" width="900" height="640" aria-label="Car race: you against two computer cars."></canvas>
     <div class="pads" id="pads"></div>
     <section class="res" id="res" hidden>
       <h2 id="resTitle"></h2>
+      <div class="rstars" id="resStars" aria-hidden="true"></div>
+      <p class="rnote" id="resNote"></p>
       <ol id="resList"></ol>
       <div class="row">
         <button class="btn" id="nextBtn" type="button" hidden>Next level ▶</button>
         <button class="btn" id="againBtn" type="button">↻ Race again</button>
+        <button class="btn alt" id="shareBtn" type="button">📣 Share</button>
         <button class="btn alt" id="changeBtn" type="button">🚗 Change cars</button>
       </div>
     </section>
@@ -154,9 +166,15 @@ const ORD=['1st','2nd','3rd'];
 const STEER_KEYS=['KeyA','KeyD','KeyJ','KeyL','ArrowLeft','ArrowRight'];
 
 /* ---------- state ---------- */
-let sel=[0], level=1, unlocked=1, cfg=LEVELS[0], msg='';
+const KEY='rovatics.racers.v1';
+let store={unlocked:1,best:{},stars:{},muted:false,car:0};
+try{ const o=JSON.parse(localStorage.getItem(KEY)); if(o&&typeof o==='object') store=Object.assign(store,o); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
+store.unlocked=Math.max(1,Math.min(LEVELS.length,store.unlocked|0));
+let sel=[Math.max(0,Math.min(5,store.car|0))], level=Math.min(store.unlocked,LEVELS.length), unlocked=store.unlocked, cfg=LEVELS[level-1], msg='';
+let myLive=0, popT=0, myCones=0, lastRes=null;
 let state='menu';            // menu | countdown | race | finished
-let paused=false, muted=false;
+let paused=false, muted=!!store.muted;
 let track=[], deco=[], players=[], confetti=[];
 let finCount=0, firstFinT=0, raceT=0, cd=0, cdLast=-1, goFlash=0;
 let ac=null;
@@ -185,6 +203,18 @@ function beep(freq,dur,type,vol,slideTo){
   }catch(e){}
 }
 function fanfare(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.22,'triangle',.08),i*140)); }
+
+/* ---------- haptics + popups ---------- */
+function haptic(kind){
+  try{ document.dispatchEvent(new CustomEvent('rv-haptic',{detail:kind})); }catch(e){}
+  try{ if(window.RovaticsApp&&window.RovaticsApp.haptic) window.RovaticsApp.haptic(kind); else if(navigator.vibrate) navigator.vibrate(kind==='success'?[30,40,60]:kind==='error'?70:12); }catch(e){}
+}
+let popTimer=0;
+function pop(m){
+  const t=document.getElementById('rtoast'); if(!t) return;
+  t.textContent=m; t.classList.add('show'); clearTimeout(popTimer);
+  popTimer=setTimeout(()=>t.classList.remove('show'),1700);
+}
 
 /* ---------- small helpers ---------- */
 function rrPath(c,x,y,w,h,r){
@@ -258,7 +288,7 @@ SEATS.forEach((s,i)=>{
 function pick(i,ci){
   const j=sel.indexOf(ci);
   if(j>=0 && j!==i) sel[j]=sel[i];
-  sel[i]=ci;
+  sel[i]=ci; if(i===0){ store.car=ci; save(); }
   refreshMenu(); initAudio(); beep(480+ci*45,.09,'triangle',.07);
 }
 function refreshLevels(){
@@ -266,8 +296,9 @@ function refreshLevels(){
   LEVELS.forEach((c,i)=>{
     const b=document.createElement('button'); b.type='button';
     b.className='lvb'+(level===i+1?' on':''); b.disabled=i+1>unlocked;
-    b.innerHTML=(i+1>unlocked?'🔒':(i+1))+'<small>'+c.name+'</small>';
-    b.addEventListener('click',()=>{ level=i+1; refreshLevels(); initAudio(); beep(520,.08,'triangle',.07); });
+    const st=store.stars[i+1]||0, bt=store.best[i+1];
+    b.innerHTML=(i+1>unlocked?'🔒':(i+1))+'<small>'+c.name+'</small>'+(st?'<em>'+'★'.repeat(st)+(bt?' '+bt.toFixed(1)+'s':'')+'</em>':'');
+    b.addEventListener('click',()=>{ level=i+1; haptic('tick'); refreshLevels(); initAudio(); beep(520,.08,'triangle',.07); });
     box.appendChild(b);
   });
 }
@@ -331,9 +362,18 @@ $('startBtn').addEventListener('click',startRace);
 $('againBtn').addEventListener('click',startRace);
 $('nextBtn').addEventListener('click',()=>{ if(level<LEVELS.length) level++; startRace(); });
 $('changeBtn').addEventListener('click',goMenu);
+$('shareBtn').addEventListener('click',()=>{
+  const r=lastRes, url='https://rovatics.com/games/kids-car-race-game.html';
+  const text=r&&r.ok?'I finished Level '+r.level+' in Rovatics Racers in '+r.place+ORD[r.place-1].slice(1)+' place ('+r.time.toFixed(1)+' s)! Can you beat me? '+url:'Come race me in Rovatics Racers! '+url;
+  try{ if(window.RovaticsApp&&window.RovaticsApp.share){ window.RovaticsApp.share(text); return; } }catch(e){}
+  if(navigator.share){ navigator.share({text:text}).catch(()=>{}); }
+  else if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(()=>pop('Copied! Paste it to a friend 📨'),()=>{}); }
+});
 $('menuBtn').addEventListener('click',goMenu);
 $('pauseBtn').addEventListener('click',togglePause);
-$('muteBtn').addEventListener('click',()=>{ muted=!muted; $('muteBtn').textContent=muted?'\uD83D\uDD07 Sound off':'\uD83D\uDD0A Sound on'; initAudio(); });
+function paintMute(){ $('muteBtn').textContent=muted?'\uD83D\uDD07 Sound off':'\uD83D\uDD0A Sound on'; }
+$('muteBtn').addEventListener('click',()=>{ muted=!muted; store.muted=muted; save(); paintMute(); initAudio(); if(!muted) beep(660,.1,'triangle',.08); });
+paintMute();
 
 /* ---------- race flow ---------- */
 function startRace(){
@@ -349,7 +389,8 @@ function startRace(){
     ni:0, hit:new Uint8Array(track.length),
     finished:false, halt:false, dnf:false, place:0, time:0, sinceFin:0, live:i+1
   }));
-  finCount=0; firstFinT=0; raceT=0; cd=0; cdLast=-1; goFlash=0; confetti=[]; paused=false;
+  finCount=0; firstFinT=0; raceT=0; cd=0; cdLast=-1; goFlash=0; confetti=[]; paused=false; myLive=0; popT=0; myCones=0;
+  document.getElementById('rtoast').classList.remove('show');
   for(const k in keys) keys[k]=false;
   state='countdown';
   show('raceScr'); $('lvTitle').textContent='🏁 Level '+level+' of 5 · '+cfg.name; $('res').hidden=true; $('pads').hidden=false;
@@ -415,11 +456,11 @@ function step(p,dt,leader){
       if(o.y-p.dist>80) break;
       const ox=ROADL+20+o.x*(ROADR-ROADL-40), dx=Math.abs(ox-p.x);
       if(o.type==='cone'){
-        if(!p.hit[k] && dx<30 && dy<42){ p.hit[k]=1; p.speed*=.4; p.spin=.7; p.vx*=.3; beep(130,.18,'sawtooth',.09,60); }
+        if(!p.hit[k] && dx<30 && dy<42){ p.hit[k]=1; p.speed*=.4; p.spin=.7; p.vx*=.3; beep(130,.18,'sawtooth',.09,60); if(!p.ai){ myCones++; pop('Oops, a cone! 🚧 Keep going!'); haptic('error'); } }
       }else if(o.type==='puddle'){
-        if(dx<46 && dy<42){ p.inPuddle=true; if(!p.hit[k]){ p.hit[k]=1; beep(300,.15,'sine',.06,180); } }
+        if(dx<46 && dy<42){ p.inPuddle=true; if(!p.hit[k]){ p.hit[k]=1; beep(300,.15,'sine',.06,180); if(!p.ai){ pop('Splash! 💦 Slow going…'); haptic('tick'); } } }
       }else{
-        if(!p.hit[k] && dx<42 && dy<46){ p.hit[k]=1; p.boost=1.4; p.speed=Math.max(p.speed,BASE*1.2); beep(500,.25,'square',.06,1000); }
+        if(!p.hit[k] && dx<42 && dy<46){ p.hit[k]=1; p.boost=1.4; p.speed=Math.max(p.speed,BASE*1.2); beep(500,.25,'square',.06,1000); if(!p.ai){ pop('⚡ Turbo boost!'); haptic('tick'); } }
       }
     }
   }
@@ -428,6 +469,7 @@ function step(p,dt,leader){
     p.time=Math.max(0,raceT-(p.dist-L)/Math.max(p.speed,1));
     if(finCount===1) firstFinT=raceT;
     beep(880,.12,'triangle',.08); setTimeout(()=>beep(1175,.2,'triangle',.08),110);
+    if(!p.ai){ pop('🏁 You crossed the line!'); haptic('success'); }
   }
 }
 function livePlaces(){
@@ -443,12 +485,23 @@ function endRace(){
     x:Math.random()*W, y:-Math.random()*H, vx:(Math.random()-.5)*50, vy:70+Math.random()*130,
     w:6+Math.random()*6, h:3+Math.random()*5, a:Math.random()*6, va:(Math.random()-.5)*10, c:cols[i%cols.length]
   });
-  if(showResults()) fanfare();
+  if(showResults()){ fanfare(); haptic('success'); } else haptic('error');
 }
 function showResults(){
   const ord=players.slice().sort((a,b)=>a.place-b.place), me=players[0];
   const last=level>=LEVELS.length, ok=last?me.place===1:me.place<=2;
   if(ok && !last) unlocked=Math.max(unlocked,level+1);
+  const stars=ok?(me.place===1?3:2):(me.dnf?0:1);
+  let newBest=false;
+  if(!me.dnf && me.time>0 && ok){ const b=store.best[level]; if(!b||me.time<b){ store.best[level]=Math.round(me.time*10)/10; newBest=true; } }
+  if(ok && (store.stars[level]||0)<stars) store.stars[level]=stars;
+  store.unlocked=Math.max(store.unlocked,unlocked); save();
+  lastRes={level:level,place:me.place,time:me.time,ok:ok,stars:stars};
+  $('resStars').innerHTML='\u2B50'.repeat(stars)+'<span class="off">'+'\u2B50'.repeat(3-stars)+'</span>';
+  $('resNote').textContent=
+    ok&&me.place===1?(myCones===0?'Flawless — not a single cone hit! 🌟':'Brilliant driving, champ! '+(newBest?'🥇 New best time!':'')):
+    ok?'Great race — top 2! '+(newBest?'🥇 New best time!':'Win 1st for three stars.'):
+    me.dnf?'Keep your foot down — you can do it! 💪':'So close! Dodge the cones, grab the ⚡ and try again. 🚀';
   msg=ok?(last?'🏆 You are the Champion!':'⭐ Level '+level+' complete!'):(last?'So close! Win 1st to be Champion':'Good try! Finish top 2 to level up');
   $('resTitle').textContent=msg;
   $('resList').innerHTML=ord.map(p=>
@@ -468,7 +521,7 @@ function update(dt){
     if(n!==cdLast){
       cdLast=n;
       if(n<3) beep(440,.2,'square',.06);
-      else { beep(880,.4,'square',.07); state='race'; goFlash=.9; raceT=0; }
+      else { beep(880,.4,'square',.07); state='race'; goFlash=.9; raceT=0; myLive=0; popT=1.5; pop('Go go go! 🏎️'); haptic('tick'); }
     }
     return;
   }
@@ -477,6 +530,12 @@ function update(dt){
   let leader=0; players.forEach(p=>{ if(p.dist>leader) leader=p.dist; });
   players.forEach(p=>step(p,dt,leader));
   livePlaces();
+  if(state==='race' && !players[0].finished){
+    popT-=dt; const nl=players[0].live;
+    if(myLive && nl<myLive && popT<=0){ pop(nl===1?'You took the lead! 🥇':'Overtake! Now in '+ORD[nl-1]+' 🚀'); beep(700,.12,'triangle',.07); haptic('tick'); popT=2.2; }
+    else if(myLive && nl>myLive && popT<=0){ pop('Chase them down! 💪'); popT=2.2; }
+    myLive=nl;
+  }
   if(state==='race' && (finCount>=3 || (finCount>=1 && raceT-firstFinT>12) || (players[0].finished && players[0].sinceFin>4))) endRace();
   if(state==='finished') confetti.forEach(f=>{
     f.y+=f.vy*dt; f.x+=f.vx*dt+Math.sin(f.y*.02)*.6; f.a+=f.va*dt;
@@ -686,6 +745,13 @@ function frame(ts){
   if(!paused) update(dt);
   render(t);
 }
+/* Android hardware Back: pause / resume / leave the race; false = let the app exit */
+window.__androidBack=function(){
+  if(state==='race'||state==='countdown'){ togglePause(); return true; }
+  if(state==='finished'){ goMenu(); return true; }
+  return false;
+};
+window.__racers={ get state(){return state;}, get level(){return level;}, get unlocked(){return unlocked;}, get players(){return players;}, get paused(){return paused;}, store:store, startRace:startRace, endRace:endRace, update:update, goMenu:goMenu, setLevel:function(n){ level=n; }, pop:pop };
 refreshMenu();
 window.requestAnimationFrame(frame);
 

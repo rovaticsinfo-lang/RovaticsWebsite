@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rovatics Sudoku</string>
+    <string name="app_tagline">Classic number logic in 10 levels</string>
+    <string name="app_description">Classic Sudoku in 10 levels that get harder, with pencil notes, clues, stars and a challenge-a-friend timer. No ads, no account, fully offline.</string>
+    <string name="start_page">sudoku.html</string>
+    <string name="share_app_text">Try Rovatics Sudoku: 10 levels of classic number logic with notes, clues and a challenge-a-friend timer! https://rovatics.com/games.html</string>
+</resources>
