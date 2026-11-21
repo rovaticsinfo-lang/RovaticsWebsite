@@ -23,6 +23,20 @@ document.getElementById('f').onload=async()=>{try{
  ok(new Set(names.slice(0,8)).size===8&&names[8]===names[0],'8 distinct themes in rotation: '+names.slice(0,8).join(', '));
  ok(['city','forest','beach','highway','rail','airport'].every(t=>names.includes(t)),'includes road, forest, beach, highway, train track and airport');
 
+ // ---- boss tiers, boss styles, level variety and distance ----
+ const info=[]; for(let L=1;L<=12;L++){ C.loadLevel(L); info.push({n:L,len:G.lvl.length,tier:G.boss.name,style:G.boss.style,pads:G.lvl.pads.length,strips:G.lvl.strips.length,hz:new Set(G.lvl.hazards.map(h=>h.type))}); }
+ ok(["BOSS","SUPER BOSS","BIG BOSS","FINAL BIG BOSS"].every((nm,i)=>info[i*3].tier===nm),"boss tiers climb every three levels: "+[0,3,6,9].map(i=>info[i].tier).join(", "));
+ ok(new Set(info.slice(0,4).map(x=>x.style)).size===4,"four different boss styles: "+info.slice(0,4).map(x=>x.style).join(", "));
+ ok(info[11].len>info[0].len+120,"later levels are much longer ("+info[0].len+" m to "+info[11].len+" m)");
+ const kinds=new Set(); info.forEach(x=>x.hz.forEach(k=>kinds.add(k))); if(info.some(x=>x.pads)) kinds.add("pad"); if(info.some(x=>x.strips)) kinds.add("strip");
+ ok(["saw","spikes","wall","roller","pad","strip"].every(k=>kinds.has(k)),"levels use many obstacle kinds: "+[...kinds].join(", "));
+ // each boss style can be beaten and ends with a defeat animation, cheer and result card
+ for(const L of [1,2,3,4]){
+  C.loadLevel(L); C.startRun(); const Pb=G.player; Pb.setCount(G.boss.hp*2+30); G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true); G.lvl.hazards.forEach(h=>h.cd=1e9); Pb.z=G.boss.z+60;
+  const st=G.boss.style, iv=setInterval(()=>{ if(G.boss.style==="smash"&&G.boss.state==="fight"&&G.jump.t<0) C.jumpNow(); },120);
+  for(let i=0;i<2400&&G.state!=="result";i++) await wait(250); clearInterval(iv);
+  ok(G.state==="result"&&G.win&&G.cheered,"boss style "+st+" can be beaten, with a victory cheer");
+ }
  // ---- jump ----
  C.loadLevel(1); C.startRun(); const P=G.player; G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true);
  await wait(200); C.jumpNow(); await wait(600);

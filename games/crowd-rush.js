@@ -193,7 +193,9 @@ function initPeople() {
   idle.play(); walk.play(); idle.setEffectiveWeight(1); walk.setEffectiveWeight(0);
   const mesh = new THREE.SkinnedMesh(bodyGeo, mats.boss);
   mesh.bindMode = THREE.DetachedBindMode; mesh.bind(root.getObjectByName('vanguard_Mesh').skeleton, new THREE.Matrix4());
-  mesh.frustumCulled = false; mesh.visible = false; scene.add(mesh);
+  mesh.frustumCulled = false; mesh.castShadow = false;
+  /* everything about the boss hangs on one rig, so a tier\'s armour, crown and every defeat animation move together */
+  const rig = new THREE.Group(); rig.visible = false; scene.add(rig); rig.add(mesh);
   const crown = new THREE.Group();
   const gold = new THREE.MeshStandardMaterial({ color: '#ffcc22', emissive: '#ff9900', emissiveIntensity: 0.8, metalness: 0.8, roughness: 0.3, flatShading: true });
   for (let i = 0; i < 5; i++) {
@@ -201,8 +203,33 @@ function initPeople() {
     sp.position.set(Math.cos(a) * 0.55, 0.45, Math.sin(a) * 0.55); crown.add(sp);
   }
   const band = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.3, 10), gold); crown.add(band);
-  crown.scale.setScalar(1.7); crown.visible = false; scene.add(crown);
-  bossObj = { root, mixer, idle, walk, mesh, crown, w: 0 };
+  rig.add(crown);
+  const extras = new THREE.Group(); rig.add(extras);
+  const tele = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 15), new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+  tele.rotation.x = -Math.PI / 2; tele.visible = false; scene.add(tele);
+  bossObj = { root, mixer, idle, walk, mesh, rig, crown, extras, tele, w: 0, gold, halo: null };
+}
+
+/* Armour that grows with the boss tier: Boss / Super Boss (shoulder spikes) / Big Boss (horns, glowing eyes) / Final Big Boss (halo and flames). */
+function buildBossExtras(tier, S) {
+  const ex = bossObj.extras;
+  for (const c of [...ex.children]) { ex.remove(c); if (c.geometry) c.geometry.dispose(); }
+  const dark = new THREE.MeshStandardMaterial({ color: '#2a2230', roughness: 0.4, metalness: 0.7, flatShading: true });
+  const eye = new THREE.MeshBasicMaterial({ color: '#ff2a1a' });
+  if (tier >= 1) for (const sx of [-1, 1]) for (const k of [0, 1]) {
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.07 * S, 0.34 * S, 6), tier >= 3 ? bossObj.gold : dark);
+    sp.position.set(sx * (0.33 + k * 0.06) * S, (1.5 + k * 0.1) * S, 0); sp.rotation.z = -sx * (0.7 + k * 0.5); ex.add(sp);
+  }
+  if (tier >= 2) {
+    for (const sx of [-1, 1]) {
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.035 * S, 0.3 * S, 6), dark); horn.position.set(sx * 0.15 * S, 1.8 * S, -0.02 * S); horn.rotation.z = -sx * 0.55; ex.add(horn);
+      const e = new THREE.Mesh(new THREE.SphereGeometry(0.02 * S, 8, 6), eye); e.position.set(sx * 0.045 * S, 1.66 * S, -0.12 * S); ex.add(e);
+    }
+  }
+  if (tier >= 3) {
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.4 * S, 0.022 * S, 8, 40), new THREE.MeshBasicMaterial({ color: '#ffe066' })); halo.position.y = 2.05 * S; halo.rotation.x = Math.PI / 2; ex.add(halo); bossObj.halo = halo;
+  } else bossObj.halo = null;
+  bossObj.crown.position.set(0, 1.74 * S, 0); bossObj.crown.scale.setScalar(S * 0.31);
 }
 
 function poolTake(team) {
@@ -223,8 +250,8 @@ function toScreen(x, y, z) {
   _v.set(x, y, z).project(camera);
   return { x: (_v.x * 0.5 + 0.5) * W, y: (-_v.y * 0.5 + 0.5) * H, ok: _v.z < 1 && _v.z > -1 };
 }
-function placeLabel(el, x, y, z) {
-  const s = toScreen(x, y, z);
+function placeLabel(el, x, y, z, minY = 0) {
+  const s = toScreen(x, y, z); if (s.y < minY) s.y = minY;
   if (!s.ok || s.x < -80 || s.x > W + 80 || s.y < -60 || s.y > H + 40) { el.style.display = 'none'; return; }
   el.style.display = ''; el.style.transform = `translate(${s.x.toFixed(1)}px,${s.y.toFixed(1)}px) translate(-50%,-100%)`;
 }
@@ -311,7 +338,7 @@ class Crowd {
     const yawBase = YAW0 + (this.dir > 0 ? Math.PI : 0);
     const jumping = isP && G.jump.t >= 0;
     const onRoad = isP && G.boss && G.state !== 'home' && G.state !== 'result';
-    const arenaZ = G.boss ? G.boss.z + 20 : -1e9;
+    const arenaZ = G.lvl ? G.lvl.boss.z + 20 : -1e9;
     for (let k = this.persons.length - 1; k >= 0; k--) {
       const p = this.persons[k], o = p.o, m = o.mesh;
       if (p.fall) {
@@ -329,7 +356,7 @@ class Crowd {
       if (!isP) tx = clamp(tx, -3.85, 3.85);
       p.x += (tx - p.x) * f; p.z += (tz - p.z) * f; p.s = Math.min(1, p.s + dt * 4);
       let y = 0;
-      if (jumping) { const u = (G.jump.t + p.jo) / JUMP_DUR; if (u > 0 && u < 1) y = JUMP_H * 4 * u * (1 - u); }
+      if (jumping) { const u = (G.jump.t + p.jo) / G.jumpDur; if (u > 0 && u < 1) y = G.jumpH * 4 * u * (1 - u); }
       if (this.cheer) y = Math.abs(Math.sin(t * 7 + p.ph)) * 0.7;
       p.y = y;
       if (onRoad && y < 0.05 && p.s > 0.6 && Math.abs(p.x) > EDGE && p.z > arenaZ) { this.startFall(p); continue; }
@@ -368,8 +395,12 @@ const G = {
   state: 'loading', prev: 'home', lvl: null, player: null, enemies: [], recruits: [], boss: null,
   coinsRun: 0, t: 0, runT: 0, endT: 0, targetX: 0, shake: 0, fovKick: 0, camPos: new THREE.Vector3(0, 8, 14), camLook: new THREE.Vector3(),
   win: false, bossBanner: false, reward: 0, stars: 1, fpsAcc: 0, fpsN: 0,
-  jump: { t: -1 }, speedMul: 1, pad: { up: false, dn: false }, fallen: 0, fellTip: false, tipJump: false, tipEdge: false
+  jump: { t: -1 }, jumpH: JUMP_H, jumpDur: JUMP_DUR, boost: 0, tsc: 1, endR: 0, cheered: false,
+  speedMul: 1, pad: { up: false, dn: false }, fallen: 0, fellTip: false, tipJump: false, tipEdge: false
 };
+const bossBase = new THREE.Color(0, 0, 0);
+const X_AXIS = new THREE.Vector3(1, 0, 0), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
+const SUPER_H = 5.6, SUPER_DUR = 1.9;
 const keys = {};
 let thrShown = -1, fxShown = -1;
 
@@ -379,6 +410,7 @@ function showTip(text) {
 }
 function jumpNow() {
   if (G.state !== 'play' || G.jump.t >= 0) return;
+  G.jumpH = JUMP_H; G.jumpDur = JUMP_DUR;
   G.jump.t = 0; Snd.sfx.jump(); haptic('tick');
 }
 let hudCoins = -1, hudProg = -1;
@@ -387,7 +419,7 @@ function clearLevel() {
   if (G.player) G.player.release();
   G.enemies.forEach(e => e.release()); G.recruits.forEach(e => e.release());
   G.player = null; G.enemies = []; G.recruits = [];
-  if (bossObj) { bossObj.mesh.visible = false; bossObj.crown.visible = false; }
+  if (bossObj) { bossObj.rig.visible = false; bossObj.tele.visible = false; }
 }
 
 function loadLevel(n) {
@@ -396,31 +428,37 @@ function loadLevel(n) {
   const lvl = genLevel(n, startN); G.lvl = lvl;
   world.build(lvl);
   G.coinsRun = 0; G.t0 = 0; G.runT = 0; G.endT = 0; G.targetX = 0; G.shake = 0; G.fovKick = 0; G.bossBanner = false; hudCoins = hudProg = -1;
-  G.jump.t = -1; G.speedMul = 1; G.pad.up = G.pad.dn = false; G.fallen = 0; G.fellTip = false; G.tipJump = false; G.tipEdge = false; thrShown = fxShown = -1;
+  G.jump.t = -1; G.jumpH = JUMP_H; G.jumpDur = JUMP_DUR; G.boost = 0; G.tsc = 1; G.endR = 0; G.cheered = false;
+  G.speedMul = 1; G.pad.up = G.pad.dn = false; G.fallen = 0; G.fellTip = false; G.tipJump = false; G.tipEdge = false; thrShown = fxShown = -1;
+  Snd.setAmbience(THEMES[lvl.theme].id); Snd.duckAmbience(false);
   const P = new Crowd('player', () => QUAL[Q].P, -1); P.x = 0; P.z = 0; P.activate(); P.setCount(startN); P.syncVisual(true);
   P.persons.forEach(p => { const a = p.slot * GOLD, rr = FORM_C * Math.sqrt(p.slot + 0.5); p.x = clamp(Math.cos(a) * rr, -3.85, 3.85); p.z = Math.sin(a) * rr; p.s = 1; });
   G.player = P;
   G.enemies = lvl.enemies.map(d => { const c = new Crowd('enemy', () => QUAL[Q].E, 1); c.x = d.x; c.z = d.z; c.count = d.count; c.pop(); return c; });
   G.recruits = lvl.recruits.map(d => { const c = new Crowd('neutral', () => 10, 1); c.x = d.x; c.z = d.z; c.count = d.count; c.pop(); c.label.textContent = '+' + d.count; return c; });
   const b = lvl.boss;
-  G.boss = { z: b.z, hp: b.hp, hpMax: b.hpMax, state: 'idle', tick: 0, stompT: 0, deadT: 0, hitFlash: 0, rad: 2.6 };
-  if (!G.boss.label) { /* created below */ }
+  const S = b.scale;
+  G.boss = {
+    z: b.z, z0: b.z, x: 0, hp: b.hp, hpMax: b.hpMax, tier: b.tier, style: b.style, name: b.name, scale: S, hint: b.hint, state: 'idle',
+    tick: 0, stompT: 0, deadT: 0, hitFlash: 0, rad: S * 0.48, atk: { phase: 0, t: 1.6, side: 1 }, zFight: 0
+  };
   if (G.bossLabel) G.bossLabel.remove();
   const bl = document.createElement('div'); bl.className = 'lbl boss'; bl.style.display = 'none';
-  bl.innerHTML = '<div class="bossname">👑 BOSS</div><div class="hpbar"><i></i></div>'; labelsEl.appendChild(bl); G.bossLabel = bl;
-  bossObj.mesh.visible = true; bossObj.crown.visible = true;
-  bossObj.mesh.position.set(0, 0, b.z); bossObj.mesh.scale.setScalar(5.5);
-  bossObj.mesh.quaternion.setFromAxisAngle(Y_UP, YAW0 + Math.PI);
+  bl.innerHTML = '<div class="bossname">👑 ' + b.name + '</div><div class="hpbar"><i></i></div>'; labelsEl.appendChild(bl); G.bossLabel = bl;
+  const rig = bossObj.rig; rig.visible = true; rig.position.set(0, 0, b.z); rig.rotation.set(0, YAW0 + Math.PI, 0); rig.scale.setScalar(1);
+  bossObj.mesh.scale.setScalar(S); bossObj.mesh.position.set(0, 0, 0); bossObj.tele.visible = false;
+  buildBossExtras(b.tier, S);
   bossObj.w = 0;
   const th = THEMES[lvl.theme];
-  mats.boss.userData.uTeam.value.set(['#7a1030', '#3a6a2a', '#1a6a9a', '#6a6a72', '#8a5a1a', '#2a5fb0', '#a020c0', '#a02a0a'][lvl.theme % 8]);
+  mats.boss.userData.uTeam.value.set(['#7a1030', '#5a1a8a', '#a04a0a', '#d4a010'][b.tier]);
+  bossBase.set(b.tier >= 3 ? 0.22 : 0, b.tier >= 3 ? 0.16 : 0, 0);
   placeCameraHome(true);
   refreshHud();
   return th;
 }
 
 function refreshHud() {
-  $('lvH').textContent = 'LEVEL ' + G.lvl.n; $('lvHud').textContent = 'LV ' + G.lvl.n; $('themeH').textContent = THEMES[G.lvl.theme].name;
+  $('lvH').textContent = 'LEVEL ' + G.lvl.n; $('lvHud').textContent = 'LV ' + G.lvl.n; $('themeH').textContent = THEMES[G.lvl.theme].name + ' · ' + G.lvl.boss.name;
   $('coinsH').textContent = fmt(save.coins);
   $('upStartLv').textContent = '+' + save.upStart * 2; $('upStartCost').textContent = fmt(costStart());
   $('upGoldLv').textContent = '+' + save.upGold * 10 + '%'; $('upGoldCost').textContent = fmt(costGold());
@@ -449,7 +487,7 @@ function setState(s) {
   G.state = s;
   document.body.classList.toggle('playing', s !== 'home');
   layer('home', s === 'home'); layer('hud', s === 'play' || s === 'win' || s === 'lose');
-  layer('pause', s === 'pause'); layer('result', s === 'result'); layer('ctrl', s === 'play');
+  layer('pause', s === 'pause'); layer('result', s === 'result'); layer('ctrl', s === 'play'); Snd.duckAmbience(s === 'pause');
   if (s !== 'play') { G.pad.up = G.pad.dn = false; document.querySelectorAll('.pad.on').forEach(b => b.classList.remove('on')); }
 }
 function goHome() { loadLevel(save.level); setState('home'); }
@@ -516,27 +554,66 @@ function updateEnemies(dt) {
   P.fighting = G.enemies.some(e => e.fighting && !e.done);
 }
 
+/* ---- boss fights: each level plays differently (brawl / dodge / push / smash) ---- */
+const FIGHT_RATE = { brawl: 0.10, dodge: 0.05, push: 0.06, smash: 0.08 };   // share of the smaller side lost per 0.1 s
+const PUSH_BACK = 14;                                                       // how far the crowd shoves the boss over the fight
+function showTelegraph(side) {
+  const T = bossObj.tele, P = G.player;
+  if (!side) { T.visible = false; return; }
+  T.visible = true; T.material.opacity = 0.5; T.position.set(side * 2.3, 0.09, P.z - 1);
+}
+function slamImpact(side) {
+  const P = G.player, B = G.boss;
+  Snd.sfx.stomp(); Snd.sfx.explode(); G.shake = 1; haptic('heavy'); flashScreen('#ff5a2a', 0.2);
+  for (let i = 0; i < 24; i++) bits.emit(side * (0.5 + Math.random() * 3.6), 0.3, P.z - 1 + (Math.random() - 0.5) * 12, '#d9c9a0', 1, 6, 0.8, 0.9, -4, 0.8, 0);
+  sparks.emit(side * 2.3, 0.6, P.z - 1, '#ff7a3a', 40, 9, 0.4, 0.8, -6, 1.2, 4);
+  const per = Math.max(1, Math.round(P.count / Math.max(1, P.persons.length))), victims = [];
+  for (const p of P.persons) if (!p.fall && p.y < 0.7 && p.x * side > -0.2 && Math.abs(p.z - (P.z - 1)) < 7.5) victims.push(p);
+  for (const p of victims) { if (P.count <= 0) break; P.hit(per, p); }
+  if (victims.length) floatText('-' + fmt(victims.length * per), '#ff6a6a', side * 2.3, 2.4, P.z);
+}
+function dodgeAttacks(dt) {
+  const A = G.boss.atk, P = G.player;
+  A.t -= dt;
+  if (A.phase === 0 && A.t <= 0) {          // warn: a red zone appears on one half of the arena
+    A.side = P.x < 0 ? -1 : 1; if (Math.random() < 0.3) A.side = -A.side;
+    A.phase = 1; A.t = 1.15; showTelegraph(A.side); Snd.sfx.alarm(); haptic('tick');
+  } else if (A.phase === 1) {
+    bossObj.tele.material.opacity = 0.3 + 0.3 * Math.abs(Math.sin(G.t * 14)); bossObj.tele.position.z = P.z - 1;
+    if (A.t <= 0) { A.phase = 0; A.t = 1.5; showTelegraph(0); slamImpact(A.side); }
+  }
+}
 function updateBoss(dt) {
   const P = G.player, B = G.boss;
-  if (B.state === 'idle' && P.z - B.z < 78) {
-    B.state = 'walk'; if (!G.bossBanner) { G.bossBanner = true; showBanner('FINAL BOSS!'); Snd.sfx.boss(); G.shake = 0.7; haptic('heavy'); }
+  if (B.state === 'idle' && P.z - B.z < 78 + B.scale * 2) {
+    B.state = 'walk'; world.hideArch(); showBanner(B.name + '!'); Snd.sfx.boss(); G.shake = 0.7; haptic('heavy');
+    setTimeout(() => { if (G.state === 'play') showTip(B.hint); }, 1400);
   }
   if (B.state === 'walk') {
     B.z += 3.6 * dt;
-    if (P.z - B.z < B.rad + P.radius * 0.7 + 0.8) { B.state = 'fight'; B.tick = 0; B.stompT = 0; }
+    if (P.z - B.z < B.rad + P.radius * 0.7 + 0.8) { B.state = 'fight'; B.tick = 0; B.stompT = 0; B.zFight = B.z; B.atk.t = 1.4; B.atk.phase = 0; if (B.style === 'smash') showTip('JUMP to smash him!'); }
   } else if (B.state === 'fight') {
     B.tick -= dt; B.stompT -= dt;
     if (B.stompT <= 0) {
-      B.stompT = 0.9; Snd.sfx.stomp(); G.shake = Math.max(G.shake, 0.55); haptic('heavy');
-      for (let i = 0; i < 18; i++) { const a = (i / 18) * 6.28; bits.emit(B.mesh_x || 0, 0.3, B.z + 1.2, '#d9c9a0', 1, 5, 0.5, 0.8, -4, 0.3, 0); }
-      sparks.emit(0, 0.4, B.z + 1.5, '#ffb04a', 14, 7, 0.3, 0.7);
+      B.stompT = 0.9; Snd.sfx.stomp(); G.shake = Math.max(G.shake, 0.45); haptic('heavy');
+      for (let i = 0; i < 16; i++) bits.emit((Math.random() - 0.5) * 6, 0.3, B.z + B.rad, '#d9c9a0', 1, 5, 0.6, 0.8, -4, 0.3, 0);
+    }
+    if (B.style === 'dodge') dodgeAttacks(dt);
+    if (B.style === 'push') {
+      /* every hit shoves him back and the crowd follows, until he teeters at the edge */
+      const target = B.zFight - (1 - B.hp / B.hpMax) * PUSH_BACK;
+      B.z += (target - B.z) * Math.min(1, dt * 6);
+      P.z += (B.z + B.rad + P.radius * 0.7 + 0.8 - P.z) * Math.min(1, dt * 6);
     }
     if (B.tick <= 0) {
       B.tick = 0.1;
-      const k = Math.max(1, Math.ceil(Math.min(P.count, B.hp) * 0.1));
-      B.hp = Math.max(0, B.hp - k); P.hit(k); B.hitFlash = 1;
-      sparks.emit((Math.random() - 0.5) * 3, 2 + Math.random() * 5, B.z + 2, '#ffd24a', 5, 6, 0.3, 0.5);
-      Snd.sfx.bossHit(); haptic('tick');
+      const L = Math.max(1, Math.ceil(Math.min(P.count, B.hp) * FIGHT_RATE[B.style]));
+      let dmg = L;
+      if (B.style === 'smash') dmg = P.jy > 0.8 ? L * 3 : (Math.random() < 0.3 ? L : 0);   // only a leaping crowd really hurts him
+      dmg = Math.min(dmg, B.hp);
+      B.hp -= dmg; P.hit(L); if (dmg) B.hitFlash = 1;
+      sparks.emit((Math.random() - 0.5) * 3, B.scale * (0.2 + Math.random() * 0.8), B.z + B.rad * 0.6, B.style === 'smash' && dmg ? '#ffffff' : '#ffd24a', dmg ? 6 : 2, 6, 0.3, 0.5);
+      if (dmg) { Snd.sfx.bossHit(); haptic('tick'); }
       if (B.hp <= 0) { if (P.count <= 0) P.setCount(1); finish(true); return; }
       if (P.count <= 0) { finish(false); return; }
     }
@@ -551,14 +628,17 @@ function updateHazards(dt) {
     if (Math.abs(h.z - P.z) > P.radius + 4 || h.cd > 0) continue;
     let hit = null;
     for (const p of P.persons) {
-      if (p.fall || p.y > (h.type === 'saw' ? 0.9 : 1.05)) continue;   // anyone airborne above the blades is safe
-      if (h.type === 'saw') { const dx = p.x - h.x, dz = p.z - h.z; if (dx * dx + dz * dz < HAZ_R2) { hit = p; break; } }
-      else if (p.x > h.x0 && p.x < h.x1 && Math.abs(p.z - h.z) < 1.0) { hit = p; break; }
+      if (p.fall) continue;
+      if (h.type === 'saw') { if (p.y > 0.9) continue; const dx = p.x - h.x, dz = p.z - h.z; if (dx * dx + dz * dz < HAZ_R2) { hit = p; break; } }
+      else if (h.type === 'roller') { if (p.y > 1.15) continue; if (Math.abs(p.x - h.x) < 1.05 && Math.abs(p.z - h.z) < 1.25) { hit = p; break; } }
+      else if (h.type === 'wall') { if (p.y > 1.6) continue; if (Math.abs(p.z - h.z) < 0.9 && Math.abs(p.x) < 4.6 && Math.abs(p.x - h.gx) > h.gw / 2) { hit = p; break; } }
+      else { if (p.y > 1.05) continue; if (p.x > h.x0 && p.x < h.x1 && Math.abs(p.z - h.z) < 1.0) { hit = p; break; } }
     }
     if (!hit) continue;
-    h.cd = 0.07;
+    h.cd = h.type === 'wall' ? 0.05 : 0.07;
     const w = Math.max(1, Math.round(P.count / Math.max(1, P.persons.length)));
-    sparks.emit(hit.x, 0.8, hit.z, h.type === 'saw' ? '#ffd24a' : '#ff5a4a', 8, 6, 0.22, 0.5);
+    if (h.type === 'wall' || h.type === 'roller') Snd.sfx.crash();
+    sparks.emit(hit.x, 0.8, hit.z, h.type === 'saw' ? '#ffd24a' : h.type === 'wall' ? '#ffe9a0' : h.type === 'roller' ? '#ff9a3a' : '#ff5a4a', 8, 6, 0.22, 0.5);
     P.hit(w, hit); G.shake = Math.max(G.shake, 0.25); haptic('tick');
     if (P.count <= 0) { finish(false); return; }
   }
@@ -608,15 +688,29 @@ function updatePlay(dt) {
   if (gas) G.speedMul = Math.min(SPEED_MAX, G.speedMul + 1.0 * dt);
   if (brake) G.speedMul = Math.max(SPEED_MIN, G.speedMul - 1.5 * dt);
   let sp = (10 + Math.min(lvl.n, 20) * 0.12) * G.speedMul;
+  if (G.boost > 0) { G.boost -= dt; sp *= 1.6; }   // speed strip
   if (P.fighting) sp *= 0.25;
   if (B.state === 'walk') sp = 7; else if (B.state === 'fight') sp = 0;
   P.z -= sp * dt; P.running = true;
   /* jump arc */
   if (G.jump.t >= 0) {
     G.jump.t += dt * Math.max(0.6, G.speedMul);   // a jump covers the same ground at any speed
-    if (G.jump.t > JUMP_DUR + 0.08) { G.jump.t = -1; P.jy = 0; Snd.sfx.land(); bits.emit(P.x, 0.1, P.z, '#e8e2d0', 8, 3, 0.5, 0.6, -1, 0.3, P.radius); }
-    else { const u = clamp(G.jump.t / JUMP_DUR, 0, 1); P.jy = JUMP_H * 4 * u * (1 - u); }
+    if (G.jump.t > G.jumpDur + 0.08) { G.jump.t = -1; P.jy = 0; Snd.sfx.land(); bits.emit(P.x, 0.1, P.z, '#e8e2d0', 8, 3, 0.5, 0.6, -1, 0.3, P.radius); }
+    else { const u = clamp(G.jump.t / G.jumpDur, 0, 1); P.jy = G.jumpH * 4 * u * (1 - u); }
   } else P.jy = 0;
+  /* jump pads fling the crowd high into a sky full of treasure; speed strips give a burst of speed */
+  for (const pad of lvl.pads) {
+    if (pad.used || Math.abs(P.z - pad.z) > 2.2) continue;
+    if (Math.abs(P.x - pad.x) < P.radius * 0.6 + 1.8) {
+      pad.used = true; pad.glow = 1; G.jumpH = SUPER_H; G.jumpDur = SUPER_DUR; G.jump.t = 0;
+      Snd.sfx.boing(); haptic('heavy'); G.fovKick = 9; flashScreen('#aaffcc', 0.25); showTip('SUPER JUMP!');
+      sparks.emit(pad.x, 0.3, pad.z, '#8dffb0', 40, 8, 0.35, 0.9, -4, 1.4, 1.2);
+    }
+  }
+  for (const s of lvl.strips) {
+    if (s.used || Math.abs(P.z - s.z) > 2.6) continue;
+    s.used = true; s.glow = 1; G.boost = 2.4; Snd.sfx.boost(); haptic('success'); G.fovKick = 8; showTip('SPEED BOOST!');
+  }
   /* no guard rails: the crowd may be steered off the edge, and whoever steps off falls */
   const lim = EDGE + 1.4;
   G.targetX = clamp(G.targetX, -lim, lim);
@@ -643,10 +737,12 @@ function finish(win) {
   G.state = win ? 'win' : 'lose'; G.endT = 0; G.win = win;
   const P = G.player;
   if (win) {
-    P.cheer = true; P.running = false; G.boss.state = 'dead'; G.boss.deadT = 0;
-    Snd.sfx.explode(); Snd.sfx.win(); haptic('success'); showBanner('VICTORY!'); flashScreen('#ffffff', 0.5);
-    sparks.emit(0, 4, G.boss.z, '#ffd24a', 120, 16, 0.5, 1.2, -6, 0.8, 2); sparks.emit(0, 4, G.boss.z, '#ff6a2a', 80, 12, 0.6, 1.0, -6, 0.8, 2);
-    G.shake = 1;
+    /* the finishing blow: slow motion, a camera on the boss, and a defeat that depends on how this level\'s boss was fought */
+    const B = G.boss; B.state = 'dying'; B.deadT = 0; B.hitFlash = 1; B.fx1 = B.fell = false; B.slideV = 0; B.vy = 0; B.fy = 0;
+    P.running = false; G.endR = 0; G.cheered = false; G.tsc = 0.35; showTelegraph(0);
+    Snd.sfx.explode(); haptic('heavy'); flashScreen('#ffffff', 0.35); G.shake = 1;
+    sparks.emit(0, B.scale * 0.8, B.z + B.rad * 0.5, '#ffd24a', 90, 14, 0.5, 1.2, -6, 0.8, 2); sparks.emit(0, B.scale * 0.8, B.z + B.rad * 0.5, '#ff6a2a', 60, 11, 0.6, 1.0, -6, 0.8, 2);
+    if (B.style === 'smash') Snd.sfx.rocket();
   } else {
     P.running = false; Snd.sfx.lose(); haptic('reject'); showBanner('CROWD LOST'); G.shake = 0.4;
   }
@@ -663,7 +759,7 @@ function showResult() {
   if (win && lvl.n === save.level) save.level = lvl.n + 1;
   persist();
   $('resTitle').textContent = win ? 'VICTORY!' : 'DEFEATED'; $('resTitle').className = win ? 'win' : 'lose';
-  $('resText').textContent = win ? ('Boss crushed with ' + fmt(P.count) + ' survivors!') : 'Your crowd was wiped out. Pick better gates and dodge the traps!';
+  $('resText').textContent = win ? (G.boss.name + ' defeated with ' + fmt(P.count) + ' survivors!') : 'Your crowd was wiped out. Pick better gates and dodge the traps!';
   $('resCoins').textContent = '+' + fmt(reward);
   [...$('stars').children].forEach((el, i) => el.classList.toggle('on', i < stars));
   $('stars').style.display = win ? '' : 'none';
@@ -685,15 +781,30 @@ function cameraTargets() {
     posTmp.set(P.x + Math.sin(a) * R, 3.4 + Math.sin(G.t * 0.5) * 0.5, P.z + Math.cos(a) * R);
     lookTmp.set(P.x + (W > H ? 3.6 : 0), -0.2 - (W < H ? 0.45 : 0), P.z);
   } else if (s === 'win') {
-    const a = Math.PI * 0.8 + G.endT * 0.55, R = 12;
-    posTmp.set(P.x + Math.sin(a) * R, 5.5, P.z + Math.cos(a) * R); lookTmp.set(P.x, 2, P.z - 2);
+    const S = B.scale, rp = bossObj.rig.position;
+    if (G.endR < 3.6) {
+      /* cinematic: a low three-quarter view that keeps the whole boss in frame while he goes down */
+      const a = 0.55 + G.endR * 0.15;
+      posTmp.set(Math.sin(a) * (S * 1.8 + 6), Math.min(S * 0.5 + 3 + Math.max(0, rp.y) * 0.35, 40), rp.z + Math.cos(a) * (S * 2.5 + 9));
+      lookTmp.set(0, Math.max(S * 0.7, rp.y + S * 0.6), rp.z);
+    } else {
+      const a = Math.PI * 0.8 + (G.endR - 3.6) * 0.5, R = 13;
+      posTmp.set(P.x + Math.sin(a) * R, 5.5, P.z + Math.cos(a) * R); lookTmp.set(P.x, 2.4, P.z - 3);
+    }
   } else if (s === 'lose') {
     posTmp.set(P.x * 0.5, D * 0.6, P.z + D * 0.85); lookTmp.set(P.x * 0.5, 0.5, P.z - D * 0.3);
   } else {
     const boss = B.state === 'walk' || B.state === 'fight';
-    const k = (boss ? 1.3 : 1) * (1 + (G.speedMul - 1) * 0.1);
-    posTmp.set(P.x * 0.55, D * 0.58 * k + (boss ? 2 : 0), P.z + D * 0.82 * k);
-    lookTmp.set(P.x * 0.55, 0.8, boss ? (P.z + B.z) / 2 + 2 : P.z - D * 0.32);
+    if (boss) {
+      /* raised and pulled back so the whole boss, not just his feet, is in view with the crowd below him */
+      const S = B.scale, midZ = (P.z + B.z) / 2;
+      posTmp.set(P.x * 0.3, 6 + S * 1.1, P.z + 10 + S * 1.55 + D * 0.15);
+      lookTmp.set(P.x * 0.2, S * 0.8, midZ - S * 0.1);
+    } else {
+      const k = 1 + (G.speedMul - 1) * 0.1;
+      posTmp.set(P.x * 0.55, D * 0.58 * k, P.z + D * 0.82 * k);
+      lookTmp.set(P.x * 0.55, 0.8, P.z - D * 0.32);
+    }
   }
 }
 function placeCameraHome() { G.camPos.set(0, 5, -6); cameraTargets(); G.camPos.copy(posTmp); G.camLook.copy(lookTmp); }
@@ -705,9 +816,75 @@ function updateCamera(dt) {
   camera.position.copy(G.camPos);
   if (G.shake > 0.01) { camera.position.x += (Math.random() - 0.5) * G.shake * 0.5; camera.position.y += (Math.random() - 0.5) * G.shake * 0.4; G.shake *= Math.exp(-dt * 6); }
   camera.lookAt(G.camLook);
-  const fov = 58 + G.fovKick + (G.state === 'play' ? 2 + (G.speedMul - 1) * 5 : 0);
+  const bossCam = G.state === 'win' || (G.state === 'play' && (G.boss.state === 'walk' || G.boss.state === 'fight'));
+  const fov = 58 + G.fovKick + (G.state === 'play' ? 2 + (G.speedMul - 1) * 5 : 0) + (bossCam ? 6 : 0);
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); pointScale = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(fov) / 2)); sparks.setScale(pointScale); bits.setScale(pointScale); }
   G.fovKick *= Math.exp(-dt * 4);
+}
+
+/* ---------- how each boss goes down ---------- */
+function fireworks(x, y, z, n) {
+  const pal = ['#ff4d6d', '#ffd23a', '#4dd2ff', '#7cff8a', '#c06bff', '#ff9a2e', '#ffffff'];
+  for (let i = 0; i < n; i++) sparks.emit(x + (Math.random() - 0.5) * 8, y + (Math.random() - 0.5) * 6, z + (Math.random() - 0.5) * 6, pal[i % pal.length], 36, 13, 0.55, 1.5, -4, 0.6, 1);
+  bits.confetti(x, y, z, 50, 10);
+}
+function bigDropFx(x, z) {
+  const y = world.drop.y, kind = world.drop.kind;
+  if (kind === 'water') { sparks.emit(x, y + 0.3, z, '#cfeeff', 120, 13, 0.7, 1.6, -9, 1.6, 4); bits.emit(x, y, z, '#ffffff', 50, 6, 1.2, 1.6, -5, 1.2, 4); Snd.sfx.bigSplash(); }
+  else if (kind === 'lava') { sparks.emit(x, y + 0.3, z, '#ff8a2a', 140, 15, 0.8, 1.8, -6, 1.8, 4); bits.emit(x, y, z, '#40302c', 40, 5, 1.4, 2.2, -1, 1.2, 4); Snd.sfx.bigSplash(); Snd.sfx.sizzle(); }
+  else { bits.emit(x, y + 0.3, z, '#cdbd9a', 80, 9, 1.4, 1.8, -2, 1, 5); sparks.emit(x, y + 0.5, z, '#ffeeb0', 30, 8, 0.4, 0.8, -4, 1, 3); Snd.sfx.thud(); Snd.sfx.explode(); }
+}
+function updateBossDying(dt) {
+  const B = G.boss, rig = bossObj.rig, S = B.scale;
+  B.deadT += dt; const t = B.deadT;
+  const face = _qa.setFromAxisAngle(Y_UP, YAW0 + Math.PI);
+  bossObj.crown.rotation.y = G.t * 3; if (bossObj.halo) bossObj.halo.rotation.z = G.t * 3;
+  if (B.style === 'brawl') {
+    /* topples slowly backwards, away from the crowd, and hits the ground with a crash */
+    const k = clamp(t / 1.5, 0, 1);
+    rig.quaternion.copy(face).multiply(_qb.setFromAxisAngle(X_AXIS, k * k * 1.5)); rig.position.set(0, 0, B.z);
+    if (t > 1.5 && !B.fx1) {
+      B.fx1 = true; Snd.sfx.stomp(); G.shake = 1.3; haptic('heavy');
+      for (let i = 0; i < 40; i++) bits.emit((Math.random() - 0.5) * S * 0.6, 0.3, B.z - S * 1.5 + (Math.random() - 0.5) * S * 0.5, '#d9c9a0', 1, 8, 1.1, 1.3, -4, 0.8, 0);
+      sparks.emit(0, 1, B.z - S * 1.5, '#ffd24a', 70, 12, 0.5, 1);
+    }
+    if (t > 3.8) rig.scale.setScalar(Math.max(0.001, 1 - (t - 3.8) * 1.4));
+  } else if (B.style === 'dodge') {
+    /* shudders, then bursts into fireworks */
+    rig.quaternion.copy(face);
+    if (t < 1.3) {
+      rig.position.set(Math.sin(t * 70) * 0.35, 0, B.z); B.hitFlash = 0.6 + 0.4 * Math.sin(t * 40);
+      if (Math.random() < dt * 70) sparks.emit((Math.random() - 0.5) * S * 0.5, S * Math.random() * 1.6, B.z, '#ffd24a', 2, 5, 0.3, 0.5);
+    } else {
+      rig.position.set(0, 0, B.z);
+      if (!B.fx1) { B.fx1 = true; Snd.sfx.explode(); G.shake = 1.4; flashScreen('#ffffff', 0.5); fireworks(0, S * 0.9, B.z, 7); }
+      rig.scale.setScalar(Math.max(0.001, 1 - (t - 1.3) * 4)); if (rig.scale.x <= 0.002) rig.visible = false;
+    }
+  } else if (B.style === 'push') {
+    /* the crowd's last shove sends him sliding off the edge of the arena into the drop */
+    const edge = G.lvl.boss.z - 19;
+    if (!B.fell) {
+      B.slideV += 9 * dt; B.z -= (2 + B.slideV) * dt; rig.position.set(0, 0, B.z);
+      rig.quaternion.copy(face).multiply(_qb.setFromAxisAngle(X_AXIS, 0.15 + Math.sin(t * 8) * 0.05));
+      if (B.z < edge) { B.fell = true; B.vy = 3; B.tf = 0; Snd.sfx.boss(); }
+    } else {
+      B.tf += dt; B.vy -= 26 * dt; B.fy += B.vy * dt; B.z -= 4 * dt;
+      rig.position.set(0, B.fy, B.z); rig.quaternion.copy(face).multiply(_qb.setFromAxisAngle(X_AXIS, Math.min(2.6, B.tf * 1.6)));
+      if (B.fy < world.drop.y - S * 0.35 && !B.fx1) { B.fx1 = true; bigDropFx(0, B.z); rig.visible = false; G.shake = 1.5; }
+    }
+  } else {
+    /* smash: crouches, then is blasted into the sky like a rocket and bursts into fireworks */
+    if (t < 0.8) {
+      rig.quaternion.copy(face); rig.position.set(Math.sin(t * 50) * 0.2, 0, B.z); B.hitFlash = 0.5;
+      if (Math.random() < dt * 80) sparks.emit(0, 0.2, B.z, '#ffb04a', 2, 6, 0.4, 0.5, -3, 1.2, S * 0.3);
+    } else {
+      const v = t - 0.8, y = 14 * v * v + 3 * v;
+      if (!B.fx0) { B.fx0 = true; G.shake = 1.2; haptic('heavy'); }
+      rig.quaternion.setFromAxisAngle(Y_UP, YAW0 + Math.PI + v * 11).multiply(_qb.setFromAxisAngle(X_AXIS, 0.35)); rig.position.set(0, y, B.z);
+      sparks.emit(0, y, B.z, '#ff9a2a', 3, 5, 0.9, 0.7, -2, -0.6, S * 0.25);
+      if (y > 75 && !B.fx1) { B.fx1 = true; fireworks(0, y, B.z, 8); Snd.sfx.explode(); rig.visible = false; }
+    }
+  }
 }
 
 /* ---------- per-frame ---------- */
@@ -718,46 +895,48 @@ function frame(now) {
   if (rawDt < 0.011) return;   // 60-90 fps is plenty; a 144 Hz screen should not draw twice the work
   let dt = Math.min(0.05, rawDt); last = now;
   if (G.state === 'loading' || !G.player) return;
+  /* slow motion for the finishing blow, easing back to normal speed */
+  if (G.state === 'win') { G.endR += dt; G.tsc = G.endR < 1.7 ? 0.35 : Math.min(1, 0.35 + (G.endR - 1.7) * 1.3); } else G.tsc = 1;
+  const rdt = dt; dt *= G.tsc;
   const paused = G.state === 'pause';
   if (!paused) {
     G.t += dt;
     const am = G.state === 'play' ? lerp(0.6, 1.6, (G.speedMul - SPEED_MIN) / (SPEED_MAX - SPEED_MIN)) : 1;   // legs keep up with the speed
     for (const m of runMasters) m.mixer.update(dt * m.speed * am);
     for (const m of idleMasters) m.mixer.update(dt * m.speed);
-    const B = G.boss;
+    const B = G.boss, bo = bossObj;
     B.hitFlash = Math.max(0, B.hitFlash - dt * 4);
-    const bo = bossObj;
-    bo.w += ((B.state === 'walk' ? 1 : 0) - bo.w) * (1 - Math.exp(-dt * 4));
+    const wTarget = B.state === 'walk' ? 1 : (B.state === 'fight' && B.style === 'push' ? 0.6 : 0);
+    bo.w += (wTarget - bo.w) * (1 - Math.exp(-dt * 4));
     bo.walk.setEffectiveWeight(bo.w); bo.idle.setEffectiveWeight(1 - bo.w);
     bo.walk.timeScale = 1.1; bo.mixer.update(dt);
     if (G.state === 'play') updatePlay(dt);
-    else if (G.state === 'win' || G.state === 'lose') {
-      G.endT += dt;
-      if (G.state === 'win') {
-        const B2 = G.boss; B2.deadT += dt;
-        const k = clamp(B2.deadT / 1.1, 0, 1);
-        bo.mesh.quaternion.setFromAxisAngle(Y_UP, YAW0 + Math.PI).multiply(_q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -k * k * 1.45));
-        bo.mesh.position.y = 0; bo.crown.position.set(0, -50, B2.z);
-        if (B2.deadT > 1.1 && B2.deadT < 1.2 && !B2.slam) { B2.slam = true; Snd.sfx.stomp(); G.shake = 1; sparks.emit(0, 0.5, B2.z + 7, '#ffd24a', 60, 12, 0.5, 1); }
-        if (B2.deadT > 1.6) { const s2 = Math.max(0, 1 - (B2.deadT - 1.6) * 1.2); bo.mesh.scale.setScalar(5.5 * s2); }
-        if (Math.random() < dt * 30) bits.confetti(G.player.x, 8, G.player.z, 4, 10);
+    else if (G.state === 'win') {
+      G.endT += dt; updateBossDying(dt);
+      if (!G.cheered && G.endR > 2.4) {
+        G.cheered = true; G.player.cheer = true; Snd.sfx.cheer(); Snd.sfx.win(); haptic('success'); showBanner('VICTORY!'); flashScreen('#ffffff', 0.25);
       }
-      if (G.endT > (G.state === 'win' ? 3.2 : 1.6)) showResult();
+      if (G.cheered && Math.random() < dt * 30) bits.confetti(G.player.x, 8, G.player.z, 4, 10);
+      if (G.endR > 6.4) showResult();
+    } else if (G.state === 'lose') {
+      G.endT += dt; if (G.endT > 1.6) showResult();
     }
-    if (G.state !== 'play') { /* keep crowds animating in every other state */ }
     G.player.update(dt, G.t);
     G.enemies.forEach(e => e.update(dt, G.t)); G.recruits.forEach(e => e.update(dt, G.t));
     shadows.instanceMatrix.needsUpdate = true; rings.instanceMatrix.needsUpdate = true; if (rings.instanceColor) rings.instanceColor.needsUpdate = true;
-    /* boss placement and flash */
+    /* boss placement (while he is not being defeated) */
     if (G.state !== 'win') {
-      const B2 = G.boss;
-      bo.mesh.position.set(0, 0, B2.z);
-      if (B2.state === 'fight') bo.mesh.position.x = Math.sin(G.t * 40) * 0.08;
-      bo.crown.position.set(bo.mesh.position.x, 9.5 + Math.sin(G.t * 2) * 0.08, B2.z); bo.crown.rotation.y = G.t * 1.3;
+      bo.rig.position.set(B.state === 'fight' ? Math.sin(G.t * 40) * 0.08 : 0, 0, B.z);
+      bo.rig.quaternion.setFromAxisAngle(Y_UP, YAW0 + Math.PI); bo.rig.scale.setScalar(1);
+      bo.crown.rotation.y = G.t * 1.3; bo.crown.position.y = 1.74 * B.scale + Math.sin(G.t * 2) * 0.08;
+      if (bo.halo) bo.halo.rotation.z = G.t * 1.5;
+      /* final big boss: flames licking up from his body */
+      if (B.tier >= 3 && B.state !== 'idle' && Math.random() < dt * 40) sparks.emit((Math.random() - 0.5) * 2.4, 0.3, B.z + (Math.random() - 0.5) * 2, '#ff9a2a', 1, 2, 0.5, 0.9, 4, 1.5, 1.2);
     }
-    mats.boss.emissive.setRGB(B_flash(G.boss.hitFlash), B_flash(G.boss.hitFlash) * 0.12, 0);
+    const f = B_flash(B.hitFlash);
+    mats.boss.emissive.setRGB(bossBase.r + f, bossBase.g + f * 0.12, bossBase.b);
     sparks.update(dt); bits.update(dt);
-    updateCamera(dt);
+    updateCamera(rdt);
   }
   world.update(paused ? 0 : dt, G.t, camera, pointScale * 0.5, G.player.z);
   renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = (Q >= 2) || ((G.frameNo = (G.frameNo || 0) + 1) % 2 === 0);
@@ -784,9 +963,9 @@ function updateLabels() {
   for (const e of G.enemies) { if (e.active && !e.done && e.count > 0) placeLabel(e.label, e.x, 3.0, e.z); else e.label.style.display = 'none'; }
   for (const r of G.recruits) { if (r.active && !r.done) placeLabel(r.label, r.x, 2.8, r.z); else r.label.style.display = 'none'; }
   if (G.bossLabel) {
-    if (B.state === 'dead' || G.state === 'home' || G.state === 'result') G.bossLabel.style.display = 'none';
+    if (B.state === 'dead' || B.state === 'dying' || G.state === 'home' || G.state === 'result' || G.state === 'win') G.bossLabel.style.display = 'none';
     else if (B.state !== 'idle' || P.z - B.z < 110) {
-      placeLabel(G.bossLabel, 0, 12.8, B.z);
+      placeLabel(G.bossLabel, 0, B.scale * 2.35, B.z, 104);
       G.bossLabel.querySelector('i').style.width = (B.hp / B.hpMax * 100).toFixed(1) + '%';
     } else G.bossLabel.style.display = 'none';
   }
@@ -886,5 +1065,5 @@ async function boot() {
 }
 function applyQualityInit() { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, QUAL[Q].pr)); }
 
-window.__cr = { G, world, scene, camera, renderer, loadLevel, startRun, finish, save, bossObj, jumpNow, showTip, get Q() { return Q; }, runMasters, pool };
+window.__cr = { G, world, scene, camera, renderer, loadLevel, startRun, finish, save, get bossObj() { return bossObj; }, jumpNow, showTip, get Q() { return Q; }, runMasters, pool };
 boot();
