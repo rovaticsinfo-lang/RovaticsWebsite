@@ -38,12 +38,12 @@
   #hud{padding:calc(env(safe-area-inset-top) + 10px) 12px 0}
   .top{display:flex;align-items:center;gap:10px}
   .ibtn{width:44px;height:44px;border-radius:14px;background:rgba(10,20,50,.55);border:2px solid rgba(255,255,255,.35);
-    backdrop-filter:blur(6px);font-size:20px;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+   font-size:20px;display:flex;align-items:center;justify-content:center;pointer-events:auto}
   .prog{flex:1;display:flex;align-items:center;gap:8px;font-size:14px}
   .bar{flex:1;height:14px;border-radius:8px;background:rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.7);overflow:hidden}
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4dd2ff,#7cff8a)}
   .coins{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 8px;border-radius:999px;background:rgba(10,20,50,.55);
-    border:2px solid rgba(255,216,74,.7);font-size:17px;backdrop-filter:blur(6px)}
+    border:2px solid rgba(255,216,74,.7);font-size:17px;}
   .coin{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6b0,#ffc61a 45%,#c98600);
     box-shadow:inset 0 -2px 0 rgba(0,0,0,.25);display:inline-block}
 
@@ -65,8 +65,8 @@
   .play:active{transform:translateY(5px);box-shadow:0 2px 0 #0b7a36}
   @keyframes pulse{50%{scale:1.06}}
   .shop{display:flex;gap:10px;width:100%;max-width:520px}
-  .card{flex:1;border-radius:16px;padding:10px 8px;background:rgba(10,22,60,.72);border:2px solid rgba(255,255,255,.25);
-    backdrop-filter:blur(8px);text-align:center;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .card{flex:1;border-radius:16px;padding:10px 8px;background:rgba(10,22,60,.86);border:2px solid rgba(255,255,255,.25);
+   text-align:center;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:4px}
   .card .ic{font-size:26px}
   .card .lv{opacity:.75;font-family:system-ui,sans-serif;font-weight:700}
   .buy{margin-top:2px;width:100%;padding:7px 4px;border-radius:10px;background:linear-gradient(#ffd84a,#ffa51a);color:#4a2400;
@@ -81,7 +81,7 @@
   /* in-game controls: jump + throttle */
   #ctrl{z-index:3}
   .pad{pointer-events:auto;touch-action:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    border:3px solid rgba(255,255,255,.75);color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35);backdrop-filter:blur(4px);
+    border:3px solid rgba(255,255,255,.75);color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.35);
     box-shadow:0 6px 18px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.35);-webkit-tap-highlight-color:transparent}
   #jumpBtn{position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom) + 24px);width:94px;height:94px;border-radius:50%;
     background:linear-gradient(#ffb84a,#ff7a1a);font-size:15px;letter-spacing:.04em;line-height:1}
@@ -96,7 +96,7 @@
   .thrbar i{position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(#ffe066,#ff7a1a)}
   .thrbar b{position:absolute;left:-2px;right:-2px;height:2px;background:#fff;opacity:.8}
   #thrVal{font-size:15px;text-shadow:0 2px 0 rgba(0,0,0,.5);min-width:54px;text-align:center}
-  #speedfx{position:fixed;inset:0;pointer-events:none;opacity:0;
+  #speedfx{position:fixed;inset:0;pointer-events:none;opacity:0;display:none;
     background:repeating-conic-gradient(from 0deg at 50% 46%,rgba(255,255,255,0) 0 4deg,rgba(255,255,255,.55) 4.4deg 4.9deg,rgba(255,255,255,0) 5.4deg 9deg);
     -webkit-mask-image:radial-gradient(ellipse at 50% 46%,transparent 34%,#000 82%);mask-image:radial-gradient(ellipse at 50% 46%,transparent 34%,#000 82%)}
   .tip{position:fixed;left:50%;top:46%;transform:translate(-50%,-50%);padding:10px 22px;border-radius:999px;font-size:26px;pointer-events:none;
@@ -105,7 +105,7 @@
   .themeName{margin-top:4px;font-size:13px;opacity:.85;letter-spacing:.12em;text-transform:uppercase;text-shadow:0 2px 6px rgba(0,0,0,.6)}
 
   /* modal cards */
-  .modal{display:flex;align-items:center;justify-content:center;background:rgba(3,8,25,.55);backdrop-filter:blur(3px)}
+  .modal{display:flex;align-items:center;justify-content:center;background:rgba(3,8,25,.72);}
   .panel{width:min(88vw,380px);border-radius:24px;padding:22px 20px 20px;text-align:center;
     background:linear-gradient(rgba(25,45,110,.95),rgba(10,20,55,.95));border:3px solid rgba(255,255,255,.4);
     box-shadow:0 20px 60px rgba(0,0,0,.5);animation:pop .35s cubic-bezier(.2,1.6,.4,1)}
@@ -234,7 +234,7 @@
 <!-- Rovatics brand badge -->
 <style>
   .rv-brand-badge{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 8px);z-index:2147483000;display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;opacity:.9;border-radius:999px;
-    background:rgba(4,14,40,.72);border:1px solid rgba(66,232,245,.45);backdrop-filter:blur(6px);color:#7fe6ff;font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;
+    background:rgba(4,14,40,.72);border:1px solid rgba(66,232,245,.45);color:#7fe6ff;font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;
     letter-spacing:.04em;pointer-events:none;user-select:none;box-shadow:0 2px 10px rgba(0,0,0,.35)}
   .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
 </style>

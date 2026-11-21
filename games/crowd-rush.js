@@ -15,18 +15,30 @@ const params = new URLSearchParams(location.search);
 const isTouch = matchMedia('(pointer:coarse)').matches;
 
 /* ---------- tuning ---------- */
+/* Quality tiers. pr = render scale cap, P/E = most runners drawn for the player / a rival crowd, hi = how many runners
+   per crowd use the full 11,000-triangle model (the rest use a light copy), deco = amount of scenery. */
 const QUAL = [
-  { pr: 1, P: isTouch ? 24 : 34, E: 10 },
-  { pr: 1.5, P: isTouch ? 38 : 58, E: 18 },
-  { pr: 2, P: isTouch ? 52 : 80, E: 26 }
+  { pr: isTouch ? 1 : 0.85, P: 22, E: 8, hi: 0, deco: 0.5, shadow: 0 },
+  { pr: isTouch ? 1.5 : 1, P: isTouch ? 32 : 36, E: 12, hi: 6, deco: 0.8, shadow: 1024 },
+  { pr: isTouch ? 2 : 1.5, P: isTouch ? 42 : 56, E: 18, hi: 14, deco: 1, shadow: 2048 }
 ];
-let Q = params.has('q') ? clamp(+params.get('q') | 0, 0, 2) : (isTouch ? 1 : 2);
 const POOL_N = QUAL[2].P + QUAL[2].E * 2 + 8;
+/* Read the graphics card name once: integrated / older cards start on a lighter tier. */
+function gpuName() {
+  try {
+    const c = document.createElement('canvas'), g = c.getContext('webgl2'); const e = g.getExtension('WEBGL_debug_renderer_info');
+    const n = e ? String(g.getParameter(e.UNMASKED_RENDERER_WEBGL)) : ''; const l = g.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); return n;
+  } catch (err) { return ''; }
+}
+const GPU = gpuName();
+const STRONG_GPU = /RTX|GTX 1[0-9]|GTX 16|GTX 9[0-9]0|RX [5-9]ddd|RX 6|RX 7|Arc A|Apple M|Radeon Pro/i.test(GPU) && !/Vega|Graphics/i.test(GPU);
+const WEAK_GPU = /Intel|UHD|HD Graphics|Iris|Vega|Radeon(TM) Graphics|Radeon 5dd|R[2-7] |Mali-(T|G3|G5[0-2])|Adreno( (TM))? [1-5]dd|PowerVR|SwiftShader/i.test(GPU);
+let savedQ = 2; try { const sv = JSON.parse(localStorage.getItem('rovatics.crowdrush.v1') || '{}'); if (typeof sv.q === 'number') savedQ = clamp(sv.q | 0, 0, 2); } catch (err) { /* private mode */ }
+let Q = params.has('q') ? clamp(+params.get('q') | 0, 0, 2) : Math.min(isTouch ? (WEAK_GPU ? 0 : 1) : (STRONG_GPU ? 2 : (WEAK_GPU ? 0 : 1)), savedQ);
 const RUN_N = 6, IDLE_N = 3;
 const FORM_C = 0.38, PS = 1.15, GOLD = 2.39996;
 const JUMP_H = 3.4, JUMP_DUR = 1.3;            // a jump clears blades and reaches the coins and boxes in the air
 const SPEED_MIN = 0.4, SPEED_MAX = 2.2;
-const SHADOW = [0, 1024, 2048];
 const YAW0 = params.has('yaw') ? +params.get('yaw') : 0;   // the model natively faces -Z, the way we run
 const SKINS = [
   { c: '#3b82ff', cost: 0 }, { c: '#ff9a2e', cost: 120 }, { c: '#2fd36b', cost: 120 },
@@ -50,15 +62,15 @@ function haptic(kind) {
 
 /* ---------- renderer, scene, camera ---------- */
 const canvas = $('gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch && Q >= 2, powerPreference: 'high-performance' });
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 700);
-const world = new World(scene, renderer, { decorScale: isTouch ? 0.6 : 1, ambientCount: isTouch ? 120 : 200 });
+const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 380);
+const world = new World(scene, renderer, { decorScale: QUAL[Q].deco * (isTouch ? 0.75 : 1), ambientCount: Q >= 2 ? 180 : 90 });
 const sparks = new Bursts(scene, 700, true);
 const bits = new Bursts(scene, 500, false);
 world.fx = { sparks, bits };
-world.setShadows(SHADOW[Q]);
+world.setShadows(QUAL[Q].shadow);
 let W = 1, H = 1, pointScale = 600;
 function resize() {
   W = window.innerWidth; H = window.innerHeight;
@@ -75,7 +87,7 @@ Snd.setMuted(!!save.muted);
 function refreshMute() { $('muteBtn').textContent = save.muted ? '🔇' : '🔊'; }
 
 /* ---------- model, shared animated skeletons, people ---------- */
-let gltf = null, bodyGeo = null, baseMat = null;
+let gltf = null, bodyGeo = null, bodyGeoLow = null, baseMat = null;
 const runMasters = [], idleMasters = [];
 const mats = {};
 let pool = null, shadows = null, rings = null, bossObj = null;
@@ -87,7 +99,7 @@ const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 
 function teamMaterial(hex, mix, emissive) {
   const m = baseMat.clone();
-  m.roughness = 0.62; m.metalness = 0.05; m.envMapIntensity = 0.35;
+  m.roughness = 0.62; m.metalness = 0.05; m.envMapIntensity = 0.22;
   m.emissive = new THREE.Color(emissive || 0x000000);
   const uTeam = { value: new THREE.Color(hex) }, uMix = { value: mix };
   m.userData.uTeam = uTeam;
@@ -99,13 +111,37 @@ function teamMaterial(hex, mix, emissive) {
         #ifdef USE_MAP
           vec4 sampledDiffuseColor = texture2D( map, vMapUv );
           float lum = dot( sampledDiffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) );
-          vec3 tc = uTeam * ( 0.2 + lum * 1.15 );
+          float l2 = pow(clamp(lum * 1.5, 0.0, 1.0), 1.25); vec3 tc = uTeam * ( 0.1 + l2 * 1.05 ) + uTeam * uTeam * 0.12;
           diffuseColor.rgb = mix( sampledDiffuseColor.rgb, tc, uMix );
           diffuseColor.a *= sampledDiffuseColor.a;
         #endif`);
   };
   m.customProgramCacheKey = () => 'crowdTeam';
   return m;
+}
+
+/* A light copy of the runner for the back of the crowd: vertices that fall in the same small cell (and same texture
+   patch) are merged into one, keeping that vertex's skinning, so it animates on the same skeleton. */
+function clusterGeometry(g, cell, uvCell) {
+  const pos = g.attributes.position, uv = g.attributes.uv, idx = g.index.array, map = new Map(), remap = new Int32Array(pos.count), reps = [];
+  for (let i = 0; i < pos.count; i++) {
+    const key = Math.round(pos.getX(i) / cell) + ',' + Math.round(pos.getY(i) / cell) + ',' + Math.round(pos.getZ(i) / cell) + '|' + Math.round(uv.getX(i) / uvCell) + ',' + Math.round(uv.getY(i) / uvCell);
+    let r = map.get(key); if (r === undefined) { r = reps.length; reps.push(i); map.set(key, r); } remap[i] = r;
+  }
+  const out = [], seen = new Set();
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = remap[idx[t]], b = remap[idx[t + 1]], c = remap[idx[t + 2]];
+    if (a === b || b === c || a === c) continue;
+    const k = [a, b, c].sort((x, y) => x - y).join(','); if (seen.has(k)) continue; seen.add(k); out.push(a, b, c);
+  }
+  const ng = new THREE.BufferGeometry();
+  for (const name of Object.keys(g.attributes)) {
+    const at = g.attributes[name], arr = new at.array.constructor(reps.length * at.itemSize);   // getComponent: attributes may be interleaved
+    for (let i = 0; i < reps.length; i++) for (let k = 0; k < at.itemSize; k++) arr[i * at.itemSize + k] = at.getComponent(reps[i], k);
+    ng.setAttribute(name, new THREE.BufferAttribute(arr, at.itemSize, at.normalized));
+  }
+  ng.setIndex(out); ng.boundingSphere = g.boundingSphere; ng.boundingBox = g.boundingBox;
+  return ng;
 }
 
 function makeMaster(kind, i, n) {
@@ -120,8 +156,9 @@ function makeMaster(kind, i, n) {
 
 function initPeople() {
   const body = gltf.scene.getObjectByName('vanguard_Mesh');
-  bodyGeo = body.geometry; baseMat = body.material;
-  mats.player = teamMaterial(SKINS[save.skin].c, 0.62);
+  bodyGeo = body.geometry; baseMat = body.material; bodyGeoLow = clusterGeometry(bodyGeo, 3.6, 0.045);
+  console.log('runner model triangles: full', bodyGeo.index.count / 3, 'light', bodyGeoLow.index.count / 3);
+  mats.player = teamMaterial(SKINS[save.skin].c, 0.8);
   mats.player.emissive.set(SKINS[save.skin].c).multiplyScalar(0.03);
   mats.enemy = teamMaterial(TEAM_COL.enemy, 0.6, 0x200000);
   mats.neutral = teamMaterial(TEAM_COL.neutral, 0.3);
@@ -302,6 +339,7 @@ class Crowd {
       m.scale.setScalar(PS * (0.15 + 0.85 * p.s));
       const sk = (this.running && !this.cheer ? runMasters[o.mi] : idleMasters[o.mi % IDLE_N]).skeleton;
       if (m.skeleton !== sk) m.skeleton = sk;
+      const gw = k < QUAL[Q].hi ? bodyGeo : bodyGeoLow; if (m.geometry !== gw) m.geometry = gw;
       _v.set(p.x, 0.04, p.z); _s.setScalar(p.s * (1 - Math.min(0.6, y * 0.2)));
       _m.compose(_v, _iq, _s); shadows.setMatrixAt(o.i, _m); rings.setMatrixAt(o.i, _m); rings.setColorAt(o.i, teamColors[this.team]);
     }
@@ -676,7 +714,9 @@ function updateCamera(dt) {
 let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  let dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const rawDt = (now - last) / 1000;
+  if (rawDt < 0.011) return;   // 60-90 fps is plenty; a 144 Hz screen should not draw twice the work
+  let dt = Math.min(0.05, rawDt); last = now;
   if (G.state === 'loading' || !G.player) return;
   const paused = G.state === 'pause';
   if (!paused) {
@@ -720,16 +760,18 @@ function frame(now) {
     updateCamera(dt);
   }
   world.update(paused ? 0 : dt, G.t, camera, pointScale * 0.5, G.player.z);
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = (Q >= 2) || ((G.frameNo = (G.frameNo || 0) + 1) % 2 === 0);
   /* speedometer + speed lines */
   const thr = Math.round(G.speedMul * 10), fxv = G.state === 'play' ? Math.round(clamp((G.speedMul - 1.15) / 1.05, 0, 0.75) * 100) : 0;
   if (thr !== thrShown) { thrShown = thr; $('thrVal').textContent = (thr / 10).toFixed(1) + '×'; $('thrFill').style.height = ((G.speedMul - SPEED_MIN) / (SPEED_MAX - SPEED_MIN) * 100).toFixed(0) + '%'; }
-  if (fxv !== fxShown) { fxShown = fxv; $('speedfx').style.opacity = fxv / 100; }
+  if (fxv !== fxShown) { fxShown = fxv; const sf = $('speedfx'); sf.style.display = fxv ? '' : 'none'; sf.style.opacity = fxv / 100; }
   updateLabels();
   renderer.render(scene, camera);
   /* adaptive quality */
   if (!paused && G.state === 'play' && G.runT > 2.5) {
-    G.fpsAcc += dt; G.fpsN++;
-    if (G.fpsAcc > 2.5) { const avg = G.fpsAcc / G.fpsN; if (avg > 1 / 36 && Q > 0 && !params.has('q')) { Q--; applyQuality(); } G.fpsAcc = 0; G.fpsN = 0; }
+    G.fpsAcc += dt; G.fpsN++; G.slow = rawDt > 0.14 ? (G.slow || 0) + 1 : 0;
+    if ((G.fpsAcc > 1.2 && G.fpsAcc / G.fpsN > 1 / 42) || G.slow >= 3) { if (Q > 0 && !params.has('q')) lowerQuality(); G.fpsAcc = 0; G.fpsN = 0; G.slow = 0; }
+    else if (G.fpsAcc > 1.2) { G.fpsAcc = 0; G.fpsN = 0; }
   }
 }
 const B_flash = v => v * v * 0.22;
@@ -751,8 +793,12 @@ function updateLabels() {
   void showP;
 }
 
+function lowerQuality() {
+  Q--; save.q = Q; persist(); applyQuality();
+  if (!G.qTip) { G.qTip = true; showTip('Graphics lowered for smoother play'); }
+}
 function applyQuality() {
-  resize(); world.setShadows(SHADOW[Q]);
+  resize(); world.setShadows(QUAL[Q].shadow); world.density = QUAL[Q].deco * (isTouch ? 0.75 : 1);
   if (G.player) { G.player.syncVisual(false); G.enemies.forEach(e => e.syncVisual(false)); }
 }
 

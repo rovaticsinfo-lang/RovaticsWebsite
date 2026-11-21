@@ -267,7 +267,7 @@ export class World {
       },
       vertexShader: SKY_VS, fragmentShader: SKY_FS, side: THREE.BackSide, depthWrite: false, fog: false
     });
-    const skyGeo = new THREE.SphereGeometry(500, 32, 16);
+    const skyGeo = new THREE.SphereGeometry(300, 32, 16);
     this.sky = new THREE.Mesh(skyGeo, this.skyMat); this.sky.frustumCulled = false; this.sky.renderOrder = -10; scene.add(this.sky);
     this.envScene = new THREE.Scene(); this.envScene.add(new THREE.Mesh(skyGeo, this.skyMat));
     this.pmrem = new THREE.PMREMGenerator(renderer);

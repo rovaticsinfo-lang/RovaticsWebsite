@@ -6,7 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { clamp, lerp } from './cr-util.js';
 import { ROAD_W } from './cr-level.js';
 
-const HW = ROAD_W / 2;
+const HW = ROAD_W / 2, CHUNK = 110;
 const _v = new THREE.Vector3(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3();
 
 /* ---------- model building blocks ---------- */
@@ -181,22 +181,32 @@ function makeCtx(base) {
     }
     return out;
   };
+  /* Scenery is split into 110 m chunks. Each chunk is its own mesh with a bounding sphere, so the GPU only draws the
+     chunks that are on screen (and in the shadow view) instead of the whole 700 m level every frame. */
+  const chunks = recs => { const by = new Map(); for (const r of recs) { const k = Math.floor(r.z / CHUNK); (by.get(k) || by.set(k, []).get(k)).push(r); } return by.values(); };
   c.inst = (geometry, mat, recs, o = {}) => {
     if (!recs.length) return null;
-    const m = new THREE.InstancedMesh(geometry, mat, recs.length), d = new THREE.Object3D(), col = new THREE.Color();
-    recs.forEach((r, i) => {
-      d.position.set(r.x, r.y + (o.dy || 0), r.z); d.rotation.set(0, r.ry || 0, 0);
-      const s = r.s || 1; d.scale.set(s * (o.sx || 1), s * (o.sy || 1), s * (o.sx || 1)); d.updateMatrix(); m.setMatrixAt(i, d.matrix);
-      col.set(r.c || '#ffffff'); if (o.vary) col.multiplyScalar(0.82 + c.r() * 0.36); m.setColorAt(i, col);
-    });
-    m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
-    m.frustumCulled = false; m.castShadow = !!o.cast; m.receiveShadow = true; c.g.add(m); return m;
+    const d = new THREE.Object3D(), col = new THREE.Color(); let last = null;
+    for (const part of chunks(recs)) {
+      const m = new THREE.InstancedMesh(geometry, mat, part.length);
+      part.forEach((r, i) => {
+        d.position.set(r.x, r.y + (o.dy || 0), r.z); d.rotation.set(0, r.ry || 0, 0);
+        const s = r.s || 1; d.scale.set(s * (o.sx || 1), s * (o.sy || 1), s * (o.sx || 1)); d.updateMatrix(); m.setMatrixAt(i, d.matrix);
+        col.set(r.c || '#ffffff'); if (o.vary) col.multiplyScalar(0.82 + c.r() * 0.36); m.setColorAt(i, col);
+      });
+      m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
+      m.computeBoundingSphere(); m.castShadow = !!o.cast; m.receiveShadow = true; c.g.add(m); last = m;
+    }
+    return last;
   };
   c.glowSpheres = (recs, color, radius, dy) => {
     if (!recs.length) return;
-    const m = new THREE.InstancedMesh(new THREE.SphereGeometry(radius, 8, 6), c.track(new THREE.MeshBasicMaterial({ color })), recs.length), d = new THREE.Object3D();
-    recs.forEach((r, i) => { d.position.set(r.x + (r.glowDx || 0), r.y + dy, r.z); d.rotation.set(0, 0, 0); d.scale.setScalar(1); d.updateMatrix(); m.setMatrixAt(i, d.matrix); });
-    m.frustumCulled = false; c.g.add(m);
+    const geometry = new THREE.SphereGeometry(radius, 8, 6), mat = c.track(new THREE.MeshBasicMaterial({ color })), d = new THREE.Object3D();
+    for (const part of chunks(recs)) {
+      const m = new THREE.InstancedMesh(geometry, mat, part.length);
+      part.forEach((r, i) => { d.position.set(r.x + (r.glowDx || 0), r.y + dy, r.z); d.rotation.set(0, 0, 0); d.scale.setScalar(1); d.updateMatrix(); m.setMatrixAt(i, d.matrix); });
+      m.computeBoundingSphere(); c.g.add(m);
+    }
   };
   return c;
 }
@@ -241,7 +251,8 @@ function buildingGeo(w, h, d, x, y, z, tint) {
   return PM(g, tint, new THREE.Matrix4().makeTranslation(x, y + h / 2, z));
 }
 function buildRows(c, o) {
-  const geos = [];
+  const geos = [], zOf = new Map();
+  const add = (g, z) => { geos.push(g); zOf.set(g, z); };
   for (const sd of [-1, 1]) for (let row = 0; row < o.rows; row++) {
     let z = c.Z0 - c.r() * 10;
     while (z > c.Z1) {
@@ -251,15 +262,19 @@ function buildRows(c, o) {
       if (c.r() < (o.fill || 0.9)) {
         const ax = o.ax0 + row * o.rowDepth + w / 2, x = sd * ax, y = c.H(x, z - d / 2);
         if (y > c.minY) {
-          geos.push(buildingGeo(w, h, d, x, y - 0.6, z - d / 2, c.pick(o.colors)));
-          if (c.r() < 0.5) geos.push(P(box(w * 0.3, 1.6, d * 0.3), '#8d9096', x + c.rand(-w / 4, w / 4), y + h - 0.2, z - d / 2 + c.rand(-d / 4, d / 4)));
+          add(buildingGeo(w, h, d, x, y - 0.6, z - d / 2, c.pick(o.colors)), z);
+          if (c.r() < 0.5) add(P(box(w * 0.3, 1.6, d * 0.3), '#8d9096', x + c.rand(-w / 4, w / 4), y + h - 0.2, z - d / 2 + c.rand(-d / 4, d / 4)), z);
         }
       }
       z -= d + gap;
     }
   }
   if (!geos.length) return;
-  const mesh = new THREE.Mesh(M(geos), c.matWin); mesh.castShadow = true; mesh.receiveShadow = true; c.g.add(mesh);
+  const by = new Map();
+  for (const g of geos) { const k = Math.floor(zOf.get(g) / CHUNK); (by.get(k) || by.set(k, []).get(k)).push(g); }
+  for (const list of by.values()) {
+    const mesh = new THREE.Mesh(M(list), c.matWin); mesh.castShadow = true; mesh.receiveShadow = true; c.g.add(mesh);
+  }
   geos.forEach(x => x.dispose());
 }
 
