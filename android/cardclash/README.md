@@ -24,10 +24,9 @@ rovatics.com. Nothing is downloaded at runtime — PeerJS ships inside the app.
 Install **Android Studio** (it brings the Android SDK and Gradle with it). Nothing else is
 needed — this machine already has JDK 17, but Android Studio ships its own JDK too.
 
-> This project was written and its assets verified on a machine with **no Android SDK**, so
-> the `.aab` has **not** been produced or installed on a device yet. The steps below are the
-> standard ones; expect Android Studio to offer a Gradle/AGP upgrade on first open, which is
-> safe to accept.
+> **Built and verified.** The project compiles with Android SDK 35 / Gradle 8.9 / JDK 17 and produces
+> a debug APK (3.6 MB) and a release AAB (2.8 MB). It has **not** been run on a physical device or
+> emulator yet, and the release AAB is **unsigned** until you add your upload key (section 3).
 
 ## 2. Open and run
 
@@ -153,10 +152,21 @@ of them changes the Data safety answers and the content rating.
 
 ## 8. What has and has not been tested
 
-**Verified:** the exact game files bundled in `app/src/main/assets/game/` pass the full Card
-Clash browser test suite — lobby, all three decks, bot removal and addition, a complete game
-through to the winner screen — with the bundled PeerJS and no CDN access.
+**Verified by building:** `./gradlew assembleDebug` and `./gradlew bundleRelease` both succeed. The APK has
+package `com.rovatics.cardclash`, target SDK 35, the INTERNET permission, the launcher activity, and all
+five game files bundled.
 
-**Not verified:** the Gradle build, the generated `.aab`, and behaviour on a real device or
-emulator. There is no Android SDK on the machine this was written on. Please build it and play
-one game on a phone before uploading anything to Play.
+**Verified in a browser:** the exact bundled game files pass the full Card Clash test suite (lobby, all
+three decks, bots, a complete game to the winner screen) with the bundled PeerJS and no CDN access.
+
+**Not verified:** behaviour on a real phone or emulator, and online play between two devices. Install the
+debug APK on a phone and play one bot game and one online game before uploading to Play.
+
+### First-time setup on a new machine
+
+`local.properties` (git-ignored) must point at your Android SDK, using **forward slashes** -- a backslash
+in a properties file is an escape character and silently corrupts the path:
+
+```
+sdk.dir=C:/Users/you/AppData/Local/Android/Sdk
+```
