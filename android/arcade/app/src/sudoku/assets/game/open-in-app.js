@@ -8,6 +8,15 @@
   if (!PKG) return;
   var intent = 'intent://' + location.host + location.pathname + location.search +
     '#Intent;scheme=https;package=' + PKG + ';S.browser_fallback_url=' + encodeURIComponent('https://play.google.com/store/apps/details?id=' + PKG) + ';end';
+  // Try to open the app straight away (once per visit). No fallback URL here, so if the app is not installed nothing happens
+  // and the banner below (which does fall back to Google Play) is still shown.
+  try {
+    if (!sessionStorage.getItem('rvOpenTried')) {
+      sessionStorage.setItem('rvOpenTried', '1');
+      var direct = 'intent://' + location.host + location.pathname + location.search + '#Intent;scheme=https;package=' + PKG + ';end';
+      setTimeout(function () { location.href = direct; }, 250);
+    }
+  } catch (e) {}
   function add() {
     var b = document.createElement('div');
     b.setAttribute('style', 'position:fixed;left:0;right:0;top:0;z-index:2147483600;display:flex;gap:10px;align-items:center;justify-content:center;padding:10px 12px;background:#0b2a6b;color:#fff;font:600 15px system-ui,Arial,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.5)');

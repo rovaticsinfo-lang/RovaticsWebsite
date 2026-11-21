@@ -345,7 +345,10 @@
   function hostBroadcast(m) { Object.keys(H.conns).concat(['host']).forEach(function (id) { hostSend(id, m); }); }
 
   // STUN finds a direct route. Phones on different mobile networks may also need a TURN relay: add one in turn-config.js.
-  var PEER_OPTS = { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }].concat(window.RV_ICE_SERVERS || []), iceCandidatePoolSize: 4 } };
+  function peerOpts() {
+    return { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }].concat(window.RV_ICE_SERVERS || []), iceCandidatePoolSize: 4,
+      iceTransportPolicy: window.RV_FORCE_RELAY ? 'relay' : 'all' } };   // RV_FORCE_RELAY is for testing the relay only
+  }
   // Keep the signalling link alive: it drops when the app is in the background (e.g. while sharing the code) and must be restored.
   function keepAlive(pr) {
     pr.on('disconnected', function () { setTimeout(function () { try { if (!pr.destroyed && pr.disconnected) pr.reconnect(); } catch (e) {} }, 800); });
@@ -364,7 +367,7 @@
     var tries = 0;
     (function open() {
       var code = randCode(); H.code = code;
-      peer = new window.Peer('rvcc-' + code, PEER_OPTS); keepAlive(peer);
+      peer = new window.Peer('rvcc-' + code, peerOpts()); keepAlive(peer);
       peer.on('open', function () { go(); });
       peer.on('connection', hostAccept);
       peer.on('error', function (err) {
@@ -472,7 +475,7 @@
   function joinRoom(code) {
     if (!peerAvailable()) return toast('Online play needs internet access (PeerJS did not load).');
     isHost = false; me.id = null; $('homeNote').textContent = 'Connecting…';
-    peer = new window.Peer(undefined, PEER_OPTS); keepAlive(peer);
+    peer = new window.Peer(undefined, peerOpts()); keepAlive(peer);
     var attempts = 0;
     var fail = setTimeout(function () { $('homeNote').textContent = ''; toast('Could not reach that room. Check the code, keep the host app open, and try the same Wi-Fi.'); try { peer.destroy(); } catch (e) {} }, 30000);
     function tryConnect() {
@@ -806,7 +809,7 @@
     var inApp = location.hostname === 'appassets.androidplatform.net';
     var base = inApp ? 'https://www.rovatics.com/games/cardclash.html' : location.href.split('?')[0].split('#')[0];
     var link = base + '?room=' + code;
-    var text = (me.name || 'A friend') + ' invited you to a Card Clash room! Room code: ' + code + '. Tap to join: ' + link;
+    var text = '🃏 ' + (me.name || 'A friend') + ' invited you to play Card Clash!' + String.fromCharCode(10) + 'Room code: ' + code + String.fromCharCode(10) + 'Tap to open the app and join: ' + link;
     try { if (window.RovaticsApp && window.RovaticsApp.share) { window.RovaticsApp.share(text); return; } } catch (e) {}
     if (navigator.share) { navigator.share({ text: text }).catch(function () {}); return; }
     var done = function () { $('copyNote').textContent = 'Copied!'; toast('Invite link copied 📨'); };

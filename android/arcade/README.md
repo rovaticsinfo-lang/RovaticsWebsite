@@ -44,8 +44,11 @@ race popups and Back handling confirmed. **Test on a real phone before publishin
   "Join room / No thanks" (Sudoku: "Accept / Decline"). For Android to open them *automatically*, `/.well-known/assetlinks.json` (website repo root) must list the
   SHA-256 of the key that signs the installed app. It lists the TEST key now. After your first Play upload add the **Play App Signing** SHA-256
   (Play Console > Setup > App signing) for each package. Until then the link opens in the browser, which shows an "Open app" button.
-- **Phones on different mobile networks** usually need a TURN relay: put free credentials (e.g. https://www.metered.ca/) in `games/turn-config.js`, run
-  `node android/arcade/sync-assets.js`, rebuild. Without it rooms work on the same Wi-Fi / ordinary home networks only.
+- **Phones on different mobile networks** use the Metered TURN relay configured in `games/turn-config.js` (credentials are public in the page/app; free tier,
+  rotate in the Metered dashboard if abused, then re-run `node android/arcade/sync-assets.js` and rebuild). Verified: an emulator host behind NAT and a desktop
+  guest, both forced through the relay (`window.RV_FORCE_RELAY = true`), joined and played rounds together.
+- **Shared invite**: the message contains the room code and the link. The link opens the app (the web page tries `intent://` automatically on Android), the code is
+  pre-filled in the Join box and a "You are invited" dialog asks for a name and "Join room".
 - The host app keeps its room alive while backgrounded (flavor bool `keep_alive_in_background`); joiners retry for ~10 s.
 - Data safety: online rooms send IP addresses to PeerJS signalling / STUN (and your TURN) servers; declare accordingly in Play Console.
 - Card Clash upgrade note: the app is the same applicationId and signing key as before, so existing installs update in place.
