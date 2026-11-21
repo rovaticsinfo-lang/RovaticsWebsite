@@ -60,6 +60,16 @@ cp keystore.properties.example keystore.properties
 
 `keystore.properties` and `*.jks` are listed in `.gitignore` and **must never be committed**.
 
+> **A TEST key already exists on the machine this was built on.** `cardclash-TEST-upload.jks` (certificate
+> `CN=Card Clash TEST KEY - do not publish`, SHA-256 `56:4D:9C:AA:…:FD:E6:29`) and a `keystore.properties` pointing at
+> it were generated so the signing pipeline could be proven. Both are git-ignored, so a fresh clone will not have
+> them. **Do not upload anything signed with the test key to Google Play.** Play registers the first upload key
+> you use for an app; replacing it later means a request to Google support. Before your first real upload, create
+> your own key with the `keytool` command above and point `keystore.properties` at it.
+>
+> Verified with the test key: `./gradlew bundleRelease assembleRelease` produce a signed `.aab` and a signed `.apk`;
+> `apksigner verify` passes; the signed APK installs and launches on an Android 15 emulator.
+
 ## 4. Build the release bundle for Play
 
 ```bash
