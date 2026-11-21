@@ -1,0 +1,120 @@
+/* Card Clash — Android app skin.
+   Injected ONLY into the copy of the game bundled in the app (see sync-assets.js).
+   The website game in games/cardclash.html is never touched.
+
+   Goal: stop it feeling like a web page. Full-height screens, big thumb-sized buttons,
+   no text selection / callouts / pull-to-refresh, an app bar instead of a button strip,
+   and a layout designed for a portrait phone. */
+
+/* ---------- feel: touch, selection, scrolling ---------- */
+html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+html { height: 100%; }
+body { padding: 0 !important; min-height: 100dvh; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+input { user-select: text; -webkit-user-select: text; }
+* { scrollbar-width: none; }
+::-webkit-scrollbar { display: none; width: 0; height: 0; }
+button, .btn, .deckbtn, .attr, .power { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:active:not(:disabled), .btn:active:not(:disabled) { transform: scale(.96); filter: brightness(1.15); }
+.btn, button { transition: transform .08s, filter .08s, border-color .2s; }
+
+/* ---------- app bar (replaces the website button strip) ---------- */
+.topbar {
+  position: fixed !important; top: 0; left: 0; right: 0; z-index: 60; max-width: none !important; margin: 0 !important;
+  padding: 6px 10px; gap: 4px; justify-content: flex-end; align-items: center;
+  background: linear-gradient(180deg, rgba(4, 12, 34, .88), rgba(4, 12, 34, 0)); pointer-events: none;
+}
+.topbar .btn {
+  pointer-events: auto; width: 42px; height: 42px; padding: 0 0 0 10px; border-radius: 50%; overflow: hidden; white-space: nowrap; text-align: left;
+  font-size: 1.2rem; line-height: 40px; background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .16);
+}
+.topbar .btn[hidden] { display: none; }
+.screen { padding: 64px 16px 28px; max-width: 560px; margin: 0 auto; }
+
+/* ---------- HOME: an app launcher, not a landing page ---------- */
+#home[hidden] { display: none !important; }
+#home { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; text-align: center; padding-top: 56px; }
+#home > .sub, #home > p { display: none; }
+#home h1 {
+  font-size: 2.6rem; margin: 0 0 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; letter-spacing: .01em;
+  background: linear-gradient(110deg, #fff, #42e8f5 60%, #7d9bff); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#home .app-fan { height: 132px; position: relative; margin: 0 auto 6px; width: 230px; }
+#home .app-fan i {
+  position: absolute; left: 50%; bottom: 0; width: 88px; height: 124px; margin-left: -44px; border-radius: 14px; transform-origin: 50% 120%;
+  border: 3px solid rgba(255, 255, 255, .9); box-shadow: 0 10px 26px rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; font-size: 2.4rem; font-style: normal;
+  animation: fanIn .7s cubic-bezier(.2, 1.3, .4, 1) both;
+}
+#home .app-fan i:nth-child(1) { background: linear-gradient(150deg, #0a8f4a, #d6f542); --r: -22deg; animation-delay: .05s; }
+#home .app-fan i:nth-child(2) { background: linear-gradient(150deg, #c4122f, #ffb703); --r: 0deg; animation-delay: .15s; }
+#home .app-fan i:nth-child(3) { background: linear-gradient(150deg, #0878f9, #42e8f5); --r: 22deg; animation-delay: .25s; }
+@keyframes fanIn { from { transform: rotate(0) translateY(60px) scale(.5); opacity: 0; } to { transform: rotate(var(--r)) translateY(0) scale(1); opacity: 1; } }
+#home .app-fan i { transform: rotate(var(--r)); }
+#home .grid2 { display: flex; flex-direction: column; gap: 14px; margin-top: 10px; }
+#home .card-panel { background: transparent; border: 0; padding: 0; }
+#home .card-panel label { display: none; }
+#home input[type=text] { text-align: center; font-size: 1.15rem; height: 54px; border-radius: 16px; background: rgba(255, 255, 255, .09); }
+#home .row { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px !important; }
+#home #soloBtn { order: -1; background: var(--grad); color: #04142d; border: 0; }
+#home #createBtn { background: rgba(255, 255, 255, .09); color: var(--text); border: 1px solid var(--line); }
+#home .btn { width: 100%; min-height: 56px; font-size: 1.08rem; border-radius: 18px; }
+#home #codeIn { font-size: 1.5rem; }
+#home .card-panel + .card-panel { margin-top: 6px; padding-top: 16px; border: 0; border-radius: 0; border-top: 1px solid rgba(255, 255, 255, .12); }
+#home .card-panel + .card-panel::before { content: "or join a friend"; display: block; color: var(--muted); font-size: .85rem; margin-bottom: 10px; letter-spacing: .04em; }
+#home #homeNote, #home #record { text-align: center; }
+
+/* ---------- LOBBY ---------- */
+#lobby h1 { font-size: 1.7rem; text-align: center; }
+#lobby .code { font-size: 2.1rem; text-align: center; }
+#lobby .decks { grid-template-columns: 1fr; }
+#lobby .deckbtn { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+#lobby .deckbtn .e { font-size: 2rem; }
+#lobby .seats { grid-template-columns: 1fr 1fr; }
+#lobby .seat { min-height: 76px; padding: 10px; flex-wrap: wrap; }
+#lobby .btn.primary { width: 100%; min-height: 56px; font-size: 1.1rem; border-radius: 18px; }
+#lobby .row { flex-direction: column; align-items: stretch; }
+
+/* ---------- GAME: built to fit a portrait phone ---------- */
+#game { padding-top: 58px; padding-bottom: 96px; }
+.seatsbar { gap: 6px; margin-bottom: 8px; }
+.pl { padding: 5px 10px 5px 5px; gap: 7px; }
+.pl .av { width: 32px; height: 32px; font-size: .95rem; }
+.pl .nm { font-size: .82rem; } .pl .ct { font-size: .72rem; }
+.stack { width: 20px; height: 28px; }
+.arena { min-height: 168px; padding: 10px; border-radius: 20px; margin-bottom: 10px; }
+.banner { font-size: 1.05rem; }
+.plays { gap: 8px; }
+.flip { width: 84px; height: 122px; }
+.flip .b { font-size: 2.2rem; }
+.flip .f { padding: 6px; } .flip .f .em { font-size: 1.7rem; } .flip .f .nmm { font-size: .66rem; } .flip .f .val { font-size: 1.4rem; } .flip .f .al { font-size: .6rem; }
+.slot .who { font-size: .76rem; }
+.mine { flex-direction: column; align-items: stretch; gap: 10px; }
+#myCardBox { display: flex; justify-content: center; }
+.card { width: min(310px, 92vw); }
+.card .art { height: 74px; font-size: 2.9rem; }
+.card .nmrow { padding: 5px 12px 0; } .card .nmrow b { font-size: 1.08rem; }
+.card .attrs { padding: 4px 8px 9px; gap: 4px; }
+.attr { padding: 7px 10px; min-height: 42px; border-radius: 12px; }
+.attr .l { font-size: .9rem; }
+.ctl { min-width: 0; max-width: none; width: 100%; gap: 8px; }
+.turnmsg { text-align: center; font-size: 1.05rem; }
+.power { padding: 11px 14px; border-radius: 16px; }
+.power small { font-size: .74rem; }
+.log { display: none; }
+/* reactions become a floating bar above the home indicator */
+.react {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 55; flex-wrap: nowrap; gap: 4px; padding: 6px 8px;
+  background: rgba(4, 12, 34, .82); border: 1px solid var(--line); border-radius: 999px; backdrop-filter: blur(8px);
+}
+.react button { width: 44px; height: 44px; padding: 0; font-size: 1.35rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+body:has(#game:not([hidden])) .rv-brand-badge, body:has(#lobby:not([hidden])) .rv-brand-badge { display: none; }
+
+/* ---------- dialogs, toasts: bottom-sheet feel ---------- */
+.overlay { align-items: flex-end; padding: 0; }
+.modal { max-width: none; border-radius: 26px 26px 0 0; padding: 22px 20px 30px; animation: sheetUp .32s cubic-bezier(.2, .9, .3, 1); }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal .btn { min-height: 48px; }
+#toast { top: calc(env(safe-area-inset-top, 0px) + 56px); font-size: .95rem; transform: translate(-50%, -400%); opacity: 0; pointer-events: none; transition: transform .3s cubic-bezier(.2, 1.3, .4, 1), opacity .2s; }
+#toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+/* ---------- brand badge: smaller, tucked away ---------- */
+.rv-brand-badge { right: 10px !important; bottom: 10px !important; opacity: .75 !important; }

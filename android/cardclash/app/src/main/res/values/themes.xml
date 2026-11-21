@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- The in-app theme -->
     <style name="Theme.CardClash" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/brand_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="colorAccent">@color/brand_accent</item>
+    </style>
+
+    <!-- Branded splash shown while the game starts (native splash on Android 12+, a compat one before) -->
+    <style name="Theme.CardClash.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.CardClash</item>
     </style>
 </resources>

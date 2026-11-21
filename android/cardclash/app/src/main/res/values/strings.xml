@@ -1,6 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Card Clash</string>
+    <string name="app_tagline">Top-trumps card battles for 2–4 players</string>
+    <string name="app_description">Fast top-trumps card battles for 2–4 players. Play bots offline or friends online with a room code. No ads, no account.</string>
     <string name="press_back_again">Press back again to exit</string>
     <string name="cannot_open_link">No app can open this link</string>
+    <string name="share_chooser">Share Card Clash</string>
+    <string name="share_app_text">Check out Card Clash by Rovatics — fast top-trumps card battles you can play with friends or bots! https://rovatics.com/games.html</string>
+    <string name="contact_subject">Card Clash feedback</string>
+
+    <!-- Onboarding -->
+    <string name="skip">Skip</string>
+    <string name="next">Next</string>
+    <string name="lets_play">Let\'s play!</string>
+    <string name="ob1_title">Welcome to Card Clash</string>
+    <string name="ob1_body">Fast top-trumps battles for 2–4 players. Cricket legends, wrestlers and robots — pick a deck and play.</string>
+    <string name="ob2_title">Pick your best stat</string>
+    <string name="ob2_body">Look at your top card and choose the stat you think will beat everyone. The highest value wins every card on the table.</string>
+    <string name="ob3_title">Play with friends</string>
+    <string name="ob3_body">Create a room and share the 5-letter code to play online — or jump straight into a game against bots, even without internet.</string>
+    <string name="ob4_title">Power Play</string>
+    <string name="ob4_body">Once per game, double the stakes. Win and every loser pays an extra card — lose and it costs you. Last player with cards wins!</string>
+
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_version">Version %1$s (build %2$d)</string>
+    <string name="about_by">by Rovatics</string>
+    <string name="about_h_game">About this game</string>
+    <string name="about_game">Card Clash is a fast top-trumps card battle. Each player is dealt part of the deck and can only see their top card. The player whose turn it is picks a stat; everyone reveals, and the highest value takes every card on the table. Keep winning cards until you hold the whole deck.</string>
+    <string name="about_h_features">Features</string>
+    <string name="about_features">• Three decks: Cricket Legends, Wrestling Slam and Rovatics Bots\n• 2–4 players — bots offline, or friends online with a room code\n• ⚡ Power Play: double the stakes, once per game\n• Winning streaks, reactions, sound effects and haptics\n• Free, with no ads and no account</string>
+    <string name="about_h_howto">How to play</string>
+    <string name="about_howto">1. Tap “Play vs bots”, or create a room and share the code.\n2. When it is your turn, tap the stat on your card you think is strongest.\n3. Everyone reveals — the highest value wins all the cards.\n4. Lose all your cards and you are out. The last player with cards wins.</string>
+    <string name="about_h_privacy">Permissions &amp; privacy</string>
+    <string name="about_privacy">• Internet — used only for online rooms. Games against bots work without it.\n• No camera, microphone, location, contacts or storage access.\n• No account, no ads and no analytics.\n• Your display name, win record and sound setting are saved on this device only. In an online room your name and moves are shared with the other players; connections are set up through the public PeerJS service.</string>
+    <string name="about_h_notice">Please note</string>
+    <string name="about_notice">The Cricket and Wrestling decks use approximate statistics and fan-made ratings, for entertainment only. All names and trademarks belong to their owners. Card Clash is not affiliated with or endorsed by any player, team or organisation.</string>
+    <string name="about_h_credits">Credits</string>
+    <string name="about_credits">Built by Rovatics.\nOnline play uses PeerJS (MIT License) — peerjs.com</string>
+    <string name="about_btn_tour">Take the tour again</string>
+    <string name="about_btn_share">Share the app</string>
+    <string name="about_btn_rate">Rate on Google Play</string>
+    <string name="about_btn_privacy">Privacy policy</string>
+    <string name="about_btn_website">Visit rovatics.com</string>
+    <string name="about_btn_contact">Contact &amp; feedback</string>
 </resources>
