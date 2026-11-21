@@ -17,8 +17,10 @@ f.onload=async()=>{try{
  const cv=$('cv'),r=cv.getBoundingClientRect(),sc=r.width/1000,S=B.L.start;
  const ev=(t,x,y)=>cv.dispatchEvent(new w.PointerEvent(t,{clientX:r.left+x*sc,clientY:r.top+y*sc,pointerId:1,bubbles:true}));
  ev('pointerdown',S.x,S.y); ev('pointermove',S.x-60,S.y); ev('pointerup',S.x-60,S.y);
- ok(B.phase==='fly'&&B.shots===2,'dragging back and releasing launches a shot');
- const fuel0=B.fuel; B.hold({x:500,y:300}); await sleep(250); ok(B.fuel<fuel0 && B.thrustUsed>0,'holding during flight thrusts and burns fuel'); B.hold(null);
+ ok(!!B.aimNow && B.aimNow.powerPct>0,'dials show angle/pull after a drag: '+JSON.stringify(B.aimNow)); ok(d.getElementById('rdAngle').textContent!=='—','angle readout filled in'); ok(B.phase==='aim'&&B.shots===3,'release only locks the aim (no auto-launch)');
+ const p0=B.aimNow.powerPct; $('powM').dispatchEvent(new w.PointerEvent('pointerdown',{bubbles:true})); $('powM').dispatchEvent(new w.PointerEvent('pointerup',{bubbles:true})); ok(B.aimNow.powerPct===p0-1,'Pull - button lowers the pull by 1%');
+ $('goBtn').click(); ok(B.phase==='fly'&&B.shots===2,'Launch button fires the locked aim');
+ ok(!d.querySelector('#fuelChip'),'no thrust/fuel UI any more');
  ok(await until(()=>B.phase==='aim'||!$('overlay').hidden),'flight ends'); await sleep(900);
  ok(/Cadet/.test($('rankBox')?$('rankBox').textContent:'')||true,'rank shown');
  // hint shows
@@ -48,6 +50,6 @@ f.onload=async()=>{try{
  for(let h=0;h<3;h++){ for(let i=0;i<3;i++){ await until(()=>B.phase==='aim',15000); B.fire({vx:0.5,vy:0.1}); await until(()=>!B.flight,15000); await sleep(900); }
    await until(()=>!$('overlay').hidden,8000); if(h<2){ $('mRetry').click(); await sleep(200);} }
  ok(/Mission over/.test($('modal').textContent),'mission over after 3 hulls');
- $('mMenu').click(); $('skinBtn').click(); ok(d.querySelectorAll('.titem').length===6,'6 skins'); $('tOk').click(); $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===14,'14 awards'); $('aOk').click();
+ $('mMenu').click(); $('skinBtn').click(); ok(d.querySelectorAll('.titem').length===6,'6 skins'); $('tOk').click(); $('achBtn').click(); ok(d.querySelectorAll('.aitem').length===15,'15 awards'); $('aOk').click();
 }catch(e){ok(false,'exception '+e.message+' '+e.stack)} done();};
 </script>

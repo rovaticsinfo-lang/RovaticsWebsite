@@ -72,6 +72,15 @@
   .sw{display:flex;gap:4px} .sw i{width:16px;height:16px;border-radius:50%}
   .aitem{display:flex;gap:10px;align-items:center;padding:8px 12px;border-radius:12px;background:var(--panel)} .aitem.off{opacity:.4;filter:grayscale(1)}
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:75}
+  /* rv-aim: instrument readouts */
+  .readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:760px;margin:10px auto 0}
+  .stat{padding:8px 6px;border-radius:14px;background:var(--panel);border:1px solid var(--line);text-align:center}
+  .stat small{display:block;color:var(--muted);font-size:.68rem;letter-spacing:.12em;font-weight:700}
+  .stat b{display:block;font-size:1.35rem;color:var(--accent);font-variant-numeric:tabular-nums}
+  .stat.gold b{color:var(--gold)}
+  .readout.hint .stat{border-color:var(--gold);box-shadow:0 0 14px rgba(255,210,74,.5)}
+  .tune{gap:6px}.tune .btn{padding:9px 12px;font-size:.9rem;touch-action:manipulation;user-select:none}
+  @media (max-width:520px){.stat b{font-size:1.05rem}.stat small{font-size:.58rem}}
   @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
 </head>
@@ -85,7 +94,7 @@
       <div class="pl" style="width:26px;height:26px;animation-delay:1s;background:radial-gradient(circle at 30% 30%,#ffa8e8,#c02b9a 60%,#4a0a3a)"></div>
     </div>
     <h1>🛰️ <span class="glow">Gravity Bot</span></h1>
-    <p class="sub">Pull back, aim and launch your robot probe! Bend its path around drifting planets, suns and black holes, then steer through the final stretch to dock at the charging station.</p>
+    <p class="sub">Set your angle and pull, then launch your robot probe! Go straight for the station or bank it off the mirror walls, bend around swaying planets, suns and black holes — and remember: the lighter your pull, the higher your score.</p>
     <div class="rank" id="rankBox"></div>
   </div>
   <div class="modes">
@@ -103,9 +112,18 @@
 <section class="screen" id="play" hidden>
   <div class="hud">
     <button class="btn" id="backBtn">☰ Back</button>
-    <div class="chips"><span class="chip" id="titleChip">Level 1</span><span class="chip" id="shotChip"></span><span class="chip" id="orbChip"></span><span class="chip" id="fuelChip">⛽ <span class="fuel"><i id="fuelBar" style="width:100%"></i></span></span></div>
+    <div class="chips"><span class="chip" id="titleChip">Level 1</span><span class="chip" id="shotChip"></span><span class="chip" id="orbChip"></span></div>
   </div>
   <div class="boardbox"><canvas id="cv" aria-label="Gravity Bot play field"></canvas></div>
+  <div class="readout" id="readout" aria-live="polite">
+    <div class="stat"><small>ANGLE</small><b id="rdAngle">—</b></div><div class="stat"><small>PULL</small><b id="rdPower">—</b></div>
+    <div class="stat"><small>SPEED</small><b id="rdSpeed">—</b></div><div class="stat gold"><small>PULL BONUS</small><b id="rdBonus">—</b></div>
+  </div>
+  <div class="acts tune" id="tune">
+    <button class="btn" id="angP" type="button" title="Rotate counter-clockwise (Left arrow)">⟲ Angle +</button><button class="btn" id="angM" type="button" title="Rotate clockwise (Right arrow)">⟳ Angle −</button>
+    <button class="btn" id="powP" type="button" title="Pull harder (Up arrow)">⬆ Pull +</button><button class="btn" id="powM" type="button" title="Pull lighter (Down arrow)">⬇ Pull −</button>
+    <button class="btn primary" id="goBtn" type="button">🚀 Launch</button>
+  </div>
   <div class="acts">
     <button class="btn" id="hintBtn">💡 Hint (3)</button>
     <button class="btn" id="ffBtn">⏩ Skip flight</button>
@@ -123,7 +141,7 @@
 <script>
 (function () {
   'use strict';
-  var GE = window.GravityBotEngine, LD = window.GravityBotLevels, KEY = 'rovatics.gravitybot.v2', W = GE.W, H = GE.H, N_LEVELS = GE.LEVELS;
+  var GE = window.GravityBotEngine, LD = window.GravityBotLevels, KEY = 'rovatics.gravitybot.v3', W = GE.W, H = GE.H, N_LEVELS = GE.LEVELS;
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
   var save = { stars: {}, scores: {}, orbs: 0, skin: 0, ach: {}, best: 0, muted: false, seenHow: false };
@@ -143,7 +161,8 @@
     { id: 'first', e: '🛰️', t: 'First Docking', d: 'Reach a charging station' },
     { id: 'three', e: '⭐', t: 'Triple Star', d: 'Earn 3 stars on a level' },
     { id: 'oneshot', e: '🎯', t: 'Sharpshooter', d: 'Win a level from galaxy 3+ in a single shot' },
-    { id: 'thrust', e: '🔥', t: 'Course Correction', d: 'Save a shot by steering with thrust' },
+    { id: 'bank', e: '🪞', t: 'Bank Shot', d: 'Dock after bouncing off a mirror wall' },
+    { id: 'light', e: '🪶', t: 'Feather Touch', d: 'Win a level with under 30% pull' },
     { id: 'bull', e: '🎯', t: 'Bullseye', d: 'Dock right in the centre of the station' },
     { id: 'warp', e: '🌀', t: 'Warp Pilot', d: 'Win a level by flying through a portal' },
     { id: 'orbs50', e: '🔋', t: 'Energy Hoarder', d: 'Collect 50 energy cells' },
@@ -183,15 +202,15 @@
     crash: function () { tone(160, .4, 'sawtooth', 0, .1, 40); tone(90, .5, 'square', .05, .08, 30); },
     lost: function () { tone(440, .6, 'sine', 0, .07, 110); },
     warp: function () { tone(300, .3, 'sine', 0, .09, 1200); tone(1200, .3, 'triangle', .05, .06, 300); },
-    thrust: function () { tone(120, .08, 'sawtooth', 0, .035, 90); },
+    bounce: function () { tone(740, .09, 'triangle', 0, .08, 520); tone(1480, .05, 'sine', .02, .04); },
     goal: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, .22, 'triangle', i * .1, .11); }); },
     fanfare: function () { [659, 784, 988, 1319].forEach(function (f, i) { tone(f, .2, 'triangle', i * .09, .09); }); }
   };
   document.addEventListener('pointerdown', function () { if (ac && ac.state === 'suspended') ac.resume(); });
 
   // ---------- state ----------
-  var mode = null, L = null, lvN = 0, shots = 3, shotsUsed = 0, hintsLeft = 3, phase = 'aim', drag = null, flight = null, ghost = null, aimPred = null;
-  var endless = null, parts = [], rings = [], shake = 0, collected = {}, hold = null, spaceHeld = false, warpsSeen = 0, usedWarp = false, lastThrustSfx = 0;
+  var mode = null, L = null, lvN = 0, shots = 3, shotsUsed = 0, hintsLeft = 3, phase = 'aim', drag = null, flight = null, ghost = null, aim = null, bumpsSeen = 0;
+  var endless = null, parts = [], rings = [], shake = 0, collected = {}, warpsSeen = 0, usedWarp = false;
   var cv = $('cv'), cx = cv.getContext('2d'), sc = 1, dpr = window.devicePixelRatio || 1;
 
   // ---------- menu / map ----------
@@ -221,19 +240,19 @@
   }
   $('mCamp').onclick = function () { renderMap(); show('map'); };
   $('mapBack').onclick = function () { refreshMenu(); show('menu'); };
-  $('backBtn').onclick = function () { flight = null; hold = null; if (mode === 'endless') { refreshMenu(); show('menu'); } else { renderMap(); show('map'); } };
+  $('backBtn').onclick = function () { flight = null; if (mode === 'endless') { refreshMenu(); show('menu'); } else { renderMap(); show('map'); } };
 
   // ---------- starting levels ----------
   function setupLevel(level) {
-    L = level; shots = 3; shotsUsed = 0; phase = 'aim'; drag = null; flight = null; hold = null; ghost = null; aimPred = null; parts = []; rings = []; collected = {}; warpsSeen = 0; usedWarp = false;
-    show('play'); resize(); updateHud();
+    L = level; shots = 3; shotsUsed = 0; phase = 'aim'; drag = null; flight = null; ghost = null; aim = null; bumpsSeen = 0; parts = []; rings = []; collected = {}; warpsSeen = 0; usedWarp = false;
+    show('play'); resize(); updateHud(); updateReadout();
   }
   function startLevel(n) {
     mode = 'campaign'; lvN = n; hintsLeft = 3; var lv = LD.LEVELS[n - 1]; if (!lv.portals) lv.portals = [];
     setupLevel(lv);
     $('titleChip').textContent = 'Galaxy ' + (lv.world + 1) + ' · Level ' + n;
     var moving = lv.bodies.some(function (b) { return b.mv; });
-    $('tip').textContent = n === 1 ? '👆 Press, drag BACK from anywhere, then release to launch. While flying, HOLD to steer (limited fuel)!' : (GE.WORLDS[lv.world].blurb + (moving ? '  ⏱️ Worlds start moving when you launch.' : ''));
+    $('tip').textContent = n === 1 ? '👆 Drag BACK from anywhere to set angle + pull (nothing is predicted — read the dials!), fine-tune with the buttons, then press 🚀 Launch. The walls are mirrors.' : (GE.WORLDS[lv.world].blurb + (moving ? '  ⏱️ Worlds sway as soon as you launch.' : '') + (lv.bank ? '  🪞 This one needs a bank shot.' : ''));
     updateHud();
   }
   function startEndless() {
@@ -248,7 +267,7 @@
   }
   function enterSector() {
     hintsLeft = endless.hints; setupLevel(endless.cur);
-    $('titleChip').textContent = '♾️ Sector ' + endless.k; $('tip').textContent = 'Each sector is brand new! Out of shots costs a hull. Hold to steer mid-flight.'; updateHud();
+    $('titleChip').textContent = '♾️ Sector ' + endless.k; $('tip').textContent = 'Each sector is brand new! Out of shots costs a hull. Read the dials, bank off the walls, and keep your pull light for a bigger score.'; updateHud();
     var k = endless.k, sd = endless.seed; // prefetch the next sector while the player thinks
     setTimeout(function () { if (mode === 'endless' && endless.k === k && endless.seed === sd && !endless.next) { try { endless.next = { k: k + 1, L: GE.endlessLevel(sd, k + 1) }; } catch (e) {} } }, 2500);
   }
@@ -259,71 +278,87 @@
     $('shotChip').innerHTML = (mode === 'endless' ? '❤ ' + endless.hulls + ' · Score <b>' + fmt(endless.score) + '</b> · ' : '') + 'Shots <b>' + shots + '</b>';
     $('orbChip').innerHTML = '🔋 <b>' + Object.keys(collected).length + '</b>/' + L.orbs.length;
     $('hintBtn').textContent = '💡 Hint (' + hintsLeft + ')'; $('hintBtn').disabled = hintsLeft <= 0 || phase !== 'aim';
-    $('ffBtn').hidden = phase !== 'fly';
+    $('ffBtn').hidden = phase !== 'fly'; $('tune').hidden = phase !== 'aim'; $('goBtn').disabled = !aim || phase !== 'aim';
   }
 
   // ---------- coordinates & input ----------
   function resize() {
     var avail = Math.min($('play').clientWidth || 800, 980); if (avail < 200) avail = 800;
-    var maxH = window.innerHeight * .68, w = Math.min(avail, maxH / .6);
+    var maxH = window.innerHeight * .6, w = Math.min(avail, maxH / .6);
     sc = w / W; dpr = window.devicePixelRatio || 1;
     cv.style.width = w + 'px'; cv.style.height = (H * sc) + 'px'; cv.width = Math.round(w * dpr); cv.height = Math.round(H * sc * dpr);
   }
   window.addEventListener('resize', resize);
   function worldPt(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
-  cv.addEventListener('pointerdown', function (e) {
-    if (!L) return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
-    if (phase === 'fly') { hold = worldPt(e); return; }
-    if (phase !== 'aim') return;
-    drag = { origin: worldPt(e), cur: worldPt(e) }; ghost = null; computePred();
-  });
-  cv.addEventListener('pointermove', function (e) { if (hold) hold = worldPt(e); if (drag) { drag.cur = worldPt(e); computePred(); } });
-  function release() { hold = null; if (!drag) return; var v = dragVec(); drag = null; aimPred = null; if (v && v.len >= 14) launch(v.vel); }
-  cv.addEventListener('pointerup', release);
-  cv.addEventListener('pointercancel', function () { hold = null; drag = null; aimPred = null; });
-  document.addEventListener('keydown', function (e) { if (e.code === 'Space' && phase === 'fly') { spaceHeld = true; e.preventDefault(); } });
-  document.addEventListener('keyup', function (e) { if (e.code === 'Space') spaceHeld = false; });
-  function dragVec() {
-    if (!drag) return null; var dx = drag.origin.x - drag.cur.x, dy = drag.origin.y - drag.cur.y, len = Math.sqrt(dx * dx + dy * dy);
-    return { len: len, vel: GE.dragToVelocity(dx, dy, 150), dx: dx, dy: dy };
-  }
-  function computePred() {
-    var v = dragVec(); if (!v || v.len < 14) { aimPred = null; return; }
-    var r = GE.simulate(L, v.vel, { maxSteps: L.preview, goal: false }); aimPred = { pts: r.points, power: v.vel.power, jumps: r.jumps };
-  }
 
-  // ---------- flight (stepped live so the player can steer) ----------
+  // The aim is a pull-back vector: its direction is the launch direction, its length the pull (max 150 units). NOTHING is predicted:
+  // the player reads ANGLE (0 = right, 90 = up), PULL % and SPEED from the dials, so they have to judge gravity, walls and drift themselves.
+  var PULL_MAX = 150;
+  function setAimVec(dx, dy) { var len = Math.sqrt(dx * dx + dy * dy); if (len < 1e-6) return; var cl = Math.min(len, PULL_MAX); aim = { dx: dx / len * cl, dy: dy / len * cl, len: cl }; }
+  function setAimNumbers(angleDeg, power) { power = Math.max(.05, Math.min(1, power)); var a = angleDeg * Math.PI / 180; aim = { dx: Math.cos(a) * power * PULL_MAX, dy: -Math.sin(a) * power * PULL_MAX, len: power * PULL_MAX }; }
+  function aimVel() { return aim ? GE.dragToVelocity(aim.dx, aim.dy, PULL_MAX) : null; }
+  function aimNumbers() { if (!aim) return null; var v = aimVel(), r = GE.aimReadout(v); return { angle: r.angle, power: v.power, powerPct: r.power, speed: r.speed }; }
+  function updateReadout() {
+    var n = aimNumbers();
+    $('rdAngle').textContent = n ? n.angle.toFixed(1) + '°' : '—'; $('rdPower').textContent = n ? n.powerPct + '%' : '—';
+    $('rdSpeed').textContent = n ? n.speed.toFixed(2) : '—'; $('rdBonus').textContent = n ? '+' + fmt(GE.pullBonus(n.power)) : '—';
+  }
+  cv.addEventListener('pointerdown', function (e) {
+    if (!L || phase !== 'aim') return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+    drag = { origin: worldPt(e) }; ghost = null; $('readout').classList.remove('hint');
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!drag) return; var p = worldPt(e), dx = drag.origin.x - p.x, dy = drag.origin.y - p.y;
+    if (Math.sqrt(dx * dx + dy * dy) >= 8) { setAimVec(dx, dy); updateReadout(); updateHud(); }
+  });
+  function release() { if (!drag) return; drag = null; if (aim && aim.len < 14) { aim = null; updateReadout(); } updateHud(); }
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', function () { drag = null; });
+  // fine tuning (buttons hold-to-repeat, arrow keys; Shift = x5) and launching
+  function nudge(dAng, dPow) {
+    if (phase !== 'aim' || !L) return; var cur = aimNumbers() || { angle: 45, powerPct: 50 };
+    var ang = Math.round(((cur.angle + dAng) % 360 + 360) % 360 * 2) / 2, pw = Math.max(5, Math.min(100, cur.powerPct + dPow)) / 100;
+    setAimNumbers(ang, pw); $('readout').classList.remove('hint'); updateReadout(); updateHud();
+  }
+  function bindNudge(id, da, dp) {
+    var b = $(id), t = 0, iv = 0, stop = function () { clearTimeout(t); clearInterval(iv); };
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); nudge(da, dp); stop(); t = setTimeout(function () { iv = setInterval(function () { nudge(da, dp); }, 70); }, 380); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (n) { b.addEventListener(n, stop); });
+  }
+  bindNudge('angP', .5, 0); bindNudge('angM', -.5, 0); bindNudge('powP', 0, 1); bindNudge('powM', 0, -1);
+  function fireAim() { var v = aimVel(); if (phase === 'aim' && v) launch(v); }
+  $('goBtn').onclick = fireAim;
+  document.addEventListener('keydown', function (e) {
+    if ($('play').hidden || !$('overlay').hidden || phase !== 'aim') return; var m = e.shiftKey ? 5 : 1;
+    if (e.key === 'ArrowLeft') { nudge(.5 * m, 0); e.preventDefault(); } else if (e.key === 'ArrowRight') { nudge(-.5 * m, 0); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { nudge(0, m); e.preventDefault(); } else if (e.key === 'ArrowDown') { nudge(0, -m); e.preventDefault(); }
+    else if ((e.key === 'Enter' || e.key === ' ') && aim) { fireAim(); e.preventDefault(); }
+  });
+
+  // ---------- flight ----------
   function launch(vel) {
-    phase = 'fly'; shotsUsed++; shots--; collected = {}; SFX.launch(vel.power); ghost = null; warpsSeen = 0; usedWarp = false;
-    var F = GE.createFlight(L, vel); flight = { F: F, speed: 2, acc: 0, done: false, jumpSet: {}, orbsSeen: 0 }; updateHud();
-    if (shotsUsed === 1 && mode === 'campaign' && lvN <= 3) toast('🔥 Hold anywhere (or Space) to steer — fuel is limited!');
+    phase = 'fly'; shotsUsed++; shots--; collected = {}; SFX.launch(vel.power); ghost = null; warpsSeen = 0; usedWarp = false; bumpsSeen = 0; $('readout').classList.remove('hint');
+    var F = GE.createFlight(L, vel); flight = { F: F, speed: 2, acc: 0, done: false, jumpSet: {}, orbsSeen: 0, power: vel.power }; updateHud();
   }
   $('ffBtn').onclick = function () { if (flight) flight.speed = 8; };
-  function thrustTarget() {
-    if (hold) return hold; if (spaceHeld && flight) { var F = flight.F; return { x: F.x + F.vx * 60, y: F.y + F.vy * 60 }; } return null;
-  }
   function stepFlightFrame(now) {
     var fl = flight, F = fl.F; fl.acc += fl.speed;
-    while (fl.acc >= 1 && !F.result) {
-      fl.acc -= 1; var tg = thrustTarget(); var before = F.fuel; GE.stepFlight(F, tg);
-      if (tg && F.fuel < before) {
-        var a = Math.atan2(tg.y - F.y, tg.x - F.x);
-        for (var k = 0; k < 2; k++) parts.push({ x: F.x - Math.cos(a) * 10, y: F.y - Math.sin(a) * 10, vx: -Math.cos(a) * (1.5 + Math.random() * 2) + (Math.random() - .5), vy: -Math.sin(a) * (1.5 + Math.random() * 2) + (Math.random() - .5), life: .8, c: Math.random() < .5 ? '#ffd24a' : '#ff7b3d', r: 3 + Math.random() * 3 });
-        if (now - lastThrustSfx > 90) { SFX.thrust(); lastThrustSfx = now; }
-      }
-    }
+    while (fl.acc >= 1 && !F.result) { fl.acc -= 1; GE.stepFlight(F, null); }
     F.orbs.forEach(function (o) { if (!collected[o.i]) { collected[o.i] = 1; var oo = L.orbs[o.i]; rings.push({ x: oo.x, y: oo.y, r: 6, life: 1, c: '#ffe34d' }); SFX.orb(Object.keys(collected).length - 1); updateHud(); } });
     while (warpsSeen < F.warps.length) { var w = F.warps[warpsSeen++]; usedWarp = true; rings.push({ x: w.from.x, y: w.from.y, r: 6, life: 1, c: '#c78bff' }); rings.push({ x: w.to.x, y: w.to.y, r: 6, life: 1, c: '#c78bff' }); SFX.warp(); toast('🌀 Warp!'); }
+    while (bumpsSeen < F.bumps.length) {   // mirror-wall bounce: flash, sparks and a ping
+      var bp = F.bumps[bumpsSeen++]; rings.push({ x: bp.x, y: bp.y, r: 4, life: 1, c: '#7be8ff' }); SFX.bounce();
+      for (var k = 0; k < 10; k++) { var a = Math.random() * 6.283, sp = 1 + Math.random() * 3; parts.push({ x: bp.x, y: bp.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: .8, c: '#bff6ff', r: 2 + Math.random() * 2 }); }
+    }
     F.jumps.forEach(function (j) { fl.jumpSet[j] = 1; });
-    var fb = Math.round(F.fuel / GE.FUEL * 100); if (fb !== fl.fb) { fl.fb = fb; $('fuelBar').style.width = fb + '%'; }
     if (F.result && !fl.done) { fl.done = true; endFlight(); }
   }
   function endFlight() {
-    var F = flight.F, last = { x: F.x, y: F.y }; hold = null;
+    var F = flight.F, last = { x: F.x, y: F.y };
     if (F.result === 'goal') return win(F, last);
-    if (F.result === 'crash') { explode(last.x, last.y, '#ffb347'); SFX.crash(); shake = 14; toast('💥 Crashed! ' + (shots > 0 ? shots + ' shot' + (shots === 1 ? '' : 's') + ' left' : '')); }
-    else { SFX.lost(); toast(F.result === 'lost' ? '🌌 Lost in deep space!' : '⏳ Drifting forever…'); }
-    setTimeout(function () { flight = null; collected = {}; $('fuelBar').style.width = '100%'; if (shots > 0) { phase = 'aim'; updateHud(); } else outOfShots(); }, 750);
+    if (F.result === 'crash') { explode(last.x, last.y, '#ffb347'); SFX.crash(); shake = 14; toast('💥 Crashed! ' + (shots > 0 ? shots + ' shot' + (shots === 1 ? '' : 's') + ' left — your aim is kept, nudge it!' : '')); }
+    else { SFX.lost(); toast(F.result === 'lost' ? '💫 Too many bounces!' : '⏳ Drifting forever…'); }
+    setTimeout(function () { flight = null; collected = {}; if (shots > 0) { phase = 'aim'; updateHud(); updateReadout(); } else outOfShots(); }, 750);
   }
   function explode(x, y, col) {
     rings.push({ x: x, y: y, r: 6, life: 1, c: col }); rings.push({ x: x, y: y, r: 2, life: 1, c: '#fff' });
@@ -332,22 +367,22 @@
 
   // ---------- results ----------
   function win(F, last) {
-    var orbsGot = F.orbs.length, stars = GE.starsFor(L, shotsUsed, orbsGot), rankBefore = GE.rankFor(totalStars()).index;
+    var pw = flight ? flight.power : 1, orbsGot = F.orbs.length, stars = GE.starsFor(L, shotsUsed, orbsGot), rankBefore = GE.rankFor(totalStars()).index;
     explode(last.x, last.y, '#5dffa0'); SFX.goal(); shake = 6; confetti();
-    var sc2 = GE.scoreFor({ shotsUsed: shotsUsed, orbsGot: orbsGot, orbsTotal: L.orbs.length, thrustUsed: F.thrustUsed, steps: F.step, goalDist: F.goalDist, minClear: F.minClear });
-    var goals = [[true, 'Reached the charging station'], [orbsGot >= L.orbs.length, 'Collected all energy cells (' + orbsGot + '/' + L.orbs.length + ')'], [shotsUsed <= 2, 'Used 2 shots or fewer (' + shotsUsed + ')']];
+    var sc2 = GE.scoreFor({ power: pw, shotsUsed: shotsUsed, orbsGot: orbsGot, orbsTotal: L.orbs.length, bounces: F.bounces, steps: F.step, goalDist: F.goalDist, minClear: F.minClear });
+    var goals = [[true, 'Reached the charging station'], [orbsGot >= L.orbs.length, 'Collected all energy cells (' + orbsGot + '/' + L.orbs.length + ')'], [shotsUsed <= 2, 'Used 2 shots or fewer (' + shotsUsed + ')'], [pw < .5, 'Light pull — ' + Math.round(pw * 100) + '% (under 50% is great!)']];
     var newBest = false, promo = '';
     if (mode === 'campaign') {
       var old = save.stars[lvN] || 0; if (stars > old) save.stars[lvN] = stars; save.orbs += orbsGot;
       if (!save.scores[lvN] || sc2.total > save.scores[lvN]) { save.scores[lvN] = sc2.total; newBest = true; } persist();
-      award('first'); if (stars === 3) award('three'); if (shotsUsed === 1 && L.world >= 2) award('oneshot'); if (F.thrustUsed > 0) award('thrust'); if (F.goalDist < 9) award('bull'); if (usedWarp) award('warp');
+      award('first'); if (stars === 3) award('three'); if (shotsUsed === 1 && L.world >= 2) award('oneshot'); if (F.bounces > 0) award('bank'); if (pw < .3) award('light'); if (F.goalDist < 9) award('bull'); if (usedWarp) award('warp');
       if (save.orbs >= 50) award('orbs50'); if (L.world === 5) award('bh'); if (totalStars() >= 100) award('stars100');
       var p = 0; Object.keys(save.stars).forEach(function (k) { if (save.stars[k] === 3) p++; }); if (p >= 10) award('perfect10');
       for (var w = 0; w < N_LEVELS / 10; w++) { var all = true; for (var i = 1; i <= 10; i++) if (!save.stars[w * 10 + i]) all = false; if (all) award('world'); }
       var rankAfter = GE.rankFor(totalStars()); if (rankAfter.index > rankBefore) { promo = '🎖️ PROMOTED to ' + rankAfter.name + '!'; if (rankAfter.index >= 3) award('capt'); }
     } else {
       var gain = sc2.total; endless.score += gain; endless.cleared++; if (endless.cleared >= 5) award('end5'); if (endless.cleared >= 15) award('end15'); if (endless.score > save.best) { save.best = endless.score; persist(); }
-      if (F.thrustUsed > 0) award('thrust'); if (F.goalDist < 9) award('bull'); if (usedWarp) award('warp');
+      if (F.bounces > 0) award('bank'); if (pw < .3) award('light'); if (F.goalDist < 9) award('bull'); if (usedWarp) award('warp');
     }
     var html = '<div style="font-size:3rem">🛰️⚡</div><h2>' + (mode === 'endless' ? 'Sector ' + endless.k + ' cleared!' : 'Level ' + lvN + ' complete!') + '</h2>';
     if (promo) html += '<div class="promo">' + promo + '</div>';
@@ -366,7 +401,7 @@
   }
   function outOfShots() {
     if (mode === 'campaign') {
-      showModal('<div style="font-size:3rem">🔧</div><h2>Out of shots!</h2><p>Every level can be solved — try a different angle or power, and steer with thrust. A 💡 hint shows a working shot.</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🌌 Map</button></div>');
+      showModal('<div style="font-size:3rem">🔧</div><h2>Out of shots!</h2><p>Every level can be solved — change the angle or the pull, or bank off a wall. A 💡 hint shows the angle and pull of a working shot.</p><div class="row"><button class="btn primary" id="mRetry">↺ Try again</button><button class="btn" id="mMap">🌌 Map</button></div>');
       $('mRetry').onclick = function () { startLevel(lvN); }; $('mMap').onclick = function () { renderMap(); show('map'); };
     } else {
       endless.hulls--; updateHud();
@@ -386,15 +421,17 @@
   $('resetBtn').onclick = function () { if (!L) return; mode === 'campaign' ? startLevel(lvN) : (flight = null, setupLevel(L), updateHud()); };
   $('hintBtn').onclick = function () {
     if (phase !== 'aim' || hintsLeft <= 0) return; hintsLeft--; if (mode === 'endless') endless.hints = hintsLeft;
-    var r = GE.simulate(L, L.solution, { maxSteps: 200, goal: false });
-    ghost = { pts: r.points, until: performance.now() + 7000, v: L.solution }; toast('💡 Gold path = a working shot. Match the pull!'); updateHud();
+    var sp = Math.sqrt(L.solution.vx * L.solution.vx + L.solution.vy * L.solution.vy), pw = Math.round(sp / GE.VMAX * 1000) / 1000, ang = GE.aimReadout(L.solution).angle;
+    setAimNumbers(ang, pw); updateReadout(); $('readout').classList.add('hint'); ghost = { until: performance.now() + 9000 };
+    toast('💡 Try angle ' + ang.toFixed(1) + '° and pull ' + Math.round(pw * 100) + '% — then 🚀 Launch!'); updateHud();
   };
   $('howBtn').onclick = function () {
-    showModal('<h2>🛰️ How to play</h2><ul class="how"><li><b>Press and drag BACK</b> (like a slingshot), then release. The farther you pull, the faster you fly.</li>' +
-      '<li>The <b>dotted line</b> previews your path. It gets shorter in later galaxies!</li>' +
-      '<li>🔥 <b>While flying, hold</b> your finger/mouse (or Space) — the probe thrusts toward it. Fuel is limited, so steer wisely!</li>' +
-      '<li>⏱️ Planets <b>drift and orbit</b> once you launch. 🪐 Planets and ☀️ suns pull you in (touch = crash), 🕳️ black holes pull hard, ✨ repulsors push you away, ☄️ asteroids just smash you, 🌀 portals teleport you.</li>' +
-      '<li>Dock at the <b>green station</b>. ⭐ for: reaching it · all 🔋 cells · 2 shots or fewer. Bonus points for pure flight, bullseye, close calls and speed!</li>' +
+    showModal('<h2>🛰️ How to play</h2><ul class="how"><li><b>Press and drag BACK</b> (like a slingshot) to set your shot. Nothing is predicted for you — read the <b>ANGLE</b>, <b>PULL %</b> and <b>SPEED</b> dials under the board.</li>' +
+      '<li>Fine-tune with the <b>⟲ ⟳ ⬆ ⬇ buttons</b> (or arrow keys, Shift = bigger steps), then press <b>🚀 Launch</b>. After a miss your aim is kept — just nudge it.</li>' +
+      '<li>🪞 The four <b>walls are mirrors</b>: the probe bounces off them, angle in = angle out. Hit the station directly or bank your shot!</li>' +
+      '<li>🪶 <b>The lighter your pull, the higher your score</b> — a 20% pull earns far more than a 90% pull.</li>' +
+      '<li>⏱️ Planets and stars <b>sway</b> once you launch (a little more every galaxy), but there is always a gap to dock. 🪐 Planets and ☀️ suns pull you in (touch = crash), 🕳️ black holes pull hard, ✨ repulsors push you away, ☄️ asteroids just smash you, 🌀 portals teleport you.</li>' +
+      '<li>Dock at the <b>green station</b>. ⭐ for: reaching it · all 🔋 cells · 2 shots or fewer. Stuck? A 💡 hint shows the angle and pull of a working shot.</li>' +
       '<li>Earn ⭐ to rank up from Cadet to Legend. ♾️ <b>Deep Space</b> is endless — 3 hulls, how far can you go?</li></ul><div class="row"><button class="btn primary" id="hOk">Launch!</button></div>');
     $('hOk').onclick = function () { $('overlay').hidden = true; };
   };
@@ -499,6 +536,34 @@
     cx.strokeStyle = '#9db6e8'; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(0, -8); cx.lineTo(0, -12); cx.stroke(); cx.fillStyle = sk.c[1] || sk.c[0]; cx.beginPath(); cx.arc(0, -13, 2.2, 0, 6.283); cx.fill();
     cx.restore();
   }
+  // The four walls are mirrors: a glowing frame with reflection ticks.
+  function drawWalls(now) {
+    var m = 4, sh = .5 + .5 * Math.sin(now / 700);
+    cx.save(); cx.shadowColor = '#7be8ff'; cx.shadowBlur = 14; cx.strokeStyle = 'rgba(160,240,255,' + (.65 + .2 * sh) + ')'; cx.lineWidth = 4; cx.strokeRect(m, m, W - 2 * m, H - 2 * m); cx.restore();
+    cx.save(); cx.strokeStyle = 'rgba(190,245,255,.22)'; cx.lineWidth = 2; cx.beginPath();
+    for (var x = 20; x < W - 10; x += 34) { cx.moveTo(x, m + 3); cx.lineTo(x + 9, m + 12); cx.moveTo(x, H - m - 3); cx.lineTo(x + 9, H - m - 12); }
+    for (var y = 20; y < H - 10; y += 34) { cx.moveTo(m + 3, y); cx.lineTo(m + 12, y + 9); cx.moveTo(W - m - 3, y); cx.lineTo(W - m - 12, y + 9); }
+    cx.stroke(); cx.restore();
+  }
+  // Protractor ring + needle + pull handle: the instruments the player aims with.
+  function drawAim(now) {
+    var sx0 = L.start.x, sy0 = L.start.y, R = 62, i;
+    cx.save(); cx.lineWidth = 1.5; cx.strokeStyle = 'rgba(255,255,255,.22)'; cx.beginPath(); cx.arc(sx0, sy0, R, 0, 6.283); cx.stroke();
+    cx.beginPath(); for (i = 0; i < 360; i += 15) { var a = i * Math.PI / 180, r2 = R + (i % 90 === 0 ? 11 : i % 45 === 0 ? 8 : 5); cx.moveTo(sx0 + Math.cos(a) * R, sy0 - Math.sin(a) * R); cx.lineTo(sx0 + Math.cos(a) * r2, sy0 - Math.sin(a) * r2); }
+    cx.stroke(); cx.fillStyle = 'rgba(255,255,255,.4)'; cx.font = '600 11px Segoe UI'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    [[0, '0°'], [90, '90°'], [180, '180°'], [270, '270°']].forEach(function (t) { var a2 = t[0] * Math.PI / 180; cx.fillText(t[1], sx0 + Math.cos(a2) * (R + 26), sy0 - Math.sin(a2) * (R + 22)); });
+    if (aim) {
+      var n = aimNumbers(), ang = n.angle * Math.PI / 180, dirx = Math.cos(ang), diry = -Math.sin(ang), hint = ghost && now < ghost.until;
+      cx.fillStyle = hint ? 'rgba(255,210,74,.16)' : 'rgba(123,232,255,.14)'; cx.beginPath(); cx.moveTo(sx0, sy0); cx.arc(sx0, sy0, R - 6, 0, -ang, true); cx.closePath(); cx.fill();   // angle wedge from 0°
+      cx.strokeStyle = hint ? '#ffd24a' : '#fff'; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(sx0 + dirx * 24, sy0 + diry * 24); cx.lineTo(sx0 + dirx * (R + 22), sy0 + diry * (R + 22)); cx.stroke();   // needle
+      cx.beginPath(); cx.moveTo(sx0 + dirx * (R + 30), sy0 + diry * (R + 30)); cx.lineTo(sx0 + dirx * (R + 14) - diry * 7, sy0 + diry * (R + 14) + dirx * 7); cx.lineTo(sx0 + dirx * (R + 14) + diry * 7, sy0 + diry * (R + 14) - dirx * 7); cx.closePath(); cx.fillStyle = cx.strokeStyle; cx.fill();
+      var hx = sx0 - aim.dx, hy = sy0 - aim.dy;   // pull handle: where the finger is (opposite side)
+      cx.setLineDash([3, 5]); cx.strokeStyle = 'rgba(255,255,255,.4)'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(sx0, sy0); cx.lineTo(hx, hy); cx.stroke(); cx.setLineDash([]);
+      cx.fillStyle = hint ? '#ffd24a' : '#fff'; cx.beginPath(); cx.arc(hx, hy, 6, 0, 6.283); cx.fill();
+      cx.font = 'bold 14px Segoe UI'; cx.textAlign = 'left'; cx.fillText(n.angle.toFixed(1) + '° · ' + n.powerPct + '%', Math.min(W - 120, sx0 + dirx * (R + 40) + 6), Math.max(16, Math.min(H - 12, sy0 + diry * (R + 40))));
+    }
+    cx.restore();
+  }
   function trailColor(i, n) { var sk = skin(); return sk.c.length > 2 ? sk.c[Math.floor(i / n * sk.c.length) % sk.c.length] : sk.c[0]; }
 
   function frame(now) {
@@ -508,40 +573,24 @@
     cx.setTransform(dpr * sc, 0, 0, dpr * sc, 0, 0); cx.clearRect(0, 0, W, H);
     var sx = 0, sy = 0; if (shake > .3) { sx = (Math.random() - .5) * shake; sy = (Math.random() - .5) * shake; shake *= .88; } else shake = 0;
     cx.save(); cx.translate(sx, sy);
-    drawBackground(now);
+    drawBackground(now); drawWalls(now);
     var tStep = flight ? flight.F.step : 0;
     L.bodies.forEach(function (b) { drawPath(b); });
     (L.portals || []).forEach(function (p) { drawPortal(p, now); });
     L.bodies.forEach(function (b) { drawBody(b, GE.bodyPos(b, tStep), now); });
     if (L.goal) drawGoal(L.goal, now);
     L.orbs.forEach(function (o, k) { if (!collected[k]) drawOrb(o, now, k); });
-    // aim preview
-    if (drag && aimPred && phase === 'aim') {
-      var pp = aimPred.pts, n = pp.length / 2, js = {}; aimPred.jumps.forEach(function (j) { js[j] = 1; });
-      for (var i = 2; i < n; i += 3) { var f = 1 - i / n; cx.globalAlpha = .25 + .7 * f; cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(pp[i * 2], pp[i * 2 + 1], 3.2 * (.6 + f * .6), 0, 6.283); cx.fill(); } cx.globalAlpha = 1;
-      var v = dragVec(); if (v) {
-        var cl = v.len > 150 ? 150 / v.len : 1;
-        cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.lineWidth = 2; cx.setLineDash([3, 5]); cx.beginPath(); cx.moveTo(L.start.x, L.start.y); cx.lineTo(L.start.x - v.dx * cl, L.start.y - v.dy * cl); cx.stroke(); cx.setLineDash([]);
-        cx.fillStyle = '#fff'; cx.font = 'bold 15px Segoe UI'; cx.textAlign = 'left'; cx.fillText('Power ' + Math.round(v.vel.power * 100) + '%', L.start.x + 26, L.start.y - 26);
-      }
-    }
-    // hint ghost
-    if (ghost && now < ghost.until && phase === 'aim') {
-      cx.strokeStyle = 'rgba(255,210,74,' + (.5 + .4 * Math.sin(now / 150)) + ')'; cx.lineWidth = 3; cx.setLineDash([10, 8]); cx.beginPath(); var gp = ghost.pts; cx.moveTo(gp[0], gp[1]);
-      for (var j = 1; j < gp.length / 2; j += 2) cx.lineTo(gp[j * 2], gp[j * 2 + 1]); cx.stroke(); cx.setLineDash([]);
-      var sp = Math.sqrt(ghost.v.vx * ghost.v.vx + ghost.v.vy * ghost.v.vy), pull = sp / GE.VMAX * 150; cx.fillStyle = 'rgba(255,210,74,.9)'; cx.font = 'bold 14px Segoe UI'; cx.textAlign = 'left'; cx.fillText('pull back ≈ ' + Math.round(sp / GE.VMAX * 100) + '% power', L.start.x + 26, L.start.y + 36);
-      cx.beginPath(); cx.arc(L.start.x - ghost.v.vx / sp * pull, L.start.y - ghost.v.vy / sp * pull, 7, 0, 6.283); cx.stroke();
-    }
+    // aim instruments (no path is predicted)
+    if (phase === 'aim') drawAim(now);
     // flight
     if (flight && !flight.done) {
-      var F = flight.F, total = F.pts.length / 2 - 1, from = Math.max(0, total - 110), thr = !!thrustTarget() && F.fuel > 0;
+      var F = flight.F, total = F.pts.length / 2 - 1, from = Math.max(0, total - 110), thr = false;
       cx.lineCap = 'round';
       for (var t = from; t < total; t++) { if (flight.jumpSet[t + 1]) continue; var f2 = (t - from) / Math.max(1, total - from); cx.strokeStyle = trailColor(t, 900); cx.globalAlpha = f2 * .85; cx.lineWidth = 2 + f2 * 8; cx.beginPath(); cx.moveTo(F.pts[t * 2], F.pts[t * 2 + 1]); cx.lineTo(F.pts[(t + 1) * 2], F.pts[(t + 1) * 2 + 1]); cx.stroke(); } cx.globalAlpha = 1;
-      var tg = thrustTarget(); if (tg && F.fuel > 0) { cx.strokeStyle = 'rgba(255,230,120,.5)'; cx.setLineDash([3, 6]); cx.lineWidth = 2; cx.beginPath(); cx.moveTo(F.x, F.y); cx.lineTo(tg.x, tg.y); cx.stroke(); cx.setLineDash([]); cx.beginPath(); cx.arc(tg.x, tg.y, 9, 0, 6.283); cx.stroke(); }
       if (!F.result) drawProbe(F.x, F.y, F.vx || 1, F.vy, now, true, thr);
     } else if (phase === 'aim') {
-      var dv = dragVec(); drawProbe(L.start.x, L.start.y, dv ? dv.dx : 1, dv ? dv.dy : 0, now, false);
-      if (!drag) { cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.setLineDash([4, 6]); cx.lineWidth = 2; cx.beginPath(); cx.arc(L.start.x, L.start.y, 34 + 4 * Math.sin(now / 300), 0, 6.283); cx.stroke(); cx.setLineDash([]); }
+      var dv = aim; drawProbe(L.start.x, L.start.y, dv ? dv.dx : 1, dv ? dv.dy : 0, now, false);
+      if (!aim) { cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.setLineDash([4, 6]); cx.lineWidth = 2; cx.beginPath(); cx.arc(L.start.x, L.start.y, 34 + 4 * Math.sin(now / 300), 0, 6.283); cx.stroke(); cx.setLineDash([]); }
     }
     rings = rings.filter(function (q) { return q.life > 0; });
     rings.forEach(function (q) { q.r += 3.2; q.life -= .035; cx.strokeStyle = q.c; cx.globalAlpha = Math.max(0, q.life); cx.lineWidth = 4 * q.life + 1; cx.beginPath(); cx.arc(q.x, q.y, q.r, 0, 6.283); cx.stroke(); cx.globalAlpha = 1; });
@@ -551,7 +600,7 @@
   }
 
   window.__gb = { get L() { return L; }, get phase() { return phase; }, get shots() { return shots; }, get flight() { return !!flight; }, get save() { return save; }, get fuel() { return flight ? flight.F.fuel : -1; }, get thrustUsed() { return flight ? flight.F.thrustUsed : -1; },
-    startLevel: startLevel, startEndless: startEndless, hold: function (p) { hold = p; }, fire: function (v) { if (phase === 'aim') launch(v); }, get collected() { return Object.keys(collected).length; } };
+    startLevel: startLevel, startEndless: startEndless, aim: function (a, p) { setAimNumbers(a, p); updateReadout(); updateHud(); }, launchAim: fireAim, get aimNow() { return aimNumbers(); }, fire: function (v) { if (phase === 'aim') launch(v); }, get collected() { return Object.keys(collected).length; } };
 
   refreshMenu(); requestAnimationFrame(frame);
   if (!save.seenHow) { save.seenHow = true; persist(); $('howBtn').click(); }

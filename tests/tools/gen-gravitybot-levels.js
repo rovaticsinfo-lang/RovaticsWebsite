@@ -2,11 +2,18 @@
 // Writes games/gravitybot-levels.js (the campaign ships as data so the browser never has to generate it).
 const fs = require('fs'), path = require('path');
 const E = require('../../games/gravitybot-engine.js');
+const os = require('os'), cacheFile = path.join(os.tmpdir(), 'gb-levels-cache.json');
+let cache = {}; try { cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch (e) {}   // resume after a crash; delete the file when the engine changes
 const levels = [], t0 = Date.now();
 for (let n = 1; n <= E.LEVELS; n++) {
-  const L = E.getLevel(n);
-  if (E.verify(L).result !== 'goal') throw new Error('level ' + n + ' unsolvable');
-  levels.push({ world: L.world, index: n, start: L.start, bodies: L.bodies, portals: L.portals, goal: L.goal, orbs: L.orbs, preview: L.preview, solution: L.solution, solutionSteps: L.solutionSteps });
+  let entry = cache[n];
+  if (!entry) {
+    const L = E.getLevel(n);
+    if (E.verify(L).result !== 'goal') throw new Error('level ' + n + ' unsolvable');
+    entry = { world: L.world, index: n, start: L.start, bodies: L.bodies, portals: L.portals, goal: L.goal, orbs: L.orbs, preview: L.preview, bank: L.bank, solution: L.solution, solutionSteps: L.solutionSteps };
+    cache[n] = entry; fs.writeFileSync(cacheFile, JSON.stringify(cache));
+  }
+  levels.push(entry);
   process.stdout.write(n + ' ');
 }
 console.log('\nGenerated ' + levels.length + ' levels in ' + ((Date.now() - t0) / 1000).toFixed(1) + 's');
