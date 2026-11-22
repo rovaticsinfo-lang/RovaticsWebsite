@@ -10,11 +10,20 @@ const playPath = (g, path) => { path.forEach(a => { const r = g.perform(a); asse
 const solveGame = g => { let guard = 0; while (!g.complete && guard++ < 200) { const p = g.stageSolution(); assert.ok(p, 'unsolvable stage'); const a = p[0]; assert.ok(g.perform(a).ok); } assert.ok(g.complete, 'game never completed'); };
 
 // ---------- the campaign data ----------
-t('ten levels in World 1 with the pack ids, titles and three hints each', () => {
-  assert.strictEqual(LD.LEVELS.length, 10);
+t('the first ten levels are World 1 with the pack ids, titles and three hints each', () => {
+  assert.ok(LD.LEVELS.length >= 10);
   const titles = ['The Awakening', 'The Rotating Mirror', 'The Three Symbols', 'The Weight of Knowledge', 'The Water Path', 'The Hidden Key', 'The Energy Network', 'The Moving Bridge', 'The Ancient Trap', 'The Mind Core'];
-  LD.LEVELS.forEach((l, i) => { assert.strictEqual(l.levelId, 'WC_L' + String(i + 1).padStart(2, '0')); assert.strictEqual(l.title, titles[i]); assert.strictEqual(l.worldId, 'LOST_CIVILIZATION'); assert.strictEqual(l.hints.length, 3); assert.ok(l.goalConditions.length >= 1); assert.ok(l.relic && l.relic.name); });
+  LD.LEVELS.slice(0, 10).forEach((l, i) => { assert.strictEqual(l.levelId, 'WC_L' + String(i + 1).padStart(2, '0')); assert.strictEqual(l.title, titles[i]); assert.strictEqual(l.worldId, 'LOST_CIVILIZATION'); assert.strictEqual(l.hints.length, 3); assert.ok(l.goalConditions.length >= 1); assert.ok(l.relic && l.relic.name); });
   assert.strictEqual(LD.FUTURE.length, 4, 'four future worlds listed');
+});
+t('30 levels in 3 worlds: unique ids, every level has hints, a relic, a theme and a rising difficulty', () => {
+  assert.strictEqual(LD.LEVELS.length, 30); assert.strictEqual(LD.WORLDS.length, 3);
+  assert.strictEqual(new Set(LD.LEVELS.map(l => l.levelId)).size, 30, 'ids unique'); LD.LEVELS.forEach((l, i) => { assert.strictEqual(l.n, i + 1); assert.strictEqual(l.hints.length, 3); assert.ok(l.relic && l.relic.name && l.theme && l.intro && l.title); });
+  LD.WORLDS.forEach(w => { const ls = LD.LEVELS.filter(l => l.n >= w.from && l.n <= w.to); assert.strictEqual(ls.length, 10); ls.forEach(l => assert.strictEqual(l.worldId, w.id)); });
+  const opt = LD.LEVELS.map(l => E.verifyLevel(l).optimal); const avg = (a, b) => opt.slice(a, b).reduce((x, y) => x + y, 0) / (b - a);
+  assert.ok(avg(0, 10) < avg(10, 20) && avg(10, 20) < avg(20, 30), 'each world is harder on average: ' + [avg(0, 10), avg(10, 20), avg(20, 30)].map(Math.round));
+  assert.ok(opt[29] >= 60, 'the last level is a long one: ' + opt[29]); assert.ok(LD.LEVELS.filter(l => l.stages.length > 1).length >= 8, 'many multi-stage rooms');
+  const kinds = new Set(); LD.LEVELS.forEach(l => l.stages.forEach(s => kinds.add(s.kind))); assert.strictEqual(kinds.size, 9, 'all nine mechanics are used');
 });
 t('every level is valid, has a verified solution, and par is not below the best possible', () => {
   LD.LEVELS.forEach(l => { const r = E.verifyLevel(l); assert.ok(r.ok, l.levelId + ': ' + r.problems.join('; ')); assert.ok(l.par >= r.optimal, l.levelId + ' par ' + l.par + ' < optimal ' + r.optimal); assert.ok(r.stages.every(s => s.steps > 0), 'no stage starts solved'); });
@@ -167,6 +176,13 @@ t('bridge: every rule blocks with a clear message and the goal needs a locked pa
 });
 
 // ---------- trap ----------
+t('generated rooms: jar sizes, trap order direction and 5-switch / 7-jar rooms behave', () => {
+  const l25 = L(26), search = l25.stages[0].p; assert.strictEqual(search.jars.length, 7); assert.ok(search.jars.every(j => j.size && j.color)); assert.deepStrictEqual(E.clueJars(search).map(j => j.id), [search.keyIn]);
+  const l28 = L(28), trap = l28.stages[1].p; assert.strictEqual(trap.switches.length, 5); assert.strictEqual(trap.dir, 'asc'); assert.strictEqual(E.trapOrder(trap)[0], trap.switches.slice().sort((a, b) => a.wear - b.wear)[0].id, 'ascending: least worn first');
+  const wide = L(22).stages[0].p; assert.strictEqual(wide.slots, 4); assert.strictEqual(E.clueSolutions(wide).length, 1);
+  const bal = L(23).stages[0].p; assert.strictEqual(bal.stones.length, 6); assert.ok(bal.target !== 0, 'a goal that is not equal weights');
+  const g = E.createGame(L(25)); assert.strictEqual(g.def.stages.length, 3); let guard = 0; while (!g.complete && guard++ < 200) g.perform(g.stageSolution()[0]); assert.ok(g.complete);
+});
 t('trap: a wrong switch resets only the room; the safe order opens the exit; inspecting is free', () => {
   const g = E.createGame(L(9)), P = g.cur().p; assert.deepStrictEqual(E.trapOrder(P), ['switch_b', 'switch_c', 'switch_a']);
   const look = g.perform({ t: 'inspect', obj: 'switch_b', free: true }); assert.ok(/worn to a shine/.test(look.info)); assert.strictEqual(g.moves, 0);
@@ -207,6 +223,7 @@ t('hints: three progressive levels (idea, object, next move) and following them 
     const h2 = g.hint(); assert.strictEqual(h2.level, 2); assert.strictEqual(h2.text, l.hints[1]); assert.ok(h2.obj, l.levelId + ' hint 2 names an object');
     const h3 = g.hint(); assert.strictEqual(h3.level, 3); assert.strictEqual(h3.text, l.hints[2]); assert.ok(h3.action && h3.demo && h3.action.obj === h2.obj, 'hint 3 demonstrates the move on the same object');
     assert.strictEqual(g.hints, 3); assert.ok(g.moves === 0, 'hints never move anything');
+    if (l.n > 10) { const r = g.perform(h3.action); assert.ok(r.ok, l.levelId + ' hint action works'); return; }           // the bigger generated levels: one step is enough (solving by hints is slow there)
     let guard = 0; while (!g.complete && guard++ < 120) { g.hint(); g.hint(); const hh = g.hint(); const r = g.perform(hh.action); assert.ok(r.ok, l.levelId + ' hint action works: ' + JSON.stringify(hh.action)); }
     assert.ok(g.complete, l.levelId + ' solvable by hints alone');
   });

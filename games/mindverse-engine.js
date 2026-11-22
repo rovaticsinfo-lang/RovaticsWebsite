@@ -52,6 +52,7 @@
   /* ---- beam: rotate mirrors, slide blockers, light every receiver (L2, L7, L10) ---- */
   const MIRROR_HALF = 0.95, BLOCK_R = 0.55, RECV_R = 0.5, MAX_SEG = 14;
   KIND.beam = {
+    key: (p, s) => p.mirrors.map(m => s.m[m.id]).join('') + '|' + (p.blockers || []).map(b => s.b[b.id]).join(''),
     init: p => ({ m: Object.fromEntries(p.mirrors.map(m => [m.id, m.start])), b: Object.fromEntries((p.blockers || []).map(b => [b.id, b.start])) }),
     actions(p, s) {
       const out = [];
@@ -60,7 +61,7 @@
       return out;
     },
     apply(p, s, a) {
-      const n = clone(s);
+      const n = { m: Object.assign({}, s.m), b: Object.assign({}, s.b) };
       if (a.t === 'rot') {
         if (!(a.obj in s.m)) return { blocked: 'That is not a mirror.' };
         n.m[a.obj] = mod(s.m[a.obj] + a.d, p.steps); return { s: n, ev: ['rot'] };
@@ -130,6 +131,7 @@
     rec([]); return out;
   }
   KIND.symbols = {
+    key: (p, s) => s.slots.join(','),
     init: p => ({ slots: p.start.slice() }),
     actions: (p, s) => s.slots.map((_, i) => ({ t: 'cycle', obj: 'panel_' + i, slot: i })),
     apply(p, s, a) {
@@ -143,6 +145,7 @@
   /* ---- balance: stones with authored weights on two pans (L4, L10) ---- */
   const sums = (p, s) => { let L = 0, R = 0; p.stones.forEach(st => { if (s.pos[st.id] === 'L') L += st.w; else if (s.pos[st.id] === 'R') R += st.w; }); return { L, R }; };
   KIND.balance = {
+    key: (p, s) => p.stones.map(st => s.pos[st.id]).join(','),
     init: p => ({ pos: Object.fromEntries(p.stones.map(st => [st.id, 'tray'])) }),
     actions(p, s) {
       const out = [];
@@ -154,7 +157,7 @@
       if (a.t !== 'put' || !st || !['L', 'R', 'tray'].includes(a.to)) return { blocked: 'Nothing to do there.' };
       if (s.pos[a.obj] === a.to) return { blocked: 'It is already there.' };
       if (a.to !== 'tray' && p.stones.filter(x => s.pos[x.id] === a.to).length >= p.cap) return { blocked: 'That pan is full (' + p.cap + ' stones at most).' };
-      const n = clone(s); n.pos[a.obj] = a.to; return { s: n, ev: ['stone'] };
+      const n = { pos: Object.assign({}, s.pos) }; n.pos[a.obj] = a.to; return { s: n, ev: ['stone'] };
     },
     goal(p, s) {
       if (p.requireAll && p.stones.some(x => s.pos[x.id] === 'tray')) return false;
@@ -166,9 +169,10 @@
   /* ---- water: rotate channels, open valves, deliver water (L5, L10) ---- */
   const BASE = { straight: NB | SB, elbow: NB | EB, tee: EB | SB | WB, cross: 15, valve: EB | WB, source: EB, receiver: WB };
   function tileMask(t, rot) { return rotMask(BASE[t.t], t.fixed ? (t.rot || 0) : rot); }
+  const FLOW_CACHE = new WeakMap();
   function flow(p, s) {
-    const at = {}; p.tiles.forEach(t => { at[t.c + ',' + t.r] = t; });
-    const wet = {}, src = p.tiles.find(t => t.t === 'source'); const q = [src]; wet[src.id] = true;
+    let C = FLOW_CACHE.get(p); if (!C) { C = { at: {}, src: null, recv: [] }; p.tiles.forEach(t => { C.at[t.c + ',' + t.r] = t; if (t.t === 'source') C.src = t; if (t.t === 'receiver') C.recv.push(t); }); FLOW_CACHE.set(p, C); }
+    const at = C.at, wet = {}, src = C.src; const q = [src]; wet[src.id] = true;
     const DIR = [[NB, 0, -1, SB], [EB, 1, 0, WB], [SB, 0, 1, NB], [WB, -1, 0, EB]];
     while (q.length) {
       const t = q.shift(), m = tileMask(t, s.r[t.id] || 0);
@@ -180,13 +184,14 @@
         if (tileMask(nb, s.r[nb.id] || 0) & d[3]) { wet[nb.id] = true; q.push(nb); }
       });
     }
-    return { wet, supplied: p.tiles.filter(t => t.t === 'receiver').every(t => wet[t.id]) };
+    return { wet, supplied: C.recv.every(t => wet[t.id]) };
   }
   KIND.water = {
+    key: (p, s) => Object.keys(s.r).map(k => s.r[k]).join('') + '|' + Object.keys(s.v).map(k => s.v[k]).join(''),
     init: p => ({ r: Object.fromEntries(p.tiles.filter(t => !t.fixed && t.t !== 'valve' && t.t !== 'source' && t.t !== 'receiver').map(t => [t.id, t.rot || 0])), v: Object.fromEntries(p.tiles.filter(t => t.t === 'valve').map(t => [t.id, t.open ? 1 : 0])) }),
     actions(p, s) { return Object.keys(s.r).map(id => ({ t: 'turn', obj: id })).concat(Object.keys(s.v).map(id => ({ t: 'valve', obj: id }))); },
     apply(p, s, a) {
-      const n = clone(s);
+      const n = { r: Object.assign({}, s.r), v: Object.assign({}, s.v) };
       if (a.t === 'turn' && a.obj in s.r) { n.r[a.obj] = (s.r[a.obj] + 1) % 4; return { s: n, ev: ['turn'] }; }
       if (a.t === 'valve' && a.obj in s.v) { n.v[a.obj] = s.v[a.obj] ? 0 : 1; return { s: n, ev: ['valve'] }; }
       return { blocked: 'That piece is fixed in the stone.' };
@@ -196,7 +201,8 @@
   };
 
   /* ---- search: inspect clues, deduce the jar, find the key (L6) ---- */
-  const jarMatches = (c, j) => (!c.sym || j.sym === c.sym) && (!c.color || j.color === c.color) && (!c.notSym || j.sym !== c.notSym) && (!c.notColor || j.color !== c.notColor);
+  const jarMatches = (c, j) => (!c.sym || j.sym === c.sym) && (!c.color || j.color === c.color) && (!c.notSym || j.sym !== c.notSym) && (!c.notColor || j.color !== c.notColor) &&
+    (!c.size || j.size === c.size) && (!c.notSize || j.size !== c.notSize) && (!c.notSyms || c.notSyms.indexOf(j.sym) < 0) && (!c.notColors || c.notColors.indexOf(j.color) < 0);
   function clueJars(p) { return p.jars.filter(j => jarMatches(p.clue, j)); }
   KIND.search = {
     init: p => ({ seen: {}, opened: [], key: false, door: false }),
@@ -273,7 +279,7 @@
     goal: (p, s) => s.step >= p.order.length,
     say: (p, a) => a.t === 'inspect' ? 'Study this switch closely.' : 'Press this switch.'
   };
-  function trapOrder(p) { return p.switches.slice().sort((a, b) => b.wear - a.wear).map(w => w.id); }
+  function trapOrder(p) { const s = p.switches.slice().sort((a, b) => p.dir === 'asc' ? a.wear - b.wear : b.wear - a.wear); return s.map(w => w.id); }
 
   /* ---- gear: two meshed gears of different size (L10) ---- */
   KIND.gear = {
@@ -292,13 +298,13 @@
   function solve(kind, p, s0, limit) {
     const M = KIND[kind]; limit = limit || 250000;
     if (M.goal(p, s0)) return [];
-    const nodes = [{ s: s0, parent: -1, a: null }], seen = new Set([JSON.stringify(s0)]);
+    const kf = M.key ? s => M.key(p, s) : JSON.stringify, nodes = [{ s: s0, parent: -1, a: null }], seen = new Set([kf(s0)]);
     for (let i = 0; i < nodes.length && nodes.length < limit; i++) {
       const acts = M.actions(p, nodes[i].s);
       for (let j = 0; j < acts.length; j++) {
         const r = M.apply(p, nodes[i].s, acts[j]);
         if (!r.s || r.fail) continue;
-        const key = JSON.stringify(r.s); if (seen.has(key)) continue; seen.add(key);
+        const key = kf(r.s); if (seen.has(key)) continue; seen.add(key);
         nodes.push({ s: r.s, parent: i, a: acts[j] });
         if (M.goal(p, r.s)) { const path = []; for (let k = nodes.length - 1; nodes[k].parent >= 0; k = nodes[k].parent) path.unshift(nodes[k].a); return path; }
       }
@@ -330,8 +336,8 @@
       if (st.kind === 'symbols') { need(p.solution.every(s => p.symbols.includes(s)), 'solution uses unknown symbols'); need(p.start.length === p.slots, 'start length'); }
       if (st.kind === 'balance') { need(p.stones.length >= 2 && p.stones.every(s => s.w > 0), 'stones need positive weights'); need(p.cap >= 1, 'cap'); }
       if (st.kind === 'water') { need(p.tiles.filter(t => t.t === 'source').length === 1, 'exactly one source'); need(p.tiles.some(t => t.t === 'receiver'), 'a receiver'); need(new Set(p.tiles.map(t => t.id)).size === p.tiles.length, 'tile ids unique'); p.tiles.forEach(t => need(BASE[t.t], 'unknown tile type ' + t.t)); }
-      if (st.kind === 'search') { need(p.jars.some(j => j.id === p.keyIn), 'keyIn is not a jar'); }
-      if (st.kind === 'trap') { need(p.order.every(id => p.switches.some(w => w.id === id)), 'order refers to unknown switch'); }
+      if (st.kind === 'search') { need(p.jars.some(j => j.id === p.keyIn), 'keyIn is not a jar'); need(p.jars.length >= 2 && p.jars.length <= 8, 'between 2 and 8 jars'); }
+      if (st.kind === 'trap') { need(p.order.every(id => p.switches.some(w => w.id === id)), 'order refers to unknown switch'); need(p.switches.length >= 2 && p.switches.length <= 6, 'between 2 and 6 switches'); }
     });
     return true;
   }

@@ -10,6 +10,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  const EXTRA = (typeof module === 'object' && module.exports) ? require('./mindverse-levels-extra.js') : ((typeof self !== 'undefined' && self.MindverseLevelsExtra) || []);
   const WORLD = {
     id: 'LOST_CIVILIZATION', name: 'Lost Civilization', blurb: 'Jungle temples, stone mechanisms, mirrors, water and symbols.',
     story: 'A vanished people built the Mind Core, a heart of living energy. Five regions went dark when they disappeared. Wake the first one.'
@@ -116,7 +117,7 @@
       goalConditions: ['key_01 discovered', 'door_secret unlocked'],
       hints: ['Look for a clue that refers to a particular object.', 'Inspect the containers and compare their markings.', 'The container matching the clue holds the key.'],
       par: 4, validation: { solutionRequired: true, clueMustUniquelyIdentifyContainer: true },
-      env: 'niche', cam: { az: 0, el: 22, d: 14, t: [0, 1.7, 0] }, relic: { x: -6.6, y: 1.0, z: 1.6, name: 'Ember Shard' },
+      env: 'niche', cam: { az: 0, el: 38, d: 16, t: [0, 1.5, -.6] }, relic: { x: -6.6, y: 1.0, z: 1.6, name: 'Ember Shard' },
       stages: [{
         id: 'search', kind: 'search', goal: 'Read the clue, find the right jar, take the key to the door.',
         p: {
@@ -236,5 +237,13 @@
     }
   ];
 
-  return { WORLD, FUTURE, LEVELS };
+  LEVELS.forEach(l => { if (!l.theme) l.theme = 'jungle'; });
+  const ALL = LEVELS.concat(EXTRA);
+  const WORLDS = [
+    { id: 'LOST_CIVILIZATION', name: 'Lost Civilization', theme: 'jungle', from: 1, to: 10, blurb: 'Jungle temples, stone mechanisms, mirrors, water and symbols.', icon: '🗿', story: WORLD.story },
+    { id: 'SUNKEN_SANCTUM', name: 'Sunken Sanctum', theme: 'ocean', from: 11, to: 20, blurb: 'Flooded vaults, tide mirrors, coral codes and heavier puzzles.', icon: '🌊', story: 'Under the old temple lies a drowned sanctuary. Its machines are bigger, its clues are trickier.' },
+    { id: 'SKY_OBSERVATORY', name: 'Sky Observatory', theme: 'dusk', from: 21, to: 30, blurb: 'A mountain observatory at dusk: grand networks, orreries and final mysteries.', icon: '🔭', story: 'High above the clouds the last Core waits. Only the sharpest minds reach it.' }
+  ];
+  const FUTURE2 = FUTURE.filter(f => f.id !== 'QUANTUM_LAB' || true);
+  return { WORLD, WORLDS, FUTURE: FUTURE2, LEVELS: ALL };
 });
