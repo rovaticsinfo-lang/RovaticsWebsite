@@ -28,6 +28,8 @@ const GAMES = {
   racers:   { page: 'kids-car-race-game.html', extra: [],                                      common: true },
   beambots: { page: 'beambots.html',           extra: ['beambots-engine.js'],                  common: true },
   sceneblocks: { page: 'scene-blocks.html',    extra: [],                                      common: true },
+  mindverse: { page: 'mindverse.html', common: true,
+    extra: ['mindverse-engine.js', 'mindverse-levels.js', 'mindverse-gfx.js', 'mindverse-props.js', 'mindverse-world.js', 'vendor/three.min.js'] },
   cardclash: {
     page: 'cardclash.html', extra: ['cardclash-engine.js', 'cardclash-data.js', 'open-in-app.js', 'turn-config.js'], common: false,
     vendor: ['peerjs.min.js'],
@@ -67,7 +69,7 @@ Object.keys(GAMES).forEach(function (flavor) {
   const dest = path.join(__dirname, 'app', 'src', flavor, 'assets', 'game');
   fs.mkdirSync(dest, { recursive: true });
 
-  g.extra.forEach(function (f) { fs.copyFileSync(path.join(SRC, f), path.join(dest, f)); console.log(flavor + ': copied   ' + f); });
+  g.extra.forEach(function (f) { fs.mkdirSync(path.dirname(path.join(dest, f)), { recursive: true }); fs.copyFileSync(path.join(SRC, f), path.join(dest, f)); console.log(flavor + ': copied   ' + f); });
   (g.vendor || []).forEach(function (f) { fs.copyFileSync(path.join(VENDOR, f), path.join(dest, f)); console.log(flavor + ': copied   ' + f); });
   fs.copyFileSync(path.join(VENDOR, 'logo.png'), path.join(dest, 'logo.png'));
 

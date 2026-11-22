@@ -1,0 +1,5 @@
+/* MindVerse in the Android app: the floating About button sits bottom-left, so lift the game's own bottom bar above it
+   (the page exposes --reserve for exactly this), keep common.css from adding body padding, and hide the website-only link. */
+:root { --reserve: 56px; }
+body { padding-bottom: 0; }
+#menu a.btn { display: none; }

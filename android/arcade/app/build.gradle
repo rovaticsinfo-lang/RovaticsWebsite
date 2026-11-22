@@ -27,6 +27,7 @@ android {
         cardclash { dimension 'game'; applicationId 'com.rovatics.cardclash'; manifestPlaceholders = [linkPath: '/games/cardclash.html'] }
         beambots { dimension 'game'; applicationId 'com.rovatics.beambots'; manifestPlaceholders = [linkPath: '/games/beambots.html'] }
         sceneblocks { dimension 'game'; applicationId 'com.rovatics.sceneblocks'; manifestPlaceholders = [linkPath: '/games/scene-blocks.html'] }
+        mindverse { dimension 'game'; applicationId 'com.rovatics.mindverse'; manifestPlaceholders = [linkPath: '/games/mindverse.html'] }
     }
 
     signingConfigs {

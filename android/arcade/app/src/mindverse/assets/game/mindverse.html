@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1511">
+<title>MindVerse: Beyond the Puzzle</title>
+<style>
+  :root{--reserve:0px;--gold:#f2c25a;--gold2:#ffe3a0;--ink:#0b1511;--panel:rgba(14,22,19,.82);--line:rgba(242,194,90,.38);--text:#fbf3dc;--muted:#bfb48f;--cyan:#7ae8ff;--good:#8dffb0;--bad:#ff7b8a;
+        --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
+  *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#06100c;color:var(--text);font-family:'Segoe UI',system-ui,Arial,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+  #app{position:fixed;inset:0}
+  canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  [hidden]{display:none!important}
+  /* ---------- buttons ---------- */
+  .btn{min-height:46px;padding:10px 20px;border-radius:999px;border:1px solid var(--line);background:rgba(20,30,26,.78);font-weight:700;letter-spacing:.2px;backdrop-filter:blur(6px)}
+  .btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold2)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  a.btn{color:inherit}
+  .btn.primary{background:linear-gradient(120deg,#b98a2e,#f2c25a 55%,#ffe3a0);color:#2a1c05;border:0;box-shadow:0 6px 22px rgba(242,194,90,.28)}
+  .btn.primary:hover:not(:disabled){filter:brightness(1.1);color:#2a1c05}
+  .btn.big{font-size:1.1rem;padding:13px 30px}
+  .ib{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:1.3rem;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);position:relative}
+  .ib:hover:not(:disabled){border-color:var(--gold)}
+  .ib:disabled{opacity:.35}
+  .ib small{position:absolute;right:-3px;top:-3px;min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#2a1c05;font-size:.7rem;font-weight:800;display:grid;place-items:center;padding:0 4px}
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none}
+  #hud>*{pointer-events:auto}
+  #hud>.top,#hud>.bar{pointer-events:none}
+  .top{position:absolute;left:calc(10px + var(--safe-l));right:calc(10px + var(--safe-r));top:calc(8px + var(--safe-t));display:flex;gap:10px;align-items:flex-start;justify-content:space-between;pointer-events:none}
+  .top>*{pointer-events:auto}
+  .title{padding:7px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);text-align:center;backdrop-filter:blur(6px);max-width:46vw}
+  .title b{display:block;font-family:Georgia,serif;font-size:1.02rem;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .title span{font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+  .chips{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .chip{padding:6px 13px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:700;font-size:.9rem;backdrop-filter:blur(6px);white-space:nowrap}
+  .chip em{font-style:normal;color:var(--muted);font-weight:600}
+  .stars{letter-spacing:2px;color:#5a533c}.stars .on{color:var(--gold)}
+  .goal{position:absolute;left:calc(10px + var(--safe-l));top:calc(66px + var(--safe-t));max-width:min(360px,60vw);padding:9px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-size:.9rem;line-height:1.35;backdrop-filter:blur(6px);cursor:pointer}
+  .goal i{display:block;font-style:normal;color:var(--gold);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:2px}
+  .goal.min{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar{position:absolute;left:calc(10px + var(--safe-l));right:calc(10px + var(--safe-r));bottom:calc(10px + var(--safe-b) + var(--reserve));display:flex;gap:10px;align-items:flex-end;justify-content:space-between;pointer-events:none}
+  .bar>*{pointer-events:auto}
+  .grp{display:flex;gap:10px}
+  #toast{position:absolute;left:50%;bottom:calc(86px + var(--safe-b) + var(--reserve));transform:translateX(-50%);max-width:min(560px,92vw);padding:10px 18px;border-radius:14px;background:rgba(10,16,13,.92);border:1px solid var(--line);text-align:center;font-size:.95rem;line-height:1.35;opacity:0;transition:opacity .25s;pointer-events:none;z-index:5}
+  #toast.show{opacity:1}
+  #toast.bad{border-color:var(--bad)}
+  #toast.good{border-color:var(--good)}
+  #cap{position:absolute;left:50%;top:calc(62px + var(--safe-t));transform:translateX(-50%);padding:5px 12px;border-radius:8px;background:rgba(0,0,0,.6);font-size:.8rem;color:#cfe;opacity:0;transition:opacity .2s;pointer-events:none;font-style:italic}
+  #cap.show{opacity:1}
+  .card{position:absolute;left:50%;bottom:calc(88px + var(--safe-b) + var(--reserve));transform:translateX(-50%);width:min(460px,92vw);padding:14px 18px;border-radius:16px;background:rgba(14,22,19,.95);border:1px solid var(--gold);box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:6}
+  .card h4{margin:0 0 4px;font-family:Georgia,serif;color:var(--gold2);font-size:1.05rem}
+  .card p{margin:0 0 10px;line-height:1.45;color:#efe6c8}
+  .card .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .card ol{margin:6px 0 10px;padding-left:20px;line-height:1.5}
+  .rotbar{position:absolute;right:calc(12px + var(--safe-r));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
+  .rotbar .ib{width:56px;height:56px;font-size:1.5rem}
+  #selring,#hintring,#hintdest{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;pointer-events:none;border:3px solid var(--cyan);box-shadow:0 0 18px var(--cyan),inset 0 0 14px rgba(122,232,255,.4);display:none}
+  #hintring{border-color:var(--gold);box-shadow:0 0 22px var(--gold),inset 0 0 16px rgba(242,194,90,.5);animation:pulse 1s ease-in-out infinite;width:96px;height:96px;margin:-48px 0 0 -48px}
+  #hintdest{border-color:var(--good);box-shadow:0 0 20px var(--good);animation:pulse 1s ease-in-out infinite;border-style:dashed}
+  #selring{width:62px;height:62px;margin:-31px 0 0 -31px;border-width:2px;opacity:.85}
+  @keyframes pulse{50%{transform:scale(1.18);opacity:.7}}
+  #hintarrow{position:absolute;pointer-events:none;font-size:2rem;display:none;animation:bob .9s ease-in-out infinite;filter:drop-shadow(0 0 6px #000)}
+  @keyframes bob{50%{transform:translateY(8px)}}
+  #flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s;background:radial-gradient(circle,rgba(255,40,50,.0),rgba(255,40,50,.55))}
+  #flash.on{opacity:1;transition:none}
+  #flash.gold{background:radial-gradient(circle,rgba(255,230,160,.0),rgba(255,214,120,.5))}
+  #fps{position:absolute;right:6px;bottom:2px;font-size:.6rem;color:#789;opacity:.0}
+  /* ---------- screens ---------- */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(18px + var(--safe-t)) 18px calc(18px + var(--safe-b));overflow:auto;touch-action:pan-y;background:radial-gradient(ellipse at 50% 45%,rgba(5,12,10,.62),rgba(4,9,8,.86));z-index:10}
+  .screen.solid{background:radial-gradient(ellipse at 50% 0%,#14291f,#060d0a 70%)}
+  .logo{font-family:Georgia,'Times New Roman',serif;font-size:clamp(2.6rem,10vw,5.4rem);letter-spacing:.08em;margin:0;line-height:1;text-align:center;background:linear-gradient(180deg,#fff2c4,#f2c25a 55%,#a8761c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 18px rgba(0,0,0,.65)) drop-shadow(0 0 22px rgba(242,194,90,.35))}
+  .tag{margin:8px 0 26px;letter-spacing:.34em;text-transform:uppercase;color:var(--cyan);font-size:clamp(.7rem,2.6vw,.95rem);text-align:center;text-shadow:0 0 14px rgba(122,232,255,.5)}
+  .menu{display:flex;flex-direction:column;gap:12px;align-items:stretch;width:min(320px,86vw)}
+  .foot{margin-top:22px;color:var(--muted);font-size:.8rem;text-align:center;max-width:420px;line-height:1.5}
+  .modal{position:absolute;inset:0;display:grid;place-items:center;padding:18px;background:rgba(3,8,6,.72);z-index:20;overflow:auto;touch-action:pan-y}
+  .box{width:min(520px,100%);max-height:92vh;overflow:auto;padding:22px 24px;border-radius:20px;background:linear-gradient(180deg,rgba(24,36,30,.97),rgba(11,18,15,.97));border:1px solid var(--gold);box-shadow:0 20px 70px rgba(0,0,0,.65)}
+  .box h2{margin:0 0 6px;font-family:Georgia,serif;color:var(--gold2);text-align:center;font-size:1.6rem}
+  .box p{line-height:1.5;color:#efe6c8}
+  .box .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .bigstars{font-size:3rem;text-align:center;letter-spacing:8px;margin:6px 0}
+  .bigstars span{display:inline-block;color:#4a4430;transform:scale(.4);opacity:.3}
+  .bigstars span.on{color:var(--gold);animation:pop .55s cubic-bezier(.2,1.6,.4,1) forwards;text-shadow:0 0 24px rgba(242,194,90,.8)}
+  @keyframes pop{to{transform:scale(1);opacity:1}}
+  table.sc{width:100%;border-collapse:collapse;margin:8px 0}
+  table.sc td{padding:5px 4px;border-bottom:1px solid rgba(242,194,90,.15)}
+  table.sc td:last-child{text-align:right;font-weight:700}
+  table.sc tr.tot td{border-top:2px solid var(--gold);border-bottom:0;font-size:1.2rem;color:var(--gold2);padding-top:9px}
+  .neg{color:var(--bad)}
+  .set{display:grid;grid-template-columns:1fr auto;gap:12px 14px;align-items:center;margin:12px 0}
+  .set label{color:#efe6c8}
+  .set select,.set input[type=range]{width:150px;accent-color:var(--gold)}
+  .set select{background:#13201a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px}
+  .sw{width:50px;height:28px;border-radius:14px;background:#2d3a33;border:1px solid var(--line);position:relative}
+  .sw::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#9aa;transition:.2s}
+  .sw.on{background:#2b6c4c}.sw.on::after{left:25px;background:var(--gold2)}
+  /* ---------- level map ---------- */
+  .mapwrap{width:min(900px,100%)}
+  .world{border:1px solid var(--line);border-radius:20px;padding:16px;background:rgba(12,22,17,.72);margin-bottom:14px;backdrop-filter:blur(6px)}
+  .world h3{margin:0;font-family:Georgia,serif;color:var(--gold2);font-size:1.25rem}
+  .world .bl{color:var(--muted);font-size:.85rem;margin:2px 0 12px}
+  .nodes{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .node{aspect-ratio:1/1.08;border-radius:16px;border:1px solid var(--line);background:linear-gradient(160deg,rgba(40,58,46,.9),rgba(14,22,18,.9));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;min-height:84px}
+  .node:hover:not(:disabled){border-color:var(--gold);transform:translateY(-2px)}
+  .node b{font-family:Georgia,serif;font-size:1.5rem;color:var(--gold2)}
+  .node span{font-size:.64rem;color:var(--muted);text-align:center;padding:0 5px;line-height:1.15}
+  .node .st{font-size:.8rem;letter-spacing:2px;color:#4f4a38}.node .st .on{color:var(--gold)}
+  .node:disabled{opacity:.42}.node:disabled b::after{content:' 🔒';font-size:.9rem}
+  .node.next{border-color:var(--cyan);box-shadow:0 0 18px rgba(122,232,255,.4)}
+  .soon{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+  .soon div{border:1px dashed rgba(242,194,90,.25);border-radius:14px;padding:12px;color:var(--muted);font-size:.82rem}
+  .soon b{display:block;color:#d9cba0;font-family:Georgia,serif;margin-bottom:3px}
+  @media (max-width:560px){.nodes{grid-template-columns:repeat(3,1fr)}.title{max-width:40vw}.goal{top:calc(64px + var(--safe-t))}}
+  @media (max-height:520px){.goal{display:none}.logo{font-size:2.4rem}.tag{margin-bottom:12px}}
+  #intro{pointer-events:auto}
+  .rv-brand-badge{position:absolute;left:50%;bottom:calc(14px + var(--safe-b));transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;opacity:.85;border-radius:999px;background:rgba(4,14,20,.6);border:1px solid var(--line);color:var(--gold2);font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;letter-spacing:.04em;pointer-events:none}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+  #loading{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:#06100c;font-family:Georgia,serif;color:var(--gold2);letter-spacing:.2em}
+  #nogl{position:absolute;inset:0;z-index:60;display:grid;place-items:center;padding:24px;text-align:center;background:#06100c}
+</style>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="mindverse.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="c" tabindex="0" aria-label="MindVerse 3D puzzle scene"></canvas>
+  <div id="flash"></div>
+  <div id="hud" hidden>
+    <div class="top">
+      <button class="ib" id="pauseBtn" aria-label="Pause">☰</button>
+      <div class="title"><span id="tWorld">Lost Civilization</span><b id="tName">The Awakening</b></div>
+      <div class="chips"><div class="chip" id="moveChip">Moves 0 <em>/ par 2</em></div><div class="chip stars" id="starChip">★★★</div></div>
+    </div>
+    <div class="goal" id="goal"><i>Objective</i><span id="goalTxt"></span></div>
+    <div id="cap"></div>
+    <div class="rotbar" id="rotBar" hidden><button class="ib" id="rotL" aria-label="Rotate counter-clockwise">⟲</button><button class="ib" id="rotR" aria-label="Rotate clockwise">⟳</button></div>
+    <div id="selring"></div><div id="hintring"></div><div id="hintdest"></div><div id="hintarrow">👇</div>
+    <div class="card" id="card" hidden></div>
+    <div id="toast"></div>
+    <div class="bar">
+      <div class="grp"><button class="ib" id="undoBtn" aria-label="Undo">↶</button><button class="ib" id="restartBtn" aria-label="Restart">↻</button></div>
+      <div class="grp"><button class="ib" id="clueBtn" aria-label="Clue" hidden>📜</button><button class="ib" id="hintBtn" aria-label="Hint">💡<small id="hintN">3</small></button><button class="ib" id="camBtn" aria-label="Reset camera">⌖</button></div>
+    </div>
+  </div>
+
+  <div class="screen" id="menu" hidden>
+    <h1 class="logo">MINDVERSE</h1><div class="tag">Beyond the Puzzle</div>
+    <div class="menu">
+      <button class="btn primary big" id="mPlay">▶ Play</button>
+      <button class="btn" id="mLevels">Level map</button>
+      <button class="btn" id="mHow">How to play</button>
+      <button class="btn" id="mSet">Settings</button>
+      <a class="btn" href="../games.html" style="text-align:center;text-decoration:none;line-height:26px">← All games</a>
+    </div>
+    <div class="foot" id="menuFoot"></div>
+    <div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="logo.png" alt=""><span>Rovatics</span></div>
+  </div>
+  <div class="screen" id="map" hidden>
+    <div class="mapwrap">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><button class="ib" id="mapBack" aria-label="Back">←</button><h2 class="serif" style="margin:0;color:var(--gold2)">Level map</h2><span class="chip" id="mapStars" style="margin-left:auto">★ 0 / 30</span></div>
+      <div class="world"><h3 id="w1n">Lost Civilization</h3><div class="bl" id="w1b"></div><div class="nodes" id="nodes"></div></div>
+      <div class="world" style="opacity:.9"><h3>More worlds</h3><div class="bl">Planned for later releases. Your first world is complete when the Mind Core is restored.</div><div class="soon" id="soon"></div></div>
+    </div>
+  </div>
+  <div id="intro" class="modal" hidden></div>
+  <div id="modal" class="modal" hidden></div>
+  <div id="loading">LOADING…</div>
+  <div id="nogl" hidden><div><h2 class="serif" style="color:var(--gold2)">3D graphics are not available</h2><p style="color:#cfc6a6;max-width:420px">MindVerse needs WebGL. Try a recent version of Chrome, Edge, Firefox or Safari, and make sure hardware acceleration is turned on.</p><a class="btn" href="../games.html" style="display:inline-block;text-decoration:none;margin-top:14px">← All games</a></div></div>
+  <div id="fps"></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="mindverse-engine.js"></script>
+<script src="mindverse-levels.js"></script>
+<script src="mindverse-gfx.js"></script>
+<script src="mindverse-props.js"></script>
+<script src="mindverse-world.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = MindverseEngine, LD = MindverseLevels, LEVELS = LD.LEVELS, KEY = 'rovatics.mindverse.v1';
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let save = E.loadSave(localStorage, KEY), S = save.settings;
+  const persist = () => E.writeSave(localStorage, KEY, save);
+
+  /* ============ audio: everything is synthesized, nothing is downloaded ============ */
+  const A = (function () {
+    let ctx = null, sfx = null, mus = null, amb = null, started = false, verb = null, timers = [];
+    function init() {
+      if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; ctx = new AC();
+      sfx = ctx.createGain(); mus = ctx.createGain(); amb = ctx.createGain(); sfx.connect(ctx.destination); mus.connect(ctx.destination); amb.connect(ctx.destination); apply();
+      const len = ctx.sampleRate * 2, ir = ctx.createBuffer(2, len, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+      verb = ctx.createConvolver(); verb.buffer = ir; const vg = ctx.createGain(); vg.gain.value = .5; verb.connect(vg); vg.connect(mus); startAmbient();
+    }
+    function apply() { if (!ctx) return; sfx.gain.value = .9 * S.sfx; mus.gain.value = .55 * S.music; amb.gain.value = .5 * S.music; }
+    function noise(dur, type, f0, f1, g, when, q) {
+      if (!ctx) return; const n = Math.floor(ctx.sampleRate * dur), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const s = ctx.createBufferSource(); s.buffer = b; const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q || 1; const t = ctx.currentTime + (when || 0); f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+      const gn = ctx.createGain(); gn.gain.setValueAtTime(g, t); gn.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(f); f.connect(gn); gn.connect(sfx); s.start(t); s.stop(t + dur + .05);
+    }
+    function tone(f, dur, type, g, when, slide, out, a) {
+      if (!ctx) return; const o = ctx.createOscillator(), gn = ctx.createGain(), t = ctx.currentTime + (when || 0); o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
+      gn.gain.setValueAtTime(.0001, t); gn.gain.exponentialRampToValueAtTime(g, t + (a || .01)); gn.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(gn); gn.connect(out || sfx); o.start(t); o.stop(t + dur + .05);
+    }
+    const note = n => 261.63 * Math.pow(2, n / 12), PENTA = [0, 2, 4, 7, 9, 12, 14, 16];
+    function startAmbient() {
+      if (started) return; started = true;
+      // wind / jungle air: slow filtered noise loop
+      const n = ctx.sampleRate * 4, b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0); let last = 0; for (let i = 0; i < n; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
+      const s = ctx.createBufferSource(); s.buffer = b; s.loop = true; const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 520; const g = ctx.createGain(); g.gain.value = .35; s.connect(f); f.connect(g); g.connect(amb); s.start();
+      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = .08; lg.gain.value = 220; lfo.connect(lg); lg.connect(f.frequency); lfo.start();
+      // water trickle
+      const w = ctx.createBufferSource(); const wb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), wd = wb.getChannelData(0); for (let i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1; w.buffer = wb; w.loop = true; const wf = ctx.createBiquadFilter(); wf.type = 'bandpass'; wf.frequency.value = 2400; wf.Q.value = .7; const wg = ctx.createGain(); wg.gain.value = .05; w.connect(wf); wf.connect(wg); wg.connect(amb); w.start();
+      // pad chords + soft pluck melody
+      const chords = [[0, 7, 12, 16], [-3, 4, 9, 12], [-5, 2, 7, 11], [-1, 7, 11, 14]]; let ci = 0;
+      function pad() { if (!ctx) return; const ch = chords[ci++ % chords.length]; ch.forEach((n, i) => tone(note(n - 12), 7.5, 'triangle', .05, i * .15, null, verb, 2.4)); timers.push(setTimeout(pad, 7200)); }
+      function pluck() { if (!ctx) return; const n = PENTA[Math.floor(Math.random() * PENTA.length)]; tone(note(n), 2.6, 'sine', .06, 0, null, verb, .02); timers.push(setTimeout(pluck, 1800 + Math.random() * 3200)); }
+      function bird() { if (!ctx) return; const f0 = 2200 + Math.random() * 1200; tone(f0, .12, 'sine', .025, 0, f0 * 1.5); tone(f0 * 1.1, .1, 'sine', .02, .15, f0 * 1.7); timers.push(setTimeout(bird, 4000 + Math.random() * 7000)); }
+      pad(); pluck(); timers.push(setTimeout(bird, 3000));
+    }
+    const FX = {
+      tap() { tone(520, .07, 'triangle', .12); noise(.06, 'bandpass', 1800, 900, .1); },
+      pick() { tone(660, .1, 'sine', .1, 0, 880); },
+      rot() { noise(.22, 'lowpass', 900, 200, .3, 0, 2); tone(140, .12, 'square', .07, .12); },
+      place() { tone(110, .22, 'sine', .35, 0, 60); noise(.08, 'lowpass', 600, 150, .22); },
+      plateOn() { tone(110, .3, 'sine', .35, 0, 55); [0, 4, 7, 12].forEach((n, i) => tone(note(n + 12), .6, 'sine', .12, .12 + i * .08, null, verb)); },
+      relay() { [7, 12, 16, 19].forEach((n, i) => tone(note(n + 12), .5, 'sine', .1, i * .06, null, verb)); },
+      glyph() { tone(note(7), .35, 'triangle', .14, 0, null, verb); noise(.12, 'bandpass', 1200, 600, .1); },
+      stone() { tone(95, .16, 'sine', .35, 0, 55); noise(.09, 'lowpass', 500, 120, .25); },
+      turn() { noise(.2, 'lowpass', 700, 180, .28, 0, 2); },
+      valve() { tone(210, .25, 'sawtooth', .06, 0, 120); noise(.2, 'bandpass', 900, 400, .08); },
+      water() { for (let i = 0; i < 6; i++) tone(500 + Math.random() * 700, .08, 'sine', .05, i * .07 + Math.random() * .05, 1400); },
+      gear() { noise(.12, 'bandpass', 500, 300, .22, 0, 4); tone(90, .1, 'square', .08, 0, 70); },
+      bridge() { noise(.5, 'lowpass', 500, 120, .3); tone(70, .5, 'sawtooth', .08, 0, 55); },
+      plate() { tone(100, .25, 'sine', .3, 0, 60); },
+      rail() { noise(.4, 'bandpass', 700, 300, .15, 0, 3); },
+      key() { [0, 4, 7, 12, 16].forEach((n, i) => tone(note(n + 12), .5, 'triangle', .1, i * .07, null, verb)); },
+      empty() { tone(150, .25, 'sine', .15, 0, 100); noise(.15, 'lowpass', 400, 100, .1); },
+      door() { noise(1.8, 'lowpass', 400, 80, .5); tone(55, 1.8, 'sawtooth', .1, 0, 40); },
+      switchOk() { tone(note(0), .25, 'triangle', .16, 0, null, verb); tone(note(7), .3, 'triangle', .12, .1, null, verb); },
+      trap() { tone(60, .6, 'sawtooth', .4, 0, 30); noise(.5, 'lowpass', 1200, 90, .5); },
+      reset() { noise(.35, 'bandpass', 500, 200, .12); },
+      blocked() { tone(120, .16, 'square', .1, 0, 90); },
+      hint() { [12, 16, 19].forEach((n, i) => tone(note(n + 12), .6, 'sine', .08, i * .09, null, verb)); },
+      undo() { tone(420, .12, 'triangle', .1, 0, 260); },
+      relic() { for (let i = 0; i < 8; i++) tone(note(PENTA[i % 8] + 12), .5, 'sine', .08, i * .06, null, verb); },
+      stageDone() { [0, 4, 7, 12, 16, 19].forEach((n, i) => tone(note(n + 12), .9, 'triangle', .12, i * .1, null, verb)); },
+      complete() { [0, 4, 7, 12, 16, 19, 24].forEach((n, i) => tone(note(n + 12), 1.4, 'triangle', .14, i * .12, null, verb)); tone(note(0), 3, 'sine', .2, 0, null, verb); },
+      core() { noise(3, 'lowpass', 200, 2200, .35, 0, 2); [0, 7, 12, 19, 24].forEach((n, i) => tone(note(n), 4, 'sine', .14, i * .25, null, verb, .6)); }
+    };
+    return { init, apply, fx(n) { if (!ctx || !FX[n] || !S.sfx) return; try { FX[n](); } catch (e) { } }, get ctx() { return ctx; } };
+  })();
+  const CAPS = { rot: 'stone grinds', place: 'a stone thuds', plateOn: 'the plate hums to life', relay: 'energy chimes', glyph: 'a glyph glows', door: 'the heavy door rumbles open', trap: 'spikes thunder up', key: 'a key chimes', stageDone: 'a mechanism awakens', complete: 'the chamber sings', turn: 'a channel grinds', valve: 'a valve squeaks', bridge: 'the bridge groans', rail: 'a rail creaks', gear: 'gears clank', switchOk: 'a switch clicks', relic: 'a shard sparkles', core: 'the Mind Core awakens' };
+  let capT = 0;
+  function sound(n) { A.fx(n); if (S.captions && CAPS[n]) { const c = $('cap'); c.textContent = '[' + CAPS[n] + ']'; c.classList.add('show'); clearTimeout(capT); capT = setTimeout(() => c.classList.remove('show'), 1600); } }
+  function buzz(ms) {
+    if (!S.haptics) return;
+    try { if (window.RovaticsApp && RovaticsApp.haptic) { RovaticsApp.haptic(Array.isArray(ms) || ms > 60 ? 'heavy' : 'tick'); return; } } catch (e) { }
+    if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { } }
+  }
+
+  /* ============ 3D world ============ */
+  let world = null, game = null, def = null, mode = 'menu', busy = false, selected = null, hintObj = null, hintDest = null, attemptTick = 0;
+  const reduce = () => !!S.reduceMotion;
+  function qualityFor(name) { return name === 'auto' ? MV.autoQuality() : name; }
+  function bootWorld() {
+    try {
+      world = MV.createWorld($('c'), { quality: qualityFor(S.quality), reduceMotion: reduce, onSfx: sound, onWalkEnd: () => { if (game && game.complete) showComplete(); }, preserve: /[?&]shot/.test(location.search) });
+    } catch (e) { console.error(e); $('nogl').hidden = false; $('loading').hidden = true; return false; }
+    resize(); return true;
+  }
+  function resize() { if (!world) return; const r = $('c').getBoundingClientRect(); world.setSize(Math.max(2, Math.floor(r.width)), Math.max(2, Math.floor(r.height))); }
+  window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+
+  /* ============ screens ============ */
+  function show(which) {
+    ['menu', 'map'].forEach(k => { $(k).hidden = k !== which; }); $('hud').hidden = which !== 'play'; mode = which;
+    if (which === 'menu' || which === 'map') hideCard();
+  }
+  function stars(n, max) { let s = ''; for (let i = 0; i < (max || 3); i++) s += '<span class="' + (i < n ? 'on' : '') + '">★</span>'; return s; }
+  function updateMenu() {
+    const done = Object.keys(save.done).length, st = E.totalStars(save), rel = Object.keys(save.relics).length;
+    $('mPlay').textContent = done ? (done >= LEVELS.length ? '▶ Replay a level' : '▶ Continue: level ' + nextLevel()) : '▶ Play';
+    $('menuFoot').innerHTML = done ? '★ ' + st + ' / ' + LEVELS.length * 3 + ' &nbsp;·&nbsp; ✦ ' + rel + ' / ' + LEVELS.length + ' relics' : 'A realistic 3D adventure of ancient mechanisms, mirrors, water and symbols.';
+  }
+  function nextLevel() { for (let i = 0; i < LEVELS.length; i++) if (!save.done[LEVELS[i].levelId]) return i + 1; return LEVELS.length; }
+  function buildMap() {
+    const nodes = $('nodes'); nodes.innerHTML = ''; const nx = nextLevel();
+    LEVELS.forEach((L, i) => {
+      const unlocked = E.isUnlocked(save, LEVELS, i), r = save.done[L.levelId], b = document.createElement('button'); b.className = 'node' + (i + 1 === nx && unlocked ? ' next' : ''); b.disabled = !unlocked; b.dataset.n = i + 1;
+      b.innerHTML = '<b>' + (i + 1) + '</b><span>' + L.title + '</span><div class="st">' + stars(r ? r.stars : 0) + (save.relics[L.levelId] ? ' <span class="on">✦</span>' : '') + '</div>'; b.onclick = () => { A.init(); startLevel(i + 1); }; nodes.appendChild(b);
+    });
+    $('mapStars').textContent = '★ ' + E.totalStars(save) + ' / ' + LEVELS.length * 3; $('w1b').textContent = LD.WORLD.blurb;
+    $('soon').innerHTML = LD.FUTURE.map(w => '<div><b>' + w.icon + ' ' + w.name + '</b>' + w.blurb + '</div>').join('');
+  }
+  function openMap() { buildMap(); show('map'); }
+
+  function toast(msg, kind, ms) { const t = $('toast'); t.textContent = msg; t.className = 'show ' + (kind || ''); clearTimeout(toast.t); toast.t = setTimeout(() => { t.className = ''; }, ms || 2600); }
+  function hideCard() { $('card').hidden = true; }
+  function showCard(html) { const c = $('card'); c.innerHTML = html; c.hidden = false; return c; }
+
+  /* ============ playing a level ============ */
+  function startLevel(n, opts) {
+    n = Math.max(1, Math.min(LEVELS.length, n | 0)); def = LEVELS[n - 1]; game = E.createGame(def); attemptTick = 0; selected = null; hintObj = null; hintDest = null; busy = false;
+    save.last = n; persist(); world.load(def, game); show('play'); hideCard(); closeModal(); updateHud(true);
+    $('tName').textContent = n + ' · ' + def.title; $('tWorld').textContent = LD.WORLD.name; $('goal').classList.remove('min');
+    clearMarks(); if (!(opts && opts.noIntro)) showIntro(); if (def.levelId === 'WC_L01' && !save.seenHow) { save.seenHow = 1; persist(); }
+  }
+  function showIntro() {
+    const m = $('intro'); m.hidden = false; m.innerHTML = '<div class="box" style="text-align:center"><div style="letter-spacing:.3em;color:var(--cyan);font-size:.75rem;text-transform:uppercase">Level ' + def.n + ' · ' + def.difficulty.replace(/_/g, ' ') + '</div><h2>' + def.title + '</h2><p style="font-style:italic;color:#cfc6a6">' + def.intro + '</p><p><b style="color:var(--gold2)">Goal:</b> ' + def.objective + '</p><div class="row"><button class="btn primary big" id="introGo">Begin</button></div></div>';
+    $('introGo').onclick = () => { m.hidden = true; A.init(); sound('tap'); toastTip(); };
+  }
+  function toastTip() { const tips = { 1: 'Drag the crystal onto the plate, or tap a stone to send it there.', 2: 'Tap the mirror to turn it. The ticks on the floor show each position.', 3: 'Read the stone tablet, then tap each panel to change its symbol.', 4: 'Drag stones onto the pans, or tap a stone to move it. Numbers show each side.', 5: 'Tap channel pieces to turn them. Tap a valve wheel to open it.', 6: 'Tap the relief on the wall first. Then you can open the jars.', 7: 'Drag the stone block to another socket if it blocks the beam.', 8: 'Tap the lever, the plate and the wheel. Read the messages if something refuses to move.', 9: 'Tap a switch to study it. A wrong press resets the room, nothing else is lost.', 10: 'Five mechanisms, one after another. Each wakes the next.' }; toast(tips[def.n] || def.objective, '', 4200); }
+  function curStageDef() { return def.stages[game.stage]; }
+  function updateHud(first) {
+    if (!game) return; const par = def.par, mv = game.moves, sc = E.scoreFor(def, { moves: mv, hints: game.hints, traps: game.traps, relic: game.relic });
+    $('moveChip').innerHTML = 'Moves ' + mv + ' <em>/ par ' + par + '</em>'; $('moveChip').style.color = mv > par ? '#ffb4a0' : '';
+    $('starChip').innerHTML = stars(mv > par ? 1 : 2).replace(/<span class="on">★<\/span>(?=<span class="">)/, '$&');
+    $('goalTxt').textContent = curStageDef().goal; $('undoBtn').disabled = !game.canUndo() || busy; $('hintBtn').disabled = game.complete || busy;
+    $('hintN').textContent = game.hints; $('hintN').parentElement.querySelector('small').style.display = game.hints ? 'grid' : 'none';
+    const clue = def.stages[0].p.clueLines || (def.levelId === 'WC_L09' && def.stages[0].p.clueText) || (def.levelId === 'WC_L06' && game.states[0].seen && game.states[0].seen.clue); $('clueBtn').hidden = !clue;
+    const v = world.view(); const sel = selected && v && v.rotate(selected, 1); $('rotBar').hidden = !sel;
+  }
+  function clearMarks() { ['selring', 'hintring', 'hintdest', 'hintarrow'].forEach(i => { $(i).style.display = 'none'; }); $('rotBar').hidden = true; selected = null; hintObj = null; hintDest = null; }
+
+  /* ---- perform an engine action and play the consequences ---- */
+  function perform(a, silent) {
+    if (!game || busy || game.complete) return null;
+    const stageBefore = game.stage, res = game.perform(a);
+    if (!res.ok) { if (!silent) { toast(res.blocked, 'bad'); sound('blocked'); world.shake(.05); buzz(30); } return res; }
+    if (!res.free) { hintObj = null; hintDest = null; }
+    world.sync(game); updateHud();
+    (res.ev || []).forEach(e => { if (e === 'reset' || e === 'trap' || e === 'stageDone' || e === 'complete') return; sound(e === 'plateOn' ? 'plateOn' : e); });
+    if (res.info) toast(res.info, res.ev && res.ev.includes('key') ? 'good' : '', 3600);
+    if (res.ev && res.ev.includes('plateOn')) { const v = world.view(); world.fx.burst(v.root.position.x + a.to.length * 0, 1, v.root.position.z, 0, 0xffd36a, 3); }
+    if (res.fail) {
+      sound('trap'); buzz([60, 40, 120]); world.shake(.5); const v = stageViewOf(stageBefore); v && v.trigger && v.trigger(); const f = $('flash'); f.className = 'on'; setTimeout(() => { f.className = ''; }, 120); toast(res.fail, 'bad', 3600); setTimeout(() => sound('reset'), 700);
+      setTimeout(() => { world.sync(game); updateHud(); }, 900);
+    }
+    if (res.stageDone && !res.complete) {
+      busy = true; sound('stageDone'); buzz(60); world.fx.burst(0, 3, 0, 0, 0xffffff, 1); celebrateStage(stageBefore);
+      setTimeout(() => { world.setStage(game.stage); busy = false; updateHud(); toast(curStageDef().goal, '', 3600); }, 1700);
+    }
+    if (res.complete) { onComplete(stageBefore); }
+    return res;
+  }
+  function stageViewOf(i) { return world.views[i]; }
+  function celebrateStage(i) {
+    const v = stageViewOf(i); if (!v) return; const p = v.root.position; for (let k = 0; k < 3; k++) world.fx.burst(p.x + (k - 1) * 2, 2, p.z, 36, k === 1 ? 0xffe28a : 0x9fe8ff, 5); v.setDone(true); toast('Mechanism awakened!', 'good', 1600);
+  }
+  async function onComplete(i) {
+    busy = true; sound('complete'); buzz([40, 50, 40, 50, 120]); const v = stageViewOf(i); if (v) celebrateStage(i);
+    world.finale(); sound(def.env === 'core' ? 'core' : 'door'); const f = $('flash'); f.className = 'gold on'; setTimeout(() => { f.className = 'gold'; }, 120);
+    updateHud();
+    if (def.levelId === 'WC_L08') { toast('The path holds. The explorer crosses…', 'good', 4000); return; }   // the walker calls showComplete() when it arrives
+    await sleep(def.env === 'core' ? 5200 : 2600); showComplete();
+  }
+  function showComplete() {
+    if (!game || mode !== 'play' || !game.complete || $('modal').dataset.done === def.levelId + game.moves) return; $('modal').dataset.done = def.levelId + game.moves;
+    const res = game.result(); E.recordResult(save, def, res, game.restarts + 1); if (game.relic) save.relics[def.levelId] = 1; persist();
+    const first = def.n === LEVELS.length; const rows = res.parts.map(p => '<tr><td>' + p.label + '</td><td class="' + (p.v < 0 ? 'neg' : '') + '">' + (p.v > 0 ? '+' : '') + p.v + '</td></tr>').join('');
+    const best = save.done[def.levelId].best, goals = [['Solve the puzzle', true], ['Within par (' + def.par + ' moves)', res.s2], ['Find the hidden relic with no hints', res.s3]].map(g => '<div style="text-align:left;color:' + (g[1] ? 'var(--gold2)' : 'var(--muted)') + '">' + (g[1] ? '★ ' : '☆ ') + g[0] + '</div>').join('');
+    const msg = def.n === LEVELS.length ? '<h2>The Mind Core is restored</h2><p style="text-align:center;color:#cfc6a6">Light floods the chamber. The first of five regions wakes. World 1 complete!</p>' : '<h2>' + def.title + ' solved</h2>';
+    openModal(msg + '<div class="bigstars" id="bs">' + stars(res.stars).replace(/<span class="on">/g, '<span class="on" style="animation-delay:CALCs">') + '</div>' + goals + '<table class="sc">' + rows + '<tr class="tot"><td>Score</td><td>' + res.total + '</td></tr></table><div style="text-align:center;color:var(--muted);font-size:.85rem">Best: ' + best + ' · Total ★ ' + E.totalStars(save) + '</div><div class="row">' + (first ? '<button class="btn primary" id="rMap">Level map</button>' : '<button class="btn primary" id="rNext">Next level ▶</button>') + '<button class="btn" id="rAgain">Play again</button><button class="btn" id="rMap2">Levels</button></div>');
+    let k = 0; $('bs').querySelectorAll('.on').forEach(s => { s.style.animationDelay = (k++ * .35 + .2) + 's'; }); setTimeout(() => sound('stageDone'), 150);
+    const go = id => $(id) && ($(id).onclick = ({ rNext: () => startLevel(def.n + 1), rAgain: () => startLevel(def.n, { noIntro: true }), rMap: openMap, rMap2: openMap }[id])); ['rNext', 'rAgain', 'rMap', 'rMap2'].forEach(go);
+  }
+  function openModal(html) { const m = $('modal'); m.innerHTML = '<div class="box">' + html + '</div>'; m.hidden = false; }
+  function closeModal() { $('modal').hidden = true; $('modal').dataset.done = ''; }
+
+  /* ---- input ---- */
+  const cv = $('c'), ptrs = new Map(); let drag = null, orbit = null, pinch = null, down = null;
+  function relPos(e) { return { x: e.clientX, y: e.clientY }; }
+  cv.addEventListener('pointerdown', e => {
+    if (mode !== 'play' || busy && !game.complete && false) return; A.init(); cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, relPos(e));
+    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) }; drag && cancelDrag(); down = null; return; }
+    if (ptrs.size > 2) return;
+    const pk = busy ? null : world.pick(e.clientX, e.clientY); down = { x: e.clientX, y: e.clientY, pk, t: performance.now(), moved: false };
+    const v = world.view(); if (pk && v && !game.complete) { const d = v.drag(pk.oid); if (d && !v.locked) down.dragSpec = d; }
+    if (!down.dragSpec && !(pk && pk.oid)) orbit = { x: e.clientX, y: e.clientY };
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, relPos(e));
+    if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch.d > 0) world.zoom(pinch.d / Math.max(1, d)); pinch.d = d; return; }
+    if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (!down.moved && Math.hypot(dx, dy) > 8) { down.moved = true; if (down.dragSpec) startDrag(down.dragSpec, down.pk.oid); }
+    if (drag) { updateDrag(e.clientX, e.clientY); return; }
+    if (down.moved && (orbit || down.pk)) { const o = orbit || { x: down.x, y: down.y }; world.orbit((e.clientX - o.x) * S.sens, (e.clientY - o.y) * S.sens); orbit = { x: e.clientX, y: e.clientY }; }
+  });
+  function endPtr(e) {
+    ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (ptrs.size) return;
+    const d = down; down = null; orbit = null; if (!d) { drag && cancelDrag(); return; }
+    if (drag) { dropDrag(e.clientX, e.clientY); return; }
+    if (!d.moved && !busy) onTap(d.pk);
+  }
+  cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); if (drag) cancelDrag(); down = null; orbit = null; pinch = null; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); world && world.zoom(e.deltaY > 0 ? 1.08 : .92); }, { passive: false });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  function startDrag(spec, oid) {
+    const v = world.view(); drag = { spec, oid, view: v, zone: null }; v.setDragging(spec.group); sound('pick'); buzz(8); selected = oid; world.hideRelicFocus && 0;
+  }
+  function stageLocal(d, cx, cy, y) { const p = world.groundPoint(cx, cy, y == null ? d.spec.y : y); if (!p) return null; const l = d.view.root.worldToLocal(p.clone()); return { x: l.x, z: l.z }; }
+  // a drop spot counts when the finger is over it as seen on screen: each spot is tested at its own height
+  function pickZone(d, cx, cy) { let best = null, bd = d.spec.r * d.spec.r; Object.keys(d.spec.zones).forEach(id => { const z = d.spec.zones[id], l = stageLocal(d, cx, cy, z.y == null ? .5 : z.y); if (!l) return; const q = (l.x - z.x) ** 2 + (l.z - z.z) ** 2; if (q <= bd) { bd = q; best = id; } }); return best; }
+  function updateDrag(cx, cy) {
+    const l = stageLocal(drag, cx, cy); if (!l) return; const g = drag.spec.group; g.position.set(l.x, drag.spec.y, l.z); drag.zone = pickZone(drag, cx, cy);
+  }
+  function dropDrag(cx, cy) {
+    const d = drag; drag = null; d.view.setDragging(null); const l = stageLocal(d, cx, cy); const z = l ? pickZone(d, cx, cy) : null;
+    if (z == null) { toast('That is not a valid place. Drop it on a glowing spot.', 'bad'); sound('blocked'); return; }
+    const a = d.spec.action(z); const res = perform(a, true); if (res && !res.ok) { if (!/already there/i.test(res.blocked)) toast(res.blocked, 'bad'); sound('blocked'); } else if (res && res.ok) { /* sounds played by events */ }
+  }
+  function cancelDrag() { if (!drag) return; drag.view.setDragging(null); drag = null; }
+
+  function onTap(pk) {
+    if (!pk || !pk.oid) { selected = null; $('rotBar').hidden = true; return; }
+    if (pk.oid === 'relic') { if (world.takeRelic()) { game.collectRelic(); sound('relic'); buzz(30); toast('✦ ' + def.relic.name + ' found! Solve without hints to earn the third star.', 'good', 3600); updateHud(); } return; }
+    const v = world.view(); if (!v || v.locked) return; const r = v.tap(pk.oid, game);
+    if (!r) { sound('tap'); return; }
+    if (r.select) selected = r.select; else if (r.card || r.inspect) selected = null;
+    if (r.inspect) { const res = perform(r.inspect, true); if (res && res.ok && res.info) { if (r.card) showObjCard(r, res.info); else showInfoCard(pk.oid, res.info); } sound('tap'); }
+    if (r.clue && !r.inspect) { showClue(); }
+    if (r.action) perform(r.action);
+    else if (r.note && !r.clue) { toast(r.note, '', 2800); sound('tap'); }
+    updateHud();
+  }
+  function showInfoCard(oid, text) {
+    const t = def.levelId === 'WC_L06' ? 'Wall relief' : 'You study it'; const c = showCard('<h4>' + t + '</h4><p>' + text + '</p><div class="row"><button class="btn" id="cOk">OK</button></div>'); $('cOk').onclick = hideCard;
+  }
+  function showObjCard(r, text) {
+    const done = r.card.done, lbl = r.card.label || 'Open jar'; const c = showCard('<h4>' + (r.card.oid.indexOf('jar') === 0 ? 'Jar' : 'Switch') + '</h4><p>' + text + '</p><div class="row"><button class="btn" id="cOk">Close</button>' + (done ? '' : '<button class="btn primary" id="cDo">' + lbl + '</button>') + '</div>');
+    $('cOk').onclick = hideCard; if ($('cDo')) $('cDo').onclick = () => { hideCard(); perform(r.card.open); };
+  }
+  function showClue() {
+    const p = def.stages[0].p; let body = '';
+    if (p.clueLines) body = '<ol>' + p.clueLines.map(l => '<li>' + l + '</li>').join('') + '</ol><p style="color:var(--muted);font-size:.85rem;margin:0 0 8px">The tablet on the floor shows the same three rules in carvings.</p>';
+    else if (p.clueText) body = '<p style="font-style:italic">“' + p.clueText + '”</p>';
+    const c = showCard('<h4>' + (def.levelId === 'WC_L09' ? 'The mural' : def.levelId === 'WC_L06' ? 'Wall relief' : 'The clue') + '</h4>' + body + '<div class="row"><button class="btn" id="cOk">OK</button></div>'); $('cOk').onclick = hideCard;
+  }
+  $('clueBtn').onclick = () => { A.init(); sound('tap'); if (def.levelId === 'WC_L06') { const r = perform({ t: 'inspect', obj: 'clue', free: true }, true); showInfoCard('clue', def.stages[0].p.clueText); } else showClue(); };
+
+  /* ---- HUD buttons ---- */
+  $('undoBtn').onclick = () => { A.init(); if (game.undo()) { sound('undo'); world.sync(game); world.setStage(game.stage); hintObj = null; hintDest = null; hideCard(); updateHud(); } };
+  $('restartBtn').onclick = () => { A.init(); openModal('<h2>Restart this puzzle?</h2><p style="text-align:center">Everything goes back to how it started. Your saved progress stays.</p><div class="row"><button class="btn primary" id="yRes">Restart</button><button class="btn" id="nRes">Keep playing</button></div>'); $('nRes').onclick = closeModal; $('yRes').onclick = () => { closeModal(); game.restart(); world.setStage(game.stage, true); world.sync(game, true); clearMarks(); hideCard(); sound('reset'); updateHud(); toast('Back to the start.', '', 1500); }; };
+  $('camBtn').onclick = () => { A.init(); world.resetCam(); sound('tap'); };
+  $('goal').onclick = () => $('goal').classList.toggle('min');
+  $('rotL').onclick = () => rotSel(-1); $('rotR').onclick = () => rotSel(1);
+  function rotSel(d) { const v = world.view(); if (!selected || !v) return; const a = v.rotate(selected, d); if (a) perform(a); }
+  $('hintBtn').onclick = () => {
+    A.init(); if (!game || game.complete || busy) return; const h = game.hint(); if (!h) return; sound('hint'); hideCard(); updateHud(); hintObj = null; hintDest = null;
+    const v = world.view(); let extra = '';
+    if (h.obj) { hintObj = h.obj; if (h.action && v.destPos) { hintDest = v.destPos(h.action); } }
+    if (h.action) extra = '<p style="color:var(--gold2)"><b>Next step:</b> ' + h.demo + '</p>';
+    const c = showCard('<h4>Hint ' + h.level + ' of 3</h4><p>' + h.text + '</p>' + extra + '<div class="row"><button class="btn" id="cOk">OK</button></div>'); $('cOk').onclick = hideCard;
+    if (h.level >= 3) toast('Hints are free. Using one only costs the third star.', '', 2200);
+  };
+  $('pauseBtn').onclick = () => { A.init(); openModal('<h2>Paused</h2><div class="row" style="flex-direction:column;align-items:stretch"><button class="btn primary" id="pRes">Resume</button><button class="btn" id="pRst">Restart puzzle</button><button class="btn" id="pSet">Settings</button><button class="btn" id="pMap">Level map</button><button class="btn" id="pMenu">Main menu</button></div>'); $('pRes').onclick = closeModal; $('pRst').onclick = () => { closeModal(); $('restartBtn').click(); }; $('pSet').onclick = openSettings; $('pMap').onclick = () => { closeModal(); openMap(); }; $('pMenu').onclick = () => { closeModal(); toMenu(); }; };
+
+  /* ---- menus ---- */
+  function toMenu() { updateMenu(); show('menu'); world.load(LEVELS[0], E.createGame(LEVELS[0])); world.hideRelic && world.hideRelic(); }
+  $('mPlay').onclick = () => { A.init(); sound('tap'); const done = Object.keys(save.done).length; startLevel(done ? nextLevel() : 1); };
+  $('mLevels').onclick = () => { A.init(); sound('tap'); openMap(); };
+  $('mapBack').onclick = () => { sound('tap'); if (game && !game.complete && def && mode === 'map' && 0) show('play'); else toMenu(); };
+  $('mHow').onclick = () => { A.init(); sound('tap'); openHow(); };
+  $('mSet').onclick = () => { A.init(); sound('tap'); openSettings(); };
+  function openHow() {
+    openModal('<h2>How to play</h2><p>Every room is one puzzle. Look around, find what you can touch, and think it through.</p><ul style="line-height:1.7;color:#efe6c8;padding-left:20px"><li><b>Tap</b> a mirror, channel, valve, gear or switch to use it.</li><li><b>Drag</b> crystals and stones to a glowing spot.</li><li><b>Swipe</b> empty space to look around. <b>Pinch</b> or scroll to zoom.</li><li>💡 <b>Hints</b> are free, in three steps: an idea, the object, then the next move.</li><li>↶ <b>Undo</b> and ↻ <b>restart</b> never cost anything.</li><li>Stars: ★ solve it, ★ within par moves, ★ find the hidden ✦ relic without hints.</li></ul><p style="color:var(--muted);font-size:.85rem">Your progress is saved on this device only. Nothing is sent anywhere.</p><div class="row"><button class="btn primary" id="hOk">Got it</button></div>'); $('hOk').onclick = closeModal;
+  }
+  function openSettings() {
+    const sw = (id, on) => '<button class="sw' + (on ? ' on' : '') + '" id="' + id + '" aria-label="' + id + '"></button>';
+    openModal('<h2>Settings</h2><div class="set"><label>Graphics quality</label><select id="sQ"><option value="auto">Auto</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><label>Sound effects</label><input type="range" id="sSfx" min="0" max="1" step=".05"><label>Music and ambience</label><input type="range" id="sMus" min="0" max="1" step=".05"><label>Camera sensitivity</label><input type="range" id="sSens" min=".4" max="2" step=".1"><label>Vibration</label>' + sw('sHap', S.haptics) + '<label>Reduce motion (no sway or shake)</label>' + sw('sRed', S.reduceMotion) + '<label>Sound captions</label>' + sw('sCap', S.captions) + '</div><div class="row"><button class="btn" id="sReset">Reset progress</button><button class="btn primary" id="sOk">Done</button></div>');
+    $('sQ').value = S.quality; $('sSfx').value = S.sfx; $('sMus').value = S.music; $('sSens').value = S.sens;
+    $('sQ').onchange = e => { S.quality = e.target.value; persist(); world.setQuality(qualityFor(S.quality)); };
+    $('sSfx').oninput = e => { S.sfx = +e.target.value; A.apply(); persist(); }; $('sSfx').onchange = () => sound('tap'); $('sMus').oninput = e => { S.music = +e.target.value; A.apply(); persist(); }; $('sSens').oninput = e => { S.sens = +e.target.value; persist(); };
+    const tg = (id, k) => { $(id).onclick = () => { S[k] = S[k] ? 0 : 1; $(id).classList.toggle('on', !!S[k]); persist(); sound('tap'); if (k === 'haptics') buzz(30); }; }; tg('sHap', 'haptics'); tg('sRed', 'reduceMotion'); tg('sCap', 'captions');
+    $('sOk').onclick = closeModal; $('sReset').onclick = () => { if (confirm('Erase all stars, relics and best scores on this device?')) { save = E.defaultSave(); S = save.settings; persist(); closeModal(); updateMenu(); buildMap(); toast('Progress erased.'); } };
+  }
+
+  /* ---- hint / selection markers follow 3D positions ---- */
+  function placeMark(id, pos) { const el = $(id); if (!pos) { el.style.display = 'none'; return; } const p = world.worldToScreen(pos); if (p.behind) { el.style.display = 'none'; return; } el.style.display = 'block'; el.style.left = p.x + 'px'; el.style.top = p.y + 'px'; }
+  function markers() {
+    if (mode !== 'play' || !game) return;
+    const sel = selected && !drag ? world.objectPos(selected) : null; if (sel) sel.y += .6; placeMark('selring', sel);
+    const hp = hintObj ? world.objectPos(hintObj) : null; if (hp) hp.y += .6; placeMark('hintring', hp);
+    let dp = null; if (hintDest) { dp = world.view().root.localToWorld(new THREE.Vector3(hintDest.x, hintDest.y, hintDest.z)); } placeMark('hintdest', dp);
+    const ar = $('hintarrow'); if (hp) { const p = world.worldToScreen(new THREE.Vector3(hp.x, hp.y + 1.8, hp.z)); ar.style.display = 'block'; ar.style.left = (p.x - 14) + 'px'; ar.style.top = (p.y - 20) + 'px'; } else ar.style.display = 'none';
+  }
+
+  /* ---- main loop ---- */
+  let last = performance.now(), acc = 0, frames = 0, lowFrames = 0, qChecked = 0;
+  function loop(now) {
+    const dt = Math.min(.05, (now - last) / 1000); last = now; frames++; acc += dt;
+    if (world) {
+      if (mode === 'menu' || mode === 'map') world.setUser(Math.sin(now / 9000) * 28, 4 + Math.sin(now / 7000) * 3);
+      world.update(dt); world.render(); markers();
+      if (S.quality === 'auto' && acc >= 3 && qChecked < 2) { const fps = frames / acc; if (fps < 22 && world.qName !== 'low') { world.setQuality(world.qName === 'high' ? 'medium' : 'low'); } qChecked++; frames = 0; acc = 0; }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---- Android Back: return true when the game handled it, false at the top level (the app then asks before exiting) ---- */
+  window.__androidBack = function () {
+    if (!$('intro').hidden) { $('intro').hidden = true; return true; }
+    if (game && game.complete && mode === 'play') { closeModal(); openMap(); return true; }
+    if (!$('modal').hidden) { closeModal(); return true; }
+    if (!$('card').hidden) { hideCard(); return true; }
+    if (mode === 'play') { $('pauseBtn').click(); return true; }
+    if (mode === 'map') { toMenu(); return true; }
+    return false;
+  };
+
+  /* ---- keyboard (desktop) ---- */
+  window.addEventListener('keydown', e => {
+    if (mode !== 'play' || !game) return; const k = e.key.toLowerCase();
+    if (k === 'z' || (e.ctrlKey && k === 'z')) $('undoBtn').click(); else if (k === 'r') $('restartBtn').click(); else if (k === 'h') $('hintBtn').click(); else if (k === 'escape') { if (!$('modal').hidden) closeModal(); else $('pauseBtn').click(); }
+    else if (k === 'q') rotSel(-1); else if (k === 'e') rotSel(1);
+  });
+  document.addEventListener('visibilitychange', () => { if (!ctxOk()) return; });
+  function ctxOk() { return true; }
+
+  /* ---- boot ---- */
+  (function boot() {
+    if (!bootWorld()) return;
+    world.load(LEVELS[0], E.createGame(LEVELS[0])); world.hideRelic();
+    updateMenu(); show('menu'); $('loading').hidden = true; requestAnimationFrame(loop);
+    const q = new URLSearchParams(location.search); if (q.get('level')) { startLevel(+q.get('level'), { noIntro: true }); }
+    window.__mv = { E, LD, get game() { return game; }, get world() { return world; }, get save() { return save; }, get mode() { return mode; }, get busy() { return busy; }, startLevel, perform, showComplete, openMap, toMenu, onTap, get selected() { return selected; }, set selected(v) { selected = v; }, sound, get hint() { return { obj: hintObj, dest: hintDest }; }, get drag() { return drag; }, S };
+  })();
+})();
+</script>
+<script src="common.js"></script>
+</body>
+</html>

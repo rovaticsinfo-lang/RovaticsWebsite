@@ -1,6 +1,6 @@
-# Rovatics Arcade — Android apps (Card Clash, Sudoku, Racers, Beam Bots, Scene Blocks)
+# Rovatics Arcade — Android apps (Card Clash, Sudoku, Racers, Beam Bots, Scene Blocks, MindVerse)
 
-One Gradle project, five Play Store apps (product flavors). Each app is a native shell (splash, welcome tour, About, haptics,
+One Gradle project, six Play Store apps (product flavors). Each app is a native shell (splash, welcome tour, About, haptics,
 share sheet, Back handling, edge-to-edge + keyboard-safe layout) around the offline web game from `games/`.
 
 | Flavor | Application ID | Game |
@@ -10,6 +10,7 @@ share sheet, Back handling, edge-to-edge + keyboard-safe layout) around the offl
 | racers | com.rovatics.racers | games/kids-car-race-game.html |
 | beambots | com.rovatics.beambots | games/beambots.html |
 | sceneblocks | com.rovatics.sceneblocks | games/scene-blocks.html |
+| mindverse | com.rovatics.mindverse | games/mindverse.html |
 
 ## Build
 ```
@@ -65,3 +66,11 @@ Scene Blocks has no invite or challenge links. Its `assetlinks.json` entry only 
 ## Build outputs
 `./gradlew assembleDebug assembleRelease bundleRelease` then copy results to one folder, e.g. `E:/Android/arcade-builds/`
 (`<Game>-debug.apk`, `<Game>-release-TESTKEY.apk`, `<Game>-release-TESTKEY.aab`).
+
+## MindVerse
+Offline 3D puzzle adventure (three.js r128 is bundled as `vendor/three.min.js`; WebGL2 is used when available, with a fallback). Same contract as the other offline games
+(badge, `window.__androidBack`, `RovaticsApp.haptic`, `viewport-fit=cover`). Specific to it:
+- `--reserve` (56px in `web-overrides/mindverse.css`) lifts the in-game bottom bar above the app's About button.
+- Back closes dialogs, opens the pause menu during play, returns from the level map to the menu, and only then offers to exit.
+- No INTERNET permission, no invite links. Quality is chosen automatically (low on small phones) and can be changed in Settings.
+- Performance was not profiled on real phones; test on a mid-range device before publishing.
