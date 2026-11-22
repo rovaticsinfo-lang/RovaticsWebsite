@@ -9,7 +9,7 @@ const fmtTime = s => { const m = Math.round(s / 60); return m < 60 ? m + ' min' 
 export class Launcher {
   constructor(host) { this.host = host; this.state = 'boot'; this.covers = {}; }
   async init() {
-    this.splash = new Splash(this.host.renderer, 'fonts/helvetiker_bold.typeface.json'); await this.splash.load(); this.attach();
+    this.splash = new Splash(this.host.renderer, '../fonts/helvetiker_bold.typeface.json'); await this.splash.load(); this.attach();
   }
   attach() { this.ui = this.host.root.querySelector('#gzui'); this.ui.onclick = e => { const b = e.target.closest('[data-g]'); if (b) { this.host.audio.unlock(); this.host.audio.click(); this.act(b.dataset.g, b); } }; }
   resize() { const w = this.host.canvas.clientWidth || innerWidth, h = this.host.canvas.clientHeight || innerHeight; this.host.renderer.setSize(w, h, false); this.splash.resize(w, h); }

@@ -9,7 +9,7 @@ export const GAMES = [
     loader: () => import('../px/game.js'), cover: r => import('../px/cover.js').then(m => m.renderCover(r))
   },
   {
-    id: 'devilhunters', kind: 'link', title: 'Devil Hunters', subtitle: 'Crowd Rush', accent: '#ff5a3c', href: 'crowd-rush.html',
+    id: 'devilhunters', kind: 'link', title: 'Devil Hunters', subtitle: 'Crowd Rush', accent: '#ff5a3c', href: '../crowd-rush.html',
     tagline: 'Lead a running crowd over curving roads and hunt down beasts, devils and the Devil King.',
     about: 'A 3D crowd runner with real running people, guns, bombs and long hilly levels in eight real-world settings.', features: ['Endless variety', 'Touch and keyboard'],
     art: 'radial-gradient(120% 90% at 70% 20%, #ff9a4a 0%, #7a1d12 45%, #12060a 100%)', emoji: '👹'

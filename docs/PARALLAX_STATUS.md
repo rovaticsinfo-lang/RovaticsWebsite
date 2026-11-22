@@ -6,7 +6,7 @@ Branch `Parallax` (cut from `Devil-hunters`). Web only. Nothing here touches And
 
 | Area | Status |
 |---|---|
-| Game Zone platform (`games/game-zone.html`, `games/gz/`) | Done. Animated 3D glass-and-gold "R" splash, hub with featured PARALLAX card (3D-rendered cover), profile (name/colour/play time), shared settings. Games register in `gz/registry.js` only. Devil Hunters is listed as a second game. |
+| Game Zone platform (`games/parallax/parallax.html`, `games/gz/`) | Done. Animated 3D glass-and-gold "R" splash, hub with featured PARALLAX card (3D-rendered cover), profile (name/colour/play time), shared settings. Games register in `parallax/gz/registry.js` only. Devil Hunters is listed as a second game. |
 | Worlds | 5, each with its own sky, light, ground, landmark props and sound bed. |
 | Levels | 100, all titled from the design pack, all with a generated puzzle that the engine has solved and replayed. |
 | Puzzle families | 9: pillar sequence, channel routing (incl. wrap-around topology), coupled mechanisms (lights, tuning dials, magnets, pressure), gravity slide, light and mirrors (incl. prisms), pressure tanks, temporal echo, causal circuits, multi-chamber paradox. |

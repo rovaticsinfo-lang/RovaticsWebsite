@@ -1,10 +1,10 @@
 // Run: node --test tests/parallax-logic.test.mjs   Proves the PARALLAX rules, all 100 levels, progression, rewards and saving.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LEVELS, WORLDS } from '../games/px/levels.js';
-import { solve, replay, apply, solved, moves, clone } from '../games/px/logic.js';
-import { Session } from '../games/px/session.js';
-import * as P from '../games/px/progress.js';
+import { LEVELS, WORLDS } from '../games/parallax/px/levels.js';
+import { solve, replay, apply, solved, moves, clone } from '../games/parallax/px/logic.js';
+import { Session } from '../games/parallax/px/session.js';
+import * as P from '../games/parallax/px/progress.js';
 
 test('five worlds and one hundred levels exist', () => {
   assert.equal(WORLDS.length, 5); assert.equal(LEVELS.length, 100);

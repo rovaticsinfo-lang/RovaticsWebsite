@@ -48,7 +48,7 @@ class Host {
     try { await this.launcher.init(); } catch (e) { console.error(e); status.textContent = 'Could not load the 3D scene. This needs a recent browser with WebGL2.'; return; }
     status.remove(); this.onResize(() => this.launcher.resize()); this.launcher.resize(); this.setLoop(dt => this.launcher.frame(dt)); this.launcher.startSplash();
     const tick = now => { const dt = Math.min(0.1, (now - this.last) / 1000); this.last = now; if (this.loop) this.loop(dt); requestAnimationFrame(tick); }; requestAnimationFrame(tick);
-    const q = new URLSearchParams(location.search).get('game'); if (q) this.launcher.skipSplash(q);
+    const q = window.GZ_GAME || new URLSearchParams(location.search).get('game'); if (q) this.launcher.skipSplash(q);
     window.__gz = this;
   }
 }
