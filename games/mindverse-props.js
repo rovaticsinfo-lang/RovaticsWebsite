@@ -21,7 +21,7 @@
     v.focusY = 1;
     // a slab under the whole stage: dark shade when locked (future stage), gold aura when finished
     v.base = (w, d) => {
-      const b = G.box(w, .4, d, M.floor, 0, -.14, 0); b.receiveShadow = true; v.root.add(b);
+      const b = G.box(w, .4, d, ctx.baseMat || M.floor, 0, -.14, 0); b.receiveShadow = true; v.root.add(b);
       const sh = new T.Mesh(new T.BoxGeometry(w + .4, 7, d + .4), new T.MeshBasicMaterial({ color: 0x06141a, transparent: true, opacity: .45, depthWrite: false })); sh.position.y = 3.4; sh.visible = false; sh.userData.shade = true; v.root.add(sh); v.shade = sh;
       const au = new T.Mesh(new T.RingGeometry(Math.min(w, d) * .5 - .5, Math.min(w, d) * .5 - .2, 48), new T.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); au.rotation.x = -PI / 2; au.position.y = .06; au.visible = false; v.root.add(au); v.aura = au;
     };
@@ -131,6 +131,7 @@
       g.add(G.hit(b.id, 1, 1.5, .6)); const s = b.slots[b.start]; g.position.set(s.x, 0, s.z); v.add(b.id, g, 'Stone block'); blk[b.id] = { g, x: s.x, z: s.z, slot: b.start };
       sockets[b.id] = b.slots.map((s2, k) => { const m = marker(.8, 0xffc766); m.position.set(s2.x, .04, s2.z); v.root.add(m); const disc = G.cyl(.62, .62, .06, M.stoneDark, s2.x, .03, s2.z, 16); v.root.add(disc); m.userData.slot = k; G.tagAll(m, b.id + '#' + k); disc.userData.oid = b.id + '#' + k; return m; });
     });
+    (p.fixed || []).forEach(f => { const g = new T.Group(); g.add(G.bevel(1.05, 2.2, 1.05, M.stoneMoss, 0, 1.1, 0, .08)); g.add(G.bevel(1.3, .3, 1.3, M.stoneDark, 0, 2.3, 0, .05)); g.position.set(f.x, 0, f.z); v.root.add(g); });
     // beam segments
     const MAXS = 14, segs = [], flares = [];
     for (let i = 0; i < MAXS; i++) {
@@ -262,7 +263,7 @@
       nx.clearRect(0, 0, 256, 128); nx.fillStyle = 'rgba(30,22,12,.85)'; nx.fillRect(0, 0, 256, 128); nx.strokeStyle = '#d9a441'; nx.lineWidth = 4; nx.strokeRect(3, 3, 250, 122); nx.font = 'bold 54px Georgia,serif'; nx.textAlign = 'center'; nx.fillStyle = ok ? '#8dffb0' : '#ffe3a0'; nx.fillText(sm.L + '  ' + (sm.L === sm.R ? '=' : sm.L < sm.R ? '<' : '>') + '  ' + sm.R, 128, 82); nx.font = '16px Georgia,serif'; nx.fillStyle = '#d8c79a'; nx.fillText('LEFT              RIGHT', 128, 28); nx.font = 'bold 17px Georgia,serif'; nx.fillStyle = '#9fe8ff'; nx.fillText(p.target ? 'GOAL: right is heavier by ' + p.target : 'GOAL: both sides equal', 128, 112); nt.needsUpdate = true;
       if (instant) tilt = tiltT;
     };
-    const slotOff = [[-.62, -.35], [.62, -.35], [0, .6]];
+    const slotOff = p.cap > 3 ? [[-.62, -.62], [.62, -.62], [-.62, .62], [.62, .62]] : [[-.62, -.35], [.62, -.35], [0, .6]];
     v.fns.push((t, dt) => {
       tilt = tween(tilt, tiltT, dt, 3.2); beam.rotation.z = tilt; ptr.rotation.z = -tilt;
       ['L', 'R'].forEach(side => {
@@ -481,6 +482,117 @@
     });
     v.tap = oid => oid === 'gear_a' || oid === 'gear_b' ? { action: { t: 'gear', obj: oid, d: 1 }, select: oid } : null;
     v.rotate = (oid, d) => oid === 'gear_a' || oid === 'gear_b' ? { t: 'gear', obj: oid, d } : null;
+    return v;
+  };
+
+  /* ======================= NEW MECHANICS: PUSH, RUNES, DISCS, SLIDE, RINGS ======================= */
+  const GLYPHS = ['spiral', 'triangle', 'sun', 'wave', 'moon', 'eye', 'star'];
+  const glyphMat = (sym, bg, size) => new T.MeshStandardMaterial({ map: G.glyphTexture(sym, bg || '#5c5444', G.GLYPH_COL[sym][0], G.GLYPH_COL[sym][1]), roughness: .7, emissive: new T.Color(G.GLYPH_COL[sym][1]), emissiveIntensity: .35, emissiveMap: G.glyphTexture(sym, '#000', '#fff', null) });
+  function explorer() {
+    const run = new T.Group(); run.add(G.cyl(.3, .36, .9, new T.MeshStandardMaterial({ color: 0x2a6f8f, roughness: .7 }), 0, .6, 0, 10)); const hd = new T.Mesh(new T.SphereGeometry(.28, 14, 12), new T.MeshStandardMaterial({ color: 0xe0b48a, roughness: .7 })); hd.position.y = 1.32; hd.castShadow = true; run.add(hd);
+    run.add(G.cyl(.42, .42, .06, new T.MeshStandardMaterial({ color: 0x8a5a2a }), 0, 1.52, 0, 14), G.cyl(.21, .27, .22, new T.MeshStandardMaterial({ color: 0x8a5a2a }), 0, 1.63, 0, 12), G.box(.42, .55, .26, new T.MeshStandardMaterial({ color: 0x7a3f1d }), 0, .76, -.3)); return run;
+  }
+
+  /* ---- PUSH ---- */
+  S.push = function (ctx, st) {
+    const v = newView(ctx), p = st.p, TS = 2.1, W = p.w, H = p.h; v.base(W * TS + 4, H * TS + 4); v.focusY = 1; v.fitW = W * TS + 4;
+    const X = x => (x - (W - 1) / 2) * TS, Z = y => (y - (H - 1) / 2) * TS;
+    const free = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (cellIs2(p.walls, x, y)) { const g = new T.Group(); g.add(G.bevel(TS - .06, 1.0 + ((x * 7 + y * 3) % 3) * .14, TS - .06, M.stoneMoss, 0, .55, 0, .08)); g.position.set(X(x), 0, Z(y)); v.root.add(g); continue; }
+      const tile = G.bevel(TS - .06, .24, TS - .06, (x + y) % 2 ? M.stoneWarm : M.stone, X(x), .12, Z(y), .05); v.root.add(tile); free.push([x, y]);
+      v.root.children[v.root.children.length - 1].userData.oid = 'tile_' + x + '_' + y;
+    }
+    p.targets.forEach((tg, i) => { const g = new T.Group(); const ring = new T.Mesh(new T.RingGeometry(.55, .8, 32), new T.MeshBasicMaterial({ color: 0xffc766, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); ring.rotation.x = -PI / 2; ring.position.y = .27; g.add(ring); const gl = G.glow(0xffb040, 2.4, .4); gl.position.y = .4; g.add(gl); g.position.set(X(tg[0]), 0, Z(tg[1])); v.root.add(g); });
+    const crates = p.crates.map((c, i) => { const g = new T.Group(), body = G.bevel(1.35, 1.35, 1.35, M.stoneWarm, 0, .9, 0, .1); g.add(body); const gm = new T.Mesh(new T.PlaneGeometry(.95, .95), glyphMat(GLYPHS[i % 5], '#6d6350')); gm.position.set(0, .9, .72); g.add(gm); const g2 = gm.clone(); g2.rotation.y = PI; g2.position.z = -.72; g.add(g2); g.position.set(X(c[0]), 0, Z(c[1])); g.userData.cur = new T.Vector3(X(c[0]), 0, Z(c[1])); v.add('crate_' + i, g, 'Crate'); g.add(G.hit('crate_' + i, .8, 1.8, .9)); return g; });
+    const pl = explorer(); pl.position.set(X(p.player[0]), 0, Z(p.player[1])); v.add('player', pl, 'Explorer'); pl.add(G.hit('player', .7, 2, 1)); const plT = new T.Vector3(pl.position.x, 0, pl.position.z); let faceT = 0, bob = 0, cs = null, on = 0;
+    v.sync = (s, instant) => { cs = s; plT.set(X(s.p[0]), 0, Z(s.p[1])); s.c.forEach((c, i) => { crates[i].userData.cur.set(X(c[0]), 0, Z(c[1])); if (instant) crates[i].position.copy(crates[i].userData.cur); }); if (instant) pl.position.copy(plT); on = s.c.filter(c => cellIs2(p.targets, c[0], c[1])).length; v.on = on; };
+    v.fns.push((t, dt) => {
+      const moving = pl.position.distanceTo(plT) > .05; pl.position.x = tween(pl.position.x, plT.x, dt, 14); pl.position.z = tween(pl.position.z, plT.z, dt, 14); bob += moving ? dt * 14 : 0; pl.position.y = moving ? Math.abs(Math.sin(bob)) * .18 : 0;
+      if (moving) { const dx = plT.x - pl.position.x, dz = plT.z - pl.position.z; faceT = Math.atan2(dx, dz); } pl.rotation.y += ((faceT - pl.rotation.y + PI * 3) % (PI * 2) - PI) * Math.min(1, dt * 12);
+      crates.forEach((c, i) => { c.position.x = tween(c.position.x, c.userData.cur.x, dt, 14); c.position.z = tween(c.position.z, c.userData.cur.z, dt, 14); const isOn = cs && cellIs2(p.targets, cs.c[i][0], cs.c[i][1]); c.children[0].material = c.children[0].material; c.scale.setScalar(1 + (isOn ? .03 * Math.sin(t * 4) : 0)); });
+    });
+    // tap a tile next to the explorer to step, or further away to walk there (never pushes on the way)
+    v.tap = (oid, g) => {
+      if (oid === 'player') return { note: 'Tap a tile to walk there. Crates are pushed when you walk into them.' }; if (/^crate_/.test(oid)) return { note: 'Walk into a crate to push it onto a glowing plate.' };
+      const m = /^tile_(\d+)_(\d+)$/.exec(oid); if (!m) return null; const tx = +m[1], ty = +m[2], s = g.state(); if (tx === s.p[0] && ty === s.p[1]) return null;
+      const occ = (x, y) => cellIs2(p.walls, x, y) || s.c.some(c => c[0] === x && c[1] === y), q = [[s.p[0], s.p[1]]], prev = { [s.p[0] + ',' + s.p[1]]: null }, DD = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] };
+      while (q.length) { const [x, y] = q.shift(); if (x === tx && y === ty) break; for (const d in DD) { const nx = x + DD[d][0], ny = y + DD[d][1], k = nx + ',' + ny; if (nx < 0 || ny < 0 || nx >= W || ny >= H || occ(nx, ny) || k in prev) continue; prev[k] = [x + ',' + y, d]; q.push([nx, ny]); } }
+      const key = tx + ',' + ty; if (!(key in prev)) { const adj = Math.abs(tx - s.p[0]) + Math.abs(ty - s.p[1]) === 1; if (adj) { const d = tx > s.p[0] ? 'R' : tx < s.p[0] ? 'L' : ty > s.p[1] ? 'D' : 'U'; return { action: { t: 'step', obj: 'player', d } }; } return { note: 'You cannot walk there without pushing a crate.' }; }
+      const path = []; for (let k = key; prev[k]; k = prev[k][0]) path.unshift(prev[k][1]); return { actions: path.map(d => ({ t: 'step', obj: 'player', d })) };
+    };
+    return v;
+  };
+  const cellIs2 = (list, x, y) => list.some(c => c[0] === x && c[1] === y);
+
+  /* ---- RUNES ---- */
+  S.runes = function (ctx, st) {
+    const v = newView(ctx), p = st.p, W = p.w, H = p.h, TS = 2.4; v.base(W * TS + 5, H * TS + 5); v.focusY = .5; v.fitW = W * TS + 4.5;
+    const cells = p.start.map((_, i) => { const x = i % W, y = Math.floor(i / W), g = new T.Group(); g.add(G.bevel(TS - .12, .5, TS - .12, M.stoneDark, 0, .25, 0, .07)); const top = new T.Mesh(new T.PlaneGeometry(TS - .6, TS - .6), glyphMat(GLYPHS[(x + y * 2) % 7], '#4a4234')); top.rotation.x = -PI / 2; top.position.y = .52; g.add(top); const gl = G.glow(0xffc766, TS * 1.5, 0); gl.position.y = .9; g.add(gl); const ringM = new T.Mesh(new T.RingGeometry(TS * .42, TS * .46, 32), new T.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); ringM.rotation.x = -PI / 2; ringM.position.y = .55; g.add(ringM);
+      g.position.set((x - (W - 1) / 2) * TS, 0, (y - (H - 1) / 2) * TS); v.add('rune_' + i, g, 'Rune'); g.add(G.hit('rune_' + i, TS * .5, 1, .4)); return { g, top, gl, ringM, on: 0, tgt: 0, flip: 0 }; });
+    v.sync = (s, instant) => { s.b.forEach((b, i) => { const o = cells[i]; if (b !== o.tgt) { o.tgt = b; o.flip = 1; } if (instant) { o.on = b; o.flip = 0; } }); v.allOn = s.b.every(b => b === 1); };
+    v.fns.push((t, dt) => cells.forEach((o, i) => { o.on = tween(o.on, o.tgt, dt, 9); o.flip = Math.max(0, o.flip - dt * 3); o.g.position.y = o.on * .22 + Math.sin(o.flip * PI) * .25; o.top.material.emissiveIntensity = .15 + o.on * 1.3 + (v.allOn ? .5 * Math.sin(t * 5) : 0); o.gl.material.opacity = o.on * .55; o.ringM.material.opacity = o.on * .8; o.top.material.color.setScalar(.45 + o.on * .7); }));
+    v.tap = oid => /^rune_\d+$/.test(oid) ? { action: { t: 'press', obj: oid, i: +oid.slice(5) } } : null;
+    return v;
+  };
+
+  /* ---- DISCS ---- */
+  S.discs = function (ctx, st) {
+    const v = newView(ctx), p = st.p, NP = p.start.length, SP = 4.6; v.base(NP * SP + 4, 8); v.focusY = 2; v.fitW = NP * SP + 3;
+    const PX = i => (i - (NP - 1) / 2) * SP, hgt = p.n * .62 + 1.6, hue = n => new T.Color().setHSL(.05 + n / (p.n + 1) * .55, .55, .5);
+    v.root.add(G.bevel(NP * SP + 1, .5, 3.2, M.stoneDark, 0, .25, 0, .06));
+    const pegs = []; for (let i = 0; i < NP; i++) { const g = new T.Group(); g.add(G.cyl(.16, .2, hgt, M.gold, 0, .5 + hgt / 2, 0, 12)); g.add(G.bevel(2.6, .22, 2.6, M.stoneWarm, 0, .6, 0, .05)); const gl = G.glow(0xffd36a, 3.5, 0); gl.position.y = hgt + .7; g.add(gl); g.position.set(PX(i), 0, 0); g.add(G.hit('peg_' + i, 1.9, hgt + 1.4, hgt / 2)); const goal = i === p.goal; if (goal) { const mk = new T.Mesh(new T.RingGeometry(1.4, 1.6, 32), new T.MeshBasicMaterial({ color: 0x7ae8ff, transparent: true, opacity: .7, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); mk.rotation.x = -PI / 2; mk.position.y = .73; g.add(mk); } v.add('peg_' + i, g, 'Peg'); pegs.push({ g, gl }); }
+    const discs = {}; for (let n = 1; n <= p.n; n++) { const r = .55 + n * .16, g = new T.Group(), m = new T.Mesh(new T.CylinderGeometry(r, r, .5, 28), new T.MeshStandardMaterial({ color: hue(n), roughness: .45, metalness: .35, envMapIntensity: .6 })); m.castShadow = m.receiveShadow = true; g.add(m); const rim = new T.Mesh(new T.TorusGeometry(r, .06, 8, 28), M.gold); rim.rotation.x = PI / 2; rim.position.y = .25; g.add(rim); const lab = new T.Mesh(new T.PlaneGeometry(.5, .5), glyphMat(GLYPHS[n % 7], '#222')); lab.rotation.x = -PI / 2; lab.position.y = .26; lab.scale.setScalar(.8); g.add(lab); G.tagAll(g, 'disc_' + n); v.root.add(g); discs[n] = { g, tx: 0, ty: 0, lift: 0, x: 0, y: 0 }; }
+    let from = null, state = null;
+    v.sync = (s, instant) => { state = s; s.p.forEach((peg, pi) => peg.forEach((n, k) => { const d = discs[n]; d.tx = PX(pi); d.ty = .85 + k * .52; if (instant) { d.x = d.tx; d.y = d.ty; d.g.position.set(d.x, d.y, 0); } })); };
+    v.fns.push((t, dt) => { Object.keys(discs).forEach(k => { const d = discs[k], moving = Math.abs(d.x - d.tx) > .05, topY = hgt + 1.6; const goY = moving ? Math.max(d.ty, topY) : d.ty; d.x = tween(d.x, Math.abs(d.y - topY) < .6 || !moving ? d.tx : d.x, dt, 9); d.y = tween(d.y, moving && Math.abs(d.y - topY) > .3 && Math.abs(d.x - d.tx) > .3 ? topY : d.ty, dt, 9); d.g.position.set(d.x, d.y, 0); }); pegs.forEach((pg, i) => { pg.gl.material.opacity = from === i ? .8 + .2 * Math.sin(t * 8) : 0; }); });
+    v.tap = (oid, g) => {
+      const m = /^peg_(\d+)$/.exec(oid) || /^disc_(\d+)$/.exec(oid) && { 1: String(state.p.findIndex(pg => pg.includes(+/^disc_(\d+)$/.exec(oid)[1]))) }; if (!m) return null; const i = +m[1]; if (i < 0 || isNaN(i)) return null;
+      if (from === null) { if (!state.p[i].length) return { note: 'That peg is empty. Tap a peg with discs.' }; from = i; return { select: 'peg_' + i }; }
+      const f = from; from = null; if (f === i) return null; return { action: { t: 'move', obj: 'peg_' + f, to: 'peg_' + i } };
+    };
+    return v;
+  };
+
+  /* ---- SLIDE ---- */
+  S.slide = function (ctx, st) {
+    const v = newView(ctx), p = st.p, W = p.w, H = p.h, TS = 2.3; v.base(W * TS + 6, H * TS + 4); v.focusY = .5; v.fitW = W * TS + 6;
+    const X = x => (x - (W - 1) / 2) * TS, Z = y => (y - (H - 1) / 2) * TS, kb = p.blocks.find(b => b.key);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) v.root.add(G.bevel(TS - .08, .2, TS - .08, (x + y) % 2 ? M.stoneDark : M.stone, X(x), .1, Z(y), .04));
+    v.root.add(G.bevel(W * TS + .8, .8, .5, M.stoneWarm, 0, .4, Z(-.5) - .1, .05), G.bevel(W * TS + .8, .8, .5, M.stoneWarm, 0, .4, Z(H - .5) + .1, .05), G.bevel(.5, .8, H * TS + .8, M.stoneWarm, X(-.5) - .1, .4, 0, .05));
+    [-1, 1].forEach(sd => { }); v.root.add(G.bevel(.5, .8, (H - 1) * TS - 0, M.stoneWarm, X(W - .5) + .1, .4, 0, .05)); v.root.children[v.root.children.length - 1].visible = false;
+    for (let y = 0; y < H; y++) if (y !== kb.y) v.root.add(G.bevel(.5, .8, TS - .1, M.stoneWarm, X(W - .5) + .1, .4, Z(y), .05));
+    const ex = new T.Mesh(new T.PlaneGeometry(1.8, TS - .5), new T.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: .55, blending: T.AdditiveBlending, depthWrite: false })); ex.rotation.x = -PI / 2; ex.position.set(X(W - .5) + .1, .22, Z(kb.y)); v.root.add(ex); const egl = G.glow(0xffc766, 5, .5); egl.position.set(X(W - .5) + .6, 1, Z(kb.y)); v.root.add(egl);
+    const bl = {}; p.blocks.forEach((b, i) => { const g = new T.Group(), w = b.ori === 'h' ? b.len * TS - .18 : TS - .18, d = b.ori === 'h' ? TS - .18 : b.len * TS - .18; g.add(G.bevel(w, 1.2, d, b.key ? new T.MeshStandardMaterial({ color: 0xc08a2c, metalness: .55, roughness: .55, envMapIntensity: .35 }) : M.stoneWarm, 0, .8, 0, .1)); const gm = new T.Mesh(new T.PlaneGeometry(Math.min(w, d) * .6, Math.min(w, d) * .6), glyphMat(b.key ? 'sun' : GLYPHS[(i + 1) % 6 + 1 > 6 ? 0 : (i + 1) % 6], b.key ? '#7a5a22' : '#5c5444')); gm.rotation.x = -PI / 2; gm.position.y = 1.42; g.add(gm); const hit = G.hit(b.id, Math.max(w, d) * .5, 1.6, .8); hit.scale.set(b.ori === 'h' ? 1 : .55, 1, b.ori === 'h' ? .55 : 1); g.add(hit);
+      // grooves show the axis it slides on
+      const grv = new T.Mesh(new T.PlaneGeometry(b.ori === 'h' ? W * TS : .35, b.ori === 'h' ? .35 : H * TS), new T.MeshBasicMaterial({ color: 0x120c06, transparent: true, opacity: .35 })); grv.rotation.x = -PI / 2; grv.position.set(b.ori === 'h' ? 0 : X(b.x), .21, b.ori === 'h' ? Z(b.y) : 0); v.root.add(grv);
+      const cx = q => b.ori === 'h' ? X(q) + (b.len - 1) * TS / 2 : X(b.x), cz = q => b.ori === 'h' ? Z(b.y) : Z(q) + (b.len - 1) * TS / 2; v.add(b.id, g, 'Block'); bl[b.id] = { g, b, cx, cz, tx: 0, tz: 0 }; });
+    let st0 = null; v.sync = (s, instant) => { st0 = s; p.blocks.forEach(b => { const o = bl[b.id]; o.tx = o.cx(s.pos[b.id]); o.tz = o.cz(s.pos[b.id]); if (instant) o.g.position.set(o.tx, 0, o.tz); }); };
+    v.fns.push((t, dt) => { p.blocks.forEach(b => { const o = bl[b.id]; if (v.dragging === o.g) return; o.g.position.x = tween(o.g.position.x, o.tx, dt, 13); o.g.position.z = tween(o.g.position.z, o.tz, dt, 13); }); ex.material.opacity = .4 + .2 * Math.sin(t * 4); });
+    v.drag = oid => { const o = bl[oid]; if (!o) return null; const b = o.b, max = (b.ori === 'h' ? W : H) - b.len, zones = {}; for (let q = 0; q <= max; q++) zones[q] = { x: o.cx(q), z: o.cz(q), y: .8 }; return { group: o.g, zones, r: TS * .62, y: .9, axis: b.ori, action: q => ({ t: 'slide', obj: oid, to: +q }) }; };
+    v.setDragging = f => { v.dragging = f; };
+    v.tap = oid => bl[oid] ? { note: 'Drag the block along its groove. Free the golden block through the gap on the right.' } : null;
+    v.destPos = a => { const o = bl[a.obj]; return a.t === 'slide' && o ? { x: o.cx(a.to), y: .8, z: o.cz(a.to) } : null; };
+    return v;
+  };
+
+  /* ---- RINGS ---- */
+  S.rings = function (ctx, st) {
+    const v = newView(ctx), p = st.p, K = p.start.length, N = p.n; v.base(16, 14); v.focusY = 1; v.fitW = 2 * (2.6 + K * 1.15) + 2;
+    const rings = [], RW = 1.0;
+    for (let i = 0; i < K; i++) {
+      const R = 2.3 + i * 1.15, g = new T.Group(), disc = new T.Group(); const base = new T.Mesh(new T.RingGeometry(R - .62, R + .62, 64), new T.MeshStandardMaterial({ color: 0x1a1712, roughness: .9 })); base.rotation.x = -PI / 2; base.position.y = .06; g.add(base);
+      for (let k = 0; k < N; k++) { const a = k * PI * 2 / N, seg = G.bevel(2 * R * Math.sin(PI / N) * .9, .5, RW * .9, i % 2 ? M.stoneWarm : M.stone, 0, 0, 0, .06); seg.position.set(Math.sin(a) * R, .3, Math.cos(a) * R); seg.rotation.y = a; disc.add(seg); const gm = new T.Mesh(new T.PlaneGeometry(.62, .62), glyphMat(GLYPHS[(k + i) % 7], '#4a4234')); gm.rotation.x = -PI / 2; gm.position.set(Math.sin(a) * R, .57, Math.cos(a) * R); gm.rotation.z = a; disc.add(gm); }
+      const mark = new T.Mesh(new T.OctahedronGeometry(.32, 0), M.crystal); mark.scale.y = 1.4; mark.position.set(0, .95, R); const mgl = G.glow(0x56c8ff, 1.8, .7); mgl.position.copy(mark.position); disc.add(mark, mgl); g.add(disc);
+      const hit = new T.Mesh(new T.RingGeometry(R - RW / 2 - .1, R + RW / 2 + .1, 40), new T.MeshBasicMaterial({ visible: false, side: T.DoubleSide })); hit.rotation.x = -PI / 2; hit.position.y = .55; hit.userData.oid = 'ring_' + i; g.add(hit);
+      v.add('ring_' + i, g, 'Ring'); rings.push({ g, disc, cur: 0, tgt: 0, n: 0, R });
+    }
+    const ptr = new T.Mesh(new T.ConeGeometry(.3, .8, 4), new T.MeshStandardMaterial({ color: 0xffe28a, emissive: 0xffa927, emissiveIntensity: .9 })); ptr.rotation.x = -PI / 2; ptr.position.set(0, 1.0, 2.3 + (K - 1) * 1.15 + 1.5); v.root.add(ptr); const core = G.glow(0xffc766, 3, .5); core.position.y = .6; v.root.add(core);
+    v.sync = (s, instant) => { s.r.forEach((val, i) => { const o = rings[i]; let d = val - o.n; if (d > N / 2) d -= N; if (d < -N / 2) d += N; o.tgt += -d * PI * 2 / N; o.n = val; if (instant) o.cur = o.tgt; }); v.aligned = s.r.every(x => x === 0); };
+    v.fns.push((t, dt) => { rings.forEach(o => { o.cur = tween(o.cur, o.tgt, dt, 10); o.disc.rotation.y = o.cur; }); core.material.opacity = v.aligned ? .9 : .35 + .1 * Math.sin(t * 3); ptr.position.y = 1 + Math.sin(t * 3) * .1; });
+    v.pickPoint = oid => { const m = /^ring_(\d+)$/.exec(oid); return m ? { x: 0, y: .6, z: rings[+m[1]].R } : null; };
+    v.tap = oid => /^ring_\d+$/.test(oid) ? { action: { t: 'ring', obj: oid, d: 1 }, select: oid } : null;
+    v.rotate = (oid, d) => /^ring_\d+$/.test(oid) ? { t: 'ring', obj: oid, d } : null;
     return v;
   };
 })();

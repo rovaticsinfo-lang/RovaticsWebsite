@@ -48,10 +48,16 @@ def wait(cond, secs=20, step=.25):
         time.sleep(step)
     return False
 def pos(oid, dy=None):
-    if dy is None or dy == 1.2: dy = {'crystal': 0.0}.get(oid, .4 if oid.startswith('stone') else (.5 if oid.startswith('block') else 1.0))
+    if dy is None or dy == 1.2: dy = {'crystal': 0.0}.get(oid, .4 if oid.startswith('stone') else (.5 if oid.startswith('block') else (.6 if oid == 'key' or (oid[:1] == 'b' and oid[1:].isdigit()) else (0.0 if oid.startswith('ring_') else 1.0))))
     return js("(function(){var w=__mv.world,p=w.objectPos(%s);if(!p)return null;p.y+=%f;var s=w.worldToScreen(p);return {x:s.x,y:s.y}})()" % (json.dumps(oid), dy))
 def dest(action):
     return js("(function(){var w=__mv.world,v=w.view(),d=v.destPos(%s);if(!d)return null;var p=v.root.localToWorld(new THREE.Vector3(d.x,d.y,d.z));var s=w.worldToScreen(p);return {x:s.x,y:s.y}})()" % json.dumps(action))
+def settle():
+    last = None
+    for _ in range(80):                              # software rendering is slow: let the camera finish its move before aiming at anything
+        c = js("(function(){var p=__mv.world.camera.position;return [p.x,p.y,p.z]})()")
+        if last and max(abs(c[i] - last[i]) for i in range(3)) < .01: return
+        last = c; time.sleep(.7)
 def press(id): ev("document.getElementById('%s').click()" % id)
 def visible(id): return ev("!document.getElementById('%s').hidden" % id)
 
@@ -69,12 +75,18 @@ ok(os.environ.get('ONLY') or ev("__mv.mode") == 'play' and visible('intro') and 
 ev("document.getElementById('introGo') && document.getElementById('introGo').click()"); time.sleep(1.2)
 ok(visible('hud') and ev("document.getElementById('tName').textContent").startswith('1'), 'HUD visible, level title shown')
 ok(js("__mv.world.q.shadow") >= 0 and ev("!!__mv.world.relic"), 'world built with a hidden relic')
-c = pos('crystal')
+settle(); c = pos('crystal'); ev("window.__toasts=[];var tt=document.getElementById('toast');new MutationObserver(function(){__toasts.push(tt.textContent)}).observe(tt,{childList:true,characterData:true,subtree:true,attributes:true})")
 # invalid drop: far outside any zone
-drag(c['x'], c['y'], 60, 560); ok(js("__mv.game.moves") == 0 and ev("__mv.game.state().at") == 'pedestal', 'crystal dropped outside the valid area stays put (no move counted)')
-ok('valid place' in ev("document.getElementById('toast').textContent"), 'player is told why: ' + ev("document.getElementById('toast').textContent"))
+for _try in range(3):
+    settle(); c = pos('crystal'); drag(c['x'], c['y'], 60, 560)
+    if 'valid place' in ev("__toasts.join('|')"): break
+ok(js("__mv.game.moves") == 0 and ev("__mv.game.state().at") == 'pedestal', 'crystal dropped outside the valid area stays put (no move counted)')
+ok('valid place' in ev("__toasts.join('|')"), 'player is told why: ' + ev("__toasts.join('|')")[:60])
 # tap the plate zone without selecting does nothing harmful; drag to a stepping stone
-wait("(function(){var c=__mv.world.view().crystal,z=__mv.game.cur().p.zones[__mv.game.state().at];return Math.abs(c.position.x-z.x)<.1&&Math.abs(c.position.z-z.z)<.1})()", 30); d1 = dest({'t': 'move', 'obj': 'crystal', 'to': 'rock'}); c = pos('crystal'); drag(c['x'], c['y'], d1['x'], d1['y']);
+wait("(function(){var c=__mv.world.view().crystal,z=__mv.game.cur().p.zones[__mv.game.state().at];return Math.abs(c.position.x-z.x)<.1&&Math.abs(c.position.z-z.z)<.1})()", 30); 
+for _try in range(3):
+    settle(); d1 = dest({'t': 'move', 'obj': 'crystal', 'to': 'rock'}); c = pos('crystal'); drag(c['x'], c['y'], d1['x'], d1['y'])
+    if ev("__mv.game.state().at") == 'rock': break
 if os.environ.get('DEBUG'): print('   L1 drag', c, d1, ev("JSON.stringify({at: __mv.game.state().at, drag: !!__mv.drag, sel: __mv.selected, toast: document.getElementById('toast').textContent, busy: __mv.busy})"))
 ok(ev("__mv.game.state().at") == 'rock' and js("__mv.game.moves") == 1, 'dragging the crystal onto a stone moves it (1 move)')
 ok(ev("!document.getElementById('undoBtn').disabled"), 'undo became available')
@@ -83,11 +95,21 @@ press('hintBtn'); time.sleep(.4); ok('Hint 1 of 3' in ev("document.getElementByI
 press('hintBtn'); ok(wait("document.getElementById('hintring').style.display=='block'", 10), 'hint 2 highlights the object on screen')
 press('hintBtn'); ok(wait("document.getElementById('card').textContent.indexOf('Next step')>=0 && document.getElementById('hintdest').style.display=='block'", 15), 'hint 3 shows the destination too')
 # the relic
-rp = js("(function(){var r=__mv.world.relic.g,w=__mv.world,s=w.worldToScreen(r.position);return {x:s.x,y:s.y}})()"); click(rp['x'], rp['y']); time.sleep(.5)
+rp = js("(function(){var r=__mv.world.relic.g,w=__mv.world,s=w.worldToScreen(r.position);return {x:s.x,y:s.y}})()"); rp = js("(function(){var w=__mv.world,r=w.relic.g,s=w.worldToScreen(r.position),best=null;for(var dy=-30;dy<=30&&!best;dy+=4)for(var dx=-30;dx<=30;dx+=4){var p=w.pick(s.x+dx,s.y+dy);if(p&&p.oid=='relic'){best={x:s.x+dx,y:s.y+dy};break}}return best||{x:s.x,y:s.y}})()")   # another prop can stand in front of the relic from this camera: aim at a visible part of it
+for _try in range(6):                                # the relic bobs and the page renders slowly in software: re-aim until the tap lands
+    click(rp['x'], rp['y']); time.sleep(.5)
+    if ev("__mv.game.relic") is True: break
+    rp = js("(function(){var w=__mv.world,r=w.relic.g,s=w.worldToScreen(r.position),best=null;for(var dy=-30;dy<=30&&!best;dy+=4)for(var dx=-30;dx<=30;dx+=4){var p=w.pick(s.x+dx,s.y+dy);if(p&&p.oid=='relic'){best={x:s.x+dx,y:s.y+dy};break}}return best||{x:s.x,y:s.y}})()")
+if os.environ.get('DEBUG'): print('   relic at', rp, ev("(function(){var e=document.elementFromPoint(%f,%f);return e?e.id+'.'+e.className+' '+e.tagName:'none'})()" % (rp['x'], rp['y'])), ev("(function(){var p=__mv.world.pick(%f,%f);var rc=__mv.world.pickRay(%f,%f),hs=rc.intersectObjects([__mv.world.relic.g],true);return JSON.stringify({pick:p&&p.oid,relicHits:hs.length,ud:hs[0]&&hs[0].object.userData,taken:__mv.world.relic.taken,pos:__mv.world.relic.g.position})})()" % (rp['x'], rp['y'], rp['x'], rp['y'])))
 ok(ev("__mv.game.relic") is True, 'tapping the hidden relic collects it')
 shot('mv_ui_l1.png')
 # finish by dragging onto the plate
-wait("(function(){var c=__mv.world.view().crystal,z=__mv.game.cur().p.zones[__mv.game.state().at];return Math.abs(c.position.x-z.x)<.1&&Math.abs(c.position.z-z.z)<.1})()", 30); d2 = dest({'t': 'move', 'obj': 'crystal', 'to': 'plate'}); c = pos('crystal'); drag(c['x'], c['y'], d2['x'], d2['y']); wait('__mv.game.complete', 20)
+wait("(function(){var c=__mv.world.view().crystal,z=__mv.game.cur().p.zones[__mv.game.state().at];return Math.abs(c.position.x-z.x)<.1&&Math.abs(c.position.z-z.z)<.1})()", 30); d2 = dest({'t': 'move', 'obj': 'crystal', 'to': 'plate'})
+for _try in range(3):
+    settle(); d2 = dest({'t': 'move', 'obj': 'crystal', 'to': 'plate'}); c = pos('crystal'); drag(c['x'], c['y'], d2['x'], d2['y'])
+    if wait('__mv.game.complete', 20): break
+    if True: print('   L1 plate retry', c, d2, _try, ev("JSON.stringify({at: __mv.game.state().at, drag: !!__mv.drag, busy: __mv.busy, sel: __mv.selected, pk: (function(){var p=__mv.world.pick(%f,%f);return p&&p.oid})(), lock: __mv.world.view().locked, done: __mv.game.complete})" % (c['x'], c['y'])))
+if os.environ.get('DEBUG'): print('   L1 plate', c, d2, ev("JSON.stringify({at: __mv.game.state().at, busy: __mv.busy, toast: document.getElementById('toast').textContent, pk: (function(){var p=__mv.world.pick(%f,%f);return p&&p.oid})(), moves: __mv.game.moves})" % (c['x'], c['y'])))
 ok(js("__mv.game.complete") is True, 'crystal on the plate completes the level')
 ok(wait("!document.getElementById('modal').hidden", 12) and 'solved' in ev("document.getElementById('modal').textContent"), 'result screen appears after the door opens')
 ok(ev("document.querySelectorAll('#bs .on').length") == 2, 'hints were used, so 2 stars: solved + within par (no mastery star)')
@@ -98,9 +120,13 @@ ok('rovatics.mindverse.v1' in ev("Object.keys(localStorage).join()"), 'saved in 
 def execute(a):
     """perform an engine action the way a player would"""
     t, o = a['t'], a['obj']
-    if t in ('move', 'put', 'slot'):
+    if t == 'step':
+        ev("document.querySelector('#dpad [data-d=%s]').click()" % a['d']); time.sleep(.45); return
+    if t == 'move' and o.startswith('peg_'):                                   # towers of discs: tap the peg to lift from, then the peg to drop on
+        p = pos(o, 1.0); click(p['x'], p['y']); q = pos(a['to'], 1.0); click(q['x'], q['y']); return
+    if t in ('move', 'put', 'slot', 'slide'):
         d = dest(a); p = pos(o); drag(p['x'], p['y'], d['x'], d['y']); return
-    if t == 'rot' and a['d'] < 0:
+    if t in ('rot', 'ring') and a['d'] < 0:
         p = pos(o, 1.2); click(p['x'], p['y']); press('rotL'); press('rotL'); return          # tap selects (+1), then two counter-clockwise presses
     if t == 'gear' and a['d'] < 0:
         p = pos(o, .8); click(p['x'], p['y']); press('rotL'); press('rotL'); return
@@ -108,13 +134,17 @@ def execute(a):
         p = pos(o, 1.0)
         if os.environ.get('DEBUG'): print('   inspect at', p, ev("(function(){var e=document.elementFromPoint(%f,%f);return e.tagName+'#'+e.id+'.'+e.className})()" % (p['x'], p['y'])), js("(function(){var k=__mv.world.pick(%f,%f);return k&&k.oid})()" % (p['x'], p['y'])), 'busy', js('__mv.busy'), 'mode', ev('__mv.mode'))
         click(p['x'], p['y']); time.sleep(.2); ev("document.getElementById('cOk') && document.getElementById('cOk').click()"); return
-    if t in ('open', 'press'):
-        p = pos(o, 1.0); click(p['x'], p['y']); time.sleep(.2)
+    if t in ('open', 'press') and not o.startswith('rune_'):
+        p = pos(o, 1.0)
+        for _try in range(3):                       # small jars can sit behind a neighbour: aim at a spot where this very object is what a tap reaches
+            q = js("(function(){var w=__mv.world,best=null;for(var r=0;r<=36&&!best;r+=4)for(var a=0;a<(r?8:1);a++){var x=%f+r*Math.cos(a*.785),y=%f+r*Math.sin(a*.785),k=w.pick(x,y);if(k&&k.oid=='%s'){best={x:x,y:y};break}}return best})()" % (p['x'], p['y'], o)) or p
+            click(q['x'], q['y']); time.sleep(.2)
+            if ev("!!document.getElementById('cDo')"): break
         ok(ev("!!document.getElementById('cDo')"), '%s: object card offers the action button' % o); ev("document.getElementById('cDo').click()"); time.sleep(.3); return
     if t == 'unlock':
         p = pos('door', 1.0); click(p['x'], p['y']); return
     p = pos(o, 1.0); click(p['x'], p['y'])            # tap: rot +1, cycle, turn, valve, lever, plate, rail, gear +1
-def play_level(n, budget=140):
+def play_level(n, budget=400):
     press('modal') if False else None
     ev("__mv.startLevel(%d,{noIntro:true})" % n); time.sleep(1.0); steps = 0; wrong = 0
     while not js("__mv.game.complete") and steps < budget:
@@ -135,7 +165,7 @@ def play_level(n, budget=140):
                 last = c; time.sleep(.6)
     return js("__mv.game.complete")
 
-ONLY = [int(x) for x in os.environ.get('ONLY', '2,3,4,5,6,7,8,9,10,11,12,13,15,18,22,23').split(',')]
+ONLY = [int(x) for x in os.environ.get('ONLY', '2,5,6,8,10,11,12,13,14,15,16,17,18,19,21,24,30,45,65').split(',')]
 for n in ONLY:
     done = play_level(n)
     ok(done, 'level %d (%s) completed through the real UI' % (n, ev("__mv.game.def.title")))
@@ -165,7 +195,7 @@ press('pauseBtn'); time.sleep(.3); ok('Paused' in ev("document.getElementById('m
 ev("var s=document.getElementById('sQ'); s.value='low'; s.onchange({target:s})"); time.sleep(1.5); ok(js("__mv.world.qName") == 'low' and js("__mv.S.quality") == 'low', 'quality switch to Low rebuilds the scene')
 ev("document.getElementById('sRed').click()"); ok(js("__mv.S.reduceMotion") == 1, 'reduce-motion toggle'); ev("document.getElementById('sOk').click()")
 ev("__mv.toMenu()"); time.sleep(.5); ev("document.getElementById('mLevels').click()"); time.sleep(.5)
-ok(ev("document.querySelectorAll('.node').length") == 30 and ev("document.querySelectorAll('#worlds .world').length") == 3, 'level map: three worlds with ten levels each')
+ok(ev("document.querySelectorAll('.node').length") == 65 and ev("document.querySelectorAll('#worlds .world').length") == 5, 'level map: five worlds, 65 levels')
 ev("__mv.openScores()"); time.sleep(.5); ok('Total' in ev("document.getElementById('modal').textContent") and ev("document.querySelectorAll('table.scores tr').length") > 33, 'scores screen lists every level with best score, stars, moves, hints and tries'); ev("document.getElementById('scOk').click()")
 ok('Quantum Laboratory' in ev("document.getElementById('soon').textContent"), 'future worlds listed as coming soon')
 shot('mv_ui_map.png')

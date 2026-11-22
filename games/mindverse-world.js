@@ -191,19 +191,14 @@
     [-9, 9, -12, 12].forEach((px, i) => { const t = G.torch(i < 2); t.obj.position.set(px, 0, i < 2 ? -7 : 3); root.add(t.obj); anims.push(t.update); });
     const d = G.dust(q.dust, { w: 26, h: 10, d: 20 }); root.add(d.obj); anims.push(d.update); for (let i = 0; i < 3; i++) root.add(pillar(-8 + i * 8, -7.2, 13, false)); rocks(root, 5, { x: 0, z: 6, w: 26, d: 8 }, 23, M.stoneDark);
   };
-  ENV.core = function (env, q) {
-    const { scene, root, anims } = env; scene.background = new T.Color(0x070d16); scene.fog = new T.FogExp2(0x0a1320, .0095);
-    env.hemi = new T.HemisphereLight(0x6fa8ff, 0x1a1a22, .55); scene.add(env.hemi); env.sun = sunLight(scene, q, [-20, 60, 25], 1.15, 0xcfe0ff, 62);
-    const fl = new T.Mesh(new T.CircleGeometry(66, 60), G.floorMat(132, 132)); fl.rotation.x = -PI / 2; fl.position.y = -.06; fl.receiveShadow = true; root.add(fl);
-    for (let i = 0; i < 24; i++) { const a = i * PI / 12, r = 62; root.add(pillar(Math.cos(a) * r, Math.sin(a) * r, 24 + (i % 2) * 3, false, M.stoneDark)); }
-    for (let i = 0; i < 3; i++) { const t = new T.Mesh(new T.TorusGeometry(48 - i * 6, .5, 8, 80), M.gold); t.rotation.x = PI / 2; t.position.y = 24 - i * .3 + 6; root.add(t); }
-    const dome = new T.Mesh(new T.SphereGeometry(70, 32, 18, 0, PI * 2, 0, PI / 2), new T.MeshStandardMaterial({ map: G.tex(G.stoneCanvas(5, '#4a4535', .2), [12, 6]), side: T.BackSide, roughness: 1 })); dome.position.y = 12; root.add(dome);
+  function coreCentre(env, q, accent) {
+    const { scene, root, anims } = env; accent = accent === undefined ? 0x1fa8ff : accent;
     // the Mind Core
     const core = new T.Group(); core.position.set(0, 0, 0); const base = G.cyl(5.2, 6, 1.2, M.stoneDark, 0, .6, 0, 40); core.add(base); [3.8, 5].forEach((r, i) => { const rg = new T.Mesh(new T.TorusGeometry(r, .1, 8, 60), new T.MeshStandardMaterial({ color: 0xd9a441, emissive: 0x2ab7ff, emissiveIntensity: .1, metalness: .85, roughness: .3 })); rg.rotation.x = PI / 2; rg.position.y = 1.25; core.add(rg); core.userData['f' + i] = rg; });
-    const crys = new T.Mesh(new T.OctahedronGeometry(2.1, 0), new T.MeshStandardMaterial({ color: 0x2c4a66, emissive: 0x1fa8ff, emissiveIntensity: .15, metalness: .3, roughness: .12, transparent: true, opacity: .93, envMapIntensity: 1.6 })); crys.scale.set(.85, 1.6, .85); crys.position.y = 5.2; crys.castShadow = true; core.add(crys);
+    const crys = new T.Mesh(new T.OctahedronGeometry(2.1, 0), new T.MeshStandardMaterial({ color: 0x2c4a66, emissive: accent, emissiveIntensity: .15, metalness: .3, roughness: .12, transparent: true, opacity: .93, envMapIntensity: 1.6 })); crys.scale.set(.85, 1.6, .85); crys.position.y = 5.2; crys.castShadow = true; core.add(crys);
     const rings = [0, 1, 2].map(i => { const r = new T.Mesh(new T.TorusGeometry(3.6 + i * .5, .09, 8, 60), M.gold); r.position.y = 5.2; core.add(r); return r; });
-    const halo = G.glow(0x4cc8ff, 22, .15); halo.position.y = 5.2; core.add(halo); const beam = new T.Mesh(new T.CylinderGeometry(1.2, 2.6, 40, 20, 1, true), new T.MeshBasicMaterial({ color: 0x7ae8ff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); beam.position.y = 24; core.add(beam);
-    const light = new T.PointLight(0x4cc8ff, 0, 60, 2); light.position.y = 5.2; core.add(light); root.add(core);
+    const halo = G.glow(accent, 22, .15); halo.position.y = 5.2; core.add(halo); const beam = new T.Mesh(new T.CylinderGeometry(1.2, 2.6, 40, 20, 1, true), new T.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); beam.position.y = 24; core.add(beam);
+    const light = new T.PointLight(accent, 0, 60, 2); light.position.y = 5.2; core.add(light); root.add(core);
     // five conduits from the stations to the core
     env.coreLevel = 0; env.conduits = []; env.coreMats = [];
     env.def.stages.forEach((st, i) => { const o = st.view; if (!o) return; const L = Math.hypot(o.x, o.z) - 9, ang = Math.atan2(o.z, o.x); const line = new T.Mesh(new T.BoxGeometry(L, .05, .5), new T.MeshBasicMaterial({ color: 0x2a3340 })); line.position.set(Math.cos(ang) * (L / 2 + 7), .03, Math.sin(ang) * (L / 2 + 7)); line.rotation.y = -ang; root.add(line); env.coreMats.push(line.material); });
@@ -214,11 +209,26 @@
       crys.rotation.y = t * (.4 + f * .8 + act * 2); rings.forEach((r, i) => { r.rotation.set(t * (.5 + i * .3) * (i % 2 ? -1 : 1) * (1 + act * 2), t * .4 * (i + 1), i * 1.05); });
       crys.material.emissiveIntensity = .15 + f * .9 + act * 1.6; halo.material.opacity = .15 + f * .35 + act * .5; halo.scale.setScalar(22 + act * 14 + Math.sin(t * 3) * 1.2); light.intensity = f * 1.6 + act * 5; beam.material.opacity = act * .45; crys.position.y = 5.2 + Math.sin(t * 1.3) * .25;
       [core.userData.f0, core.userData.f1].forEach(r => { r.material.emissiveIntensity = .1 + f * 1.2 + act * 2; });
-      env.coreMats.forEach((m, i) => { m.color.setHex(i < lv || act ? 0x35d0ff : 0x2a3340); });
+      env.coreMats.forEach((m, i) => { m.color.setHex(i < lv || act ? accent : 0x2a3340); });
     });
     const rays = G.godRays([{ x: 0, y: 30, z: 0, w: 14, len: 62, rz: 0 }], 0x9fd8ff); root.add(rays.obj); anims.push(rays.update); const d = G.dust(q.dust * 2, { w: 80, h: 30, d: 80 }); root.add(d.obj); anims.push(d.update);
     const door = { g: new T.Group(), set(k) { env.coreFinal = k; }, f: 0 }; env.door = door;
+  }
+  ENV.core = function (env, q) {
+    const { scene, root, anims } = env; scene.background = new T.Color(0x070d16); scene.fog = new T.FogExp2(0x0a1320, .0095);
+    env.hemi = new T.HemisphereLight(0x6fa8ff, 0x1a1a22, .55); scene.add(env.hemi); env.sun = sunLight(scene, q, [-20, 60, 25], 1.15, 0xcfe0ff, 62);
+    const fl = new T.Mesh(new T.CircleGeometry(66, 60), G.floorMat(132, 132)); fl.rotation.x = -PI / 2; fl.position.y = -.06; fl.receiveShadow = true; root.add(fl);
+    for (let i = 0; i < 24; i++) { const a = i * PI / 12, r = 62; root.add(pillar(Math.cos(a) * r, Math.sin(a) * r, 24 + (i % 2) * 3, false, M.stoneDark)); }
+    for (let i = 0; i < 3; i++) { const t = new T.Mesh(new T.TorusGeometry(48 - i * 6, .5, 8, 80), M.gold); t.rotation.x = PI / 2; t.position.y = 24 - i * .3 + 6; root.add(t); }
+    const dome = new T.Mesh(new T.SphereGeometry(70, 32, 18, 0, PI * 2, 0, PI / 2), new T.MeshStandardMaterial({ map: G.tex(G.stoneCanvas(5, '#4a4535', .2), [12, 6]), side: T.BackSide, roughness: 1 })); dome.position.y = 12; root.add(dome);
+    coreCentre(env, q);
     for (let i = 0; i < 16; i++) { const a = i * PI / 8, t = G.torch(false); t.obj.position.set(Math.cos(a) * 12, 0, Math.sin(a) * 12 * .9 + 0); t.obj.scale.setScalar(.8); if (i % 2) root.add(t.obj), anims.push(t.update); }
+  };
+
+  /* generated levels: a procedural look (layout + floor + sky + accent), plus the Mind Core in the middle for multi-stage rooms */
+  ENV.look = function (env, q) {
+    const lk = env.def.look; MV.looks.build(env, q, lk, env.def);
+    if (env.def.stages.length > 1) { coreCentre(env, q, lk.accent); }
   };
 
   const THEMES = {
@@ -243,7 +253,7 @@
     G.initMaterials(); const scene = new T.Scene(), envTex = G.envMap(renderer); scene.environment = envTex;
     const camera = new T.PerspectiveCamera(42, 1, .4, 320), W = { renderer, scene, camera, q, qName, views: [], env: null, anims: [], time: 0, relic: null };
     G.initMaterials.done = true;
-    const base = { az: 0, el: 34, d: 17, t: new T.Vector3(0, 1, 0) }, cur = { az: 0, el: 34, d: 17, t: new T.Vector3(0, 1, 0) }, user = { az: 0, el: 0, zoom: 1 };
+    const base = { az: 0, el: 34, d: 17, t: new T.Vector3(0, 1, 0) }, cur = { az: 0, el: 34, d: 17, t: new T.Vector3(0, 1, 0) }, user = { az: 0, el: 0, zoom: 1, vaz: 0, vel: 0 };
     let shake = 0, root = null, fx = null, def = null, stageVs = [], curStage = 0, cameraLock = false;
     W.setSize = function (w, h) { sizeW = w; sizeH = h; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); W.aspect = w / h; if (post) post.setSize(w, h); if (W.refit) W.refit(); };
     W.setQuality = function (name) {
@@ -257,9 +267,9 @@
     W.load = function (levelDef, game, keepCam) {
       def = levelDef; W.game = game; clearAll();
       fx = G.spark(root, q.spark); W.fx = fx; const env = { scene, root, anims: W.anims, def }; W.env = env; env.q = q;
-      const ctx = { fx, sfx: n => opts.onSfx && opts.onSfx(n), exitDoor: null, onWalkEnd: () => opts.onWalkEnd && opts.onWalkEnd() };
+      const ctx = { baseMat: levelDef.look ? MV.looks.boxFloorMat(levelDef.look.floor) : null, fx, sfx: n => opts.onSfx && opts.onSfx(n), exitDoor: null, onWalkEnd: () => opts.onWalkEnd && opts.onWalkEnd() };
       (ENV[levelDef.env] || ENV.hall)(env, q);
-      applyTheme(env, levelDef.theme);
+      if (levelDef.env !== 'look') applyTheme(env, levelDef.theme);
       levelDef.stages.forEach((st, i) => {
         const v = MV.stages[st.kind](Object.assign({}, ctx, { doorPos: [0, -7.5] }), st); const o = st.view || { x: 0, z: 0 }; v.root.position.set(o.x, 0, o.z); v.root.rotation.y = o.rot || 0; v.stageDef = st; v.idx = i; root.add(v.root); stageVs.push(v); W.anims.push(v.update);
       });
@@ -270,7 +280,7 @@
       }
       root.traverse(o => { const m = o.material; if (m && m.isMeshStandardMaterial && m.metalness < .5 && m.envMapIntensity === 1) m.envMapIntensity = .3; });
       W.setStage(game ? game.stage : 0, true); W.sync(game, true);
-      if (!keepCam) { Object.assign(user, { az: 0, el: 0, zoom: 1 }); }
+      if (!keepCam) { Object.assign(user, { az: 0, el: 0, zoom: 1, vaz: 0, vel: 0 }); }
       const r = envCam(); base.az = cur.az = r.az; base.el = cur.el = r.el; base.d = cur.d = r.d; base.t.copy(r.t); cur.t.copy(r.t);
     };
     function fitCam(r, fitW) {
@@ -286,17 +296,20 @@
     W.sync = function (game, instant) { if (!game) return; stageVs.forEach((v, i) => { v.sync(game.states[i], instant); }); };
     W.update = function (dt) {
       W.time += dt; const t = W.time; for (let i = 0; i < W.anims.length; i++) W.anims[i](t, dt);
-      const k = Math.min(1, dt * 3.2); cur.az += (base.az + user.az - cur.az) * k; cur.el += (base.el + user.el - cur.el) * k; cur.d += (base.d * user.zoom - cur.d) * k; cur.t.lerp(base.t, k);
+      const k = Math.min(1, dt * 8), kt = Math.min(1, dt * 3.2); cur.az += (base.az + user.az - cur.az) * k; cur.el += (Math.max(10, Math.min(82, base.el + user.el)) - cur.el) * k; cur.d += (Math.max(5, base.d * user.zoom) - cur.d) * k; cur.t.lerp(base.t, kt);
+      if (Math.abs(user.vaz) > .01 || Math.abs(user.vel) > .01) { user.az += user.vaz * dt; user.el = Math.max(-26, Math.min(36, user.el + user.vel * dt)); const f = Math.pow(.04, dt); user.vaz *= f; user.vel *= f; }
       const sway = opts.reduceMotion && opts.reduceMotion() ? 0 : 1, az = (cur.az + Math.sin(t * .25) * .35 * sway) * D2R, el = (cur.el) * D2R;
       camera.position.set(cur.t.x + cur.d * Math.sin(az) * Math.cos(el), cur.t.y + cur.d * Math.sin(el), cur.t.z + cur.d * Math.cos(az) * Math.cos(el));
       if (shake > 0) { camera.position.x += (Math.random() - .5) * shake; camera.position.y += (Math.random() - .5) * shake; shake = Math.max(0, shake - dt * 1.6); }
       camera.lookAt(cur.t); camera.updateMatrixWorld();
     };
     W.render = () => { if (post) post.render(scene, camera, W.time); else renderer.render(scene, camera); };
-    W.orbit = (dx, dy) => { user.az = Math.max(-45, Math.min(45, user.az - dx * .25)); user.el = Math.max(-14, Math.min(26, user.el + dy * .2)); };
-    W.zoom = f => { user.zoom = Math.max(.55, Math.min(1.45, user.zoom * f)); };
+    W.orbit = (dx, dy) => { const a = dx * .3, e = dy * .22; user.az -= a; user.el = Math.max(-26, Math.min(36, user.el + e)); user.vaz = -a * 16; user.vel = e * 16; };      // free turning, with a little momentum when you let go
+    W.gesture = (dAz, dEl, zf) => { user.az += dAz; user.el = Math.max(-26, Math.min(36, user.el + dEl)); if (zf && zf > 0) user.zoom = Math.max(.4, Math.min(1.9, user.zoom * zf)); user.vaz = user.vel = 0; };
+    W.getUser = () => ({ az: user.az, el: user.el, zoom: user.zoom });
+    W.zoom = f => { user.zoom = Math.max(.4, Math.min(1.9, user.zoom * f)); };
     W.setUser = (az, el) => { user.az = az; if (el != null) user.el = el; };
-    W.resetCam = () => { user.az = 0; user.el = 0; user.zoom = 1; };
+    W.resetCam = () => { const turns = Math.round(user.az / 360) * 360; cur.az -= turns; user.az = 0; user.el = 0; user.zoom = 1; user.vaz = user.vel = 0; };           // shortest way back
     W.shake = a => { if (!(opts.reduceMotion && opts.reduceMotion())) shake = Math.max(shake, a); };
     W.pickRay = function (cx, cy) {
       const rc = new T.Raycaster(), r = canvas.getBoundingClientRect(); rc.setFromCamera(new T.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), camera); return rc;
@@ -312,7 +325,7 @@
       const rc = W.pickRay(cx, cy), pl = new T.Plane(new T.Vector3(0, 1, 0), -y), p = new T.Vector3(); return rc.ray.intersectPlane(pl, p) ? p : null;
     };
     W.worldToScreen = function (v3) { const p = v3.clone().project(camera), r = canvas.getBoundingClientRect(); return { x: (p.x + 1) / 2 * r.width + r.left, y: (1 - p.y) / 2 * r.height + r.top, behind: p.z > 1 }; };
-    W.objectPos = function (oid) { const v = stageVs[curStage], o = v && v.objs[oid]; if (!o) return null; const p = new T.Vector3(); o.g.getWorldPosition(p); return p; };
+    W.objectPos = function (oid) { const v = stageVs[curStage], o = v && v.objs[oid]; if (!o) return null; if (v.pickPoint) { const q = v.pickPoint(oid); if (q) return o.g.localToWorld(new T.Vector3(q.x, q.y, q.z)); } const p = new T.Vector3(); o.g.getWorldPosition(p); return p; };
     W.finale = function () {
       if (W.env && W.env.door) { const d = W.env.door; let k = 0; const f = (t, dt) => { k = Math.min(1, k + dt * .5); d.set(G.ease(k)); if (k >= 1) { const i = W.anims.indexOf(f); if (i >= 0) W.anims.splice(i, 1); } }; W.anims.push(f); }
       const v = stageVs[stageVs.length - 1]; if (v && v.finale) v.finale();

@@ -25,16 +25,17 @@
     if (moss) for (let i = 0; i < 26 * moss; i++) { const px = r() * 256, py = r() < .6 ? 256 - r() * 90 : r() * 256, rad = 8 + r() * 26, g = x.createRadialGradient(px, py, 0, px, py, rad); g.addColorStop(0, 'rgba(52,84,28,.7)'); g.addColorStop(1, 'rgba(48,80,26,0)'); x.fillStyle = g; x.fillRect(px - rad, py - rad, rad * 2, rad * 2); }
     return c;
   };
-  G.tileCanvas = function (seed, bump) {                                              // flagstones: big soft blotches, bevelled joints, cracks, moss in the corners
+  G.tileCanvas = function (seed, bump, pal) {
+    pal = pal || { h: 32, s: 14, l: 30, moss: 1 };                                              // flagstones: big soft blotches, bevelled joints, cracks, moss in the corners
     const c = cv(512, 512), x = c.getContext('2d'), r = rng(seed);
-    x.fillStyle = bump ? '#808080' : '#2d281f'; x.fillRect(0, 0, 512, 512);
+    x.fillStyle = bump ? '#808080' : 'hsl(' + pal.h + ',' + Math.round(pal.s * .6) + '%,' + Math.max(3, Math.round(pal.l * .55)) + '%)'; x.fillRect(0, 0, 512, 512);
     for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
       const X = i * 128, Y = j * 128;
       if (bump) { const l = 120 + r() * 30; x.fillStyle = 'rgb(' + l + ',' + l + ',' + l + ')'; x.fillRect(X + 4, Y + 4, 120, 120); }
-      else { const h = 28 + r() * 14, s = 12 + r() * 12, l = 24 + r() * 13; const g = x.createLinearGradient(X, Y, X + 128, Y + 128); g.addColorStop(0, 'hsl(' + h + ',' + s + '%,' + (l + 4) + '%)'); g.addColorStop(1, 'hsl(' + h + ',' + s + '%,' + (l - 4) + '%)'); x.fillStyle = g; x.fillRect(X + 3, Y + 3, 122, 122); }
+      else { const h = pal.h - 4 + r() * 10, s = Math.max(2, pal.s - 3 + r() * 9), l = Math.max(4, pal.l - 6 + r() * 13); const g = x.createLinearGradient(X, Y, X + 128, Y + 128); g.addColorStop(0, 'hsl(' + h + ',' + s + '%,' + (l + 4) + '%)'); g.addColorStop(1, 'hsl(' + h + ',' + s + '%,' + (l - 4) + '%)'); x.fillStyle = g; x.fillRect(X + 3, Y + 3, 122, 122); }
       for (let k = 0; k < 4; k++) { const px = X + r() * 128, py = Y + r() * 128, rad = 20 + r() * 40, gr = x.createRadialGradient(px, py, 0, px, py, rad); const dark = r() < .55; gr.addColorStop(0, bump ? (dark ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.1)') : (dark ? 'rgba(10,6,0,.16)' : 'rgba(255,235,190,.07)')); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.save(); x.beginPath(); x.rect(X + 3, Y + 3, 122, 122); x.clip(); x.fillStyle = gr; x.fillRect(px - rad, py - rad, rad * 2, rad * 2); x.restore(); }
       if (!bump) { x.fillStyle = 'rgba(255,240,205,.16)'; x.fillRect(X + 3, Y + 3, 122, 3); x.fillRect(X + 3, Y + 3, 3, 122); x.fillStyle = 'rgba(0,0,0,.28)'; x.fillRect(X + 3, Y + 122, 122, 3); x.fillRect(X + 122, Y + 3, 3, 122);
-        if (r() < .5) { const px = X + (r() < .5 ? 8 : 118), py = Y + (r() < .5 ? 8 : 118), rad = 20 + r() * 28, gm = x.createRadialGradient(px, py, 0, px, py, rad); gm.addColorStop(0, 'rgba(48,78,26,.75)'); gm.addColorStop(1, 'rgba(48,78,26,0)'); x.save(); x.beginPath(); x.rect(X + 3, Y + 3, 122, 122); x.clip(); x.fillStyle = gm; x.fillRect(px - rad, py - rad, rad * 2, rad * 2); x.restore(); } }
+        if (r() < .5 * pal.moss) { const px = X + (r() < .5 ? 8 : 118), py = Y + (r() < .5 ? 8 : 118), rad = 20 + r() * 28, gm = x.createRadialGradient(px, py, 0, px, py, rad); gm.addColorStop(0, 'rgba(48,78,26,.75)'); gm.addColorStop(1, 'rgba(48,78,26,0)'); x.save(); x.beginPath(); x.rect(X + 3, Y + 3, 122, 122); x.clip(); x.fillStyle = gm; x.fillRect(px - rad, py - rad, rad * 2, rad * 2); x.restore(); } }
       if (r() < .4) { x.strokeStyle = bump ? 'rgba(0,0,0,.5)' : 'rgba(10,6,0,.55)'; x.lineWidth = 1.5; x.beginPath(); let px = X + 10 + r() * 100, py = Y + 10 + r() * 100; x.moveTo(px, py); for (let k = 0; k < 5; k++) { px += (r() - .5) * 36; py += (r() - .5) * 36; x.lineTo(Math.max(X + 4, Math.min(X + 124, px)), Math.max(Y + 4, Math.min(Y + 124, py))); } x.stroke(); }
     }
     x.strokeStyle = bump ? '#202020' : 'rgba(10,7,2,.85)'; x.lineWidth = 5; for (let i = 0; i <= 4; i++) { x.beginPath(); x.moveTo(i * 128, 0); x.lineTo(i * 128, 512); x.moveTo(0, i * 128); x.lineTo(512, i * 128); x.stroke(); }
@@ -242,12 +243,12 @@
     const m = new T.Mesh(new T.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.receiveShadow = false;
     return { obj: m, update(t) { mat.uniforms.t.value = t; } };
   };
-  G.torch = function (withLight) {
+  G.torch = function (withLight, color) {
     const g = new T.Group(); G._ft = G._ft || tex(G.flameCanvas());
     g.add(G.cyl(.16, .1, 1.5, M.bronze, 0, .75, 0, 10)); const bowl = G.cyl(.4, .2, .3, M.bronze, 0, 1.6, 0, 14); g.add(bowl);
     const f1 = new T.Mesh(new T.PlaneGeometry(.7, 1.3), new T.MeshBasicMaterial({ map: G._ft, transparent: true, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })), f2 = f1.clone(); f1.position.y = f2.position.y = 2.2; f2.rotation.y = Math.PI / 2; g.add(f1, f2);
-    const gl = G.glow(0xffa040, 3.4, .55); gl.position.y = 2.2; g.add(gl); let L = null;
-    if (withLight) { L = new T.PointLight(0xff9a3c, 1.3, 18, 2); L.position.y = 2.4; g.add(L); }
+    const gl = G.glow(color === undefined ? 0xffa040 : color, 3.4, .55); gl.position.y = 2.2; g.add(gl); let L = null; if (color !== undefined) { f1.material = f1.material.clone(); f1.material.color.setHex(color); f2.material = f1.material; }
+    if (withLight) { L = new T.PointLight(color === undefined ? 0xff9a3c : color, 1.3, 18, 2); L.position.y = 2.4; g.add(L); }
     const ph = Math.random() * 7;
     return { obj: g, update(t) { const f = 1 + .12 * Math.sin(t * 13 + ph) + .08 * Math.sin(t * 7.3 + ph * 2); f1.scale.set(f, .9 + .22 * Math.sin(t * 9 + ph), 1); f2.scale.copy(f1.scale); gl.material.opacity = .45 + .15 * f; if (L) L.intensity = 1.1 + .35 * Math.sin(t * 11 + ph); } };
   };

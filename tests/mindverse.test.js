@@ -16,14 +16,22 @@ t('the first ten levels are World 1 with the pack ids, titles and three hints ea
   LD.LEVELS.slice(0, 10).forEach((l, i) => { assert.strictEqual(l.levelId, 'WC_L' + String(i + 1).padStart(2, '0')); assert.strictEqual(l.title, titles[i]); assert.strictEqual(l.worldId, 'LOST_CIVILIZATION'); assert.strictEqual(l.hints.length, 3); assert.ok(l.goalConditions.length >= 1); assert.ok(l.relic && l.relic.name); });
   assert.strictEqual(LD.FUTURE.length, 4, 'four future worlds listed');
 });
-t('30 levels in 3 worlds: unique ids, every level has hints, a relic, a theme and a rising difficulty', () => {
-  assert.strictEqual(LD.LEVELS.length, 30); assert.strictEqual(LD.WORLDS.length, 3);
-  assert.strictEqual(new Set(LD.LEVELS.map(l => l.levelId)).size, 30, 'ids unique'); LD.LEVELS.forEach((l, i) => { assert.strictEqual(l.n, i + 1); assert.strictEqual(l.hints.length, 3); assert.ok(l.relic && l.relic.name && l.theme && l.intro && l.title); });
-  LD.WORLDS.forEach(w => { const ls = LD.LEVELS.filter(l => l.n >= w.from && l.n <= w.to); assert.strictEqual(ls.length, 10); ls.forEach(l => assert.strictEqual(l.worldId, w.id)); });
-  const opt = LD.LEVELS.map(l => E.verifyLevel(l).optimal); const avg = (a, b) => opt.slice(a, b).reduce((x, y) => x + y, 0) / (b - a);
-  assert.ok(avg(0, 10) < avg(10, 20) && avg(10, 20) < avg(20, 30), 'each world is harder on average: ' + [avg(0, 10), avg(10, 20), avg(20, 30)].map(Math.round));
-  assert.ok(opt[29] >= 60, 'the last level is a long one: ' + opt[29]); assert.ok(LD.LEVELS.filter(l => l.stages.length > 1).length >= 8, 'many multi-stage rooms');
-  const kinds = new Set(); LD.LEVELS.forEach(l => l.stages.forEach(s => kinds.add(s.kind))); assert.strictEqual(kinds.size, 9, 'all nine mechanics are used');
+t('65 levels in 5 worlds: unique ids, titles and looks, hints, a relic, and the difficulty rises on every level', () => {
+  assert.strictEqual(LD.LEVELS.length, 65); assert.strictEqual(LD.WORLDS.length, 5);
+  assert.strictEqual(new Set(LD.LEVELS.map(l => l.levelId)).size, 65, 'ids unique'); assert.strictEqual(new Set(LD.LEVELS.map(l => l.title)).size, 65, 'titles unique');
+  LD.LEVELS.forEach((l, i) => { assert.strictEqual(l.n, i + 1); assert.strictEqual(l.hints.length, 3); assert.ok(l.relic && l.relic.name && l.intro && l.title); });
+  const sizes = LD.WORLDS.map(w => LD.LEVELS.filter(l => l.n >= w.from && l.n <= w.to).length); assert.deepStrictEqual(sizes, [10, 15, 15, 13, 12]);
+  LD.WORLDS.forEach(w => LD.LEVELS.filter(l => l.n >= w.from && l.n <= w.to).forEach(l => assert.strictEqual(l.worldId, w.id)));
+  const gen = LD.LEVELS.slice(10); const looks = gen.map(l => l.look); assert.ok(looks.every(Boolean), 'every generated level has its own look');
+  assert.strictEqual(new Set(looks.map(k => k.layout + '/' + k.floor + '/' + k.sky)).size, gen.length, 'no two rooms share layout + floor + sky');
+  assert.ok(new Set(looks.map(k => k.layout)).size >= 9, 'many different layouts'); assert.ok(new Set(looks.map(k => k.sky)).size >= 8, 'many different skies');
+  const H = LD.LEVELS.map(l => E.verifyLevel(l).hardness); LD.WORLDS.slice(1).forEach(w => { for (let n = w.from + 1; n <= w.to; n++) assert.ok(H[n - 1] > H[n - 2] - 0.5, 'level ' + n + ' is not easier than level ' + (n - 1) + ': ' + H[n - 2] + ' -> ' + H[n - 1]); });
+  const avg = (a, b) => H.slice(a, b).reduce((x, y) => x + y, 0) / (b - a); assert.ok(avg(10, 25) < avg(25, 40) && avg(25, 40) < avg(40, 53) && avg(40, 53) < avg(53, 65), 'each world is harder: ' + [avg(10, 25), avg(25, 40), avg(40, 53), avg(53, 65)].map(x => x.toFixed(1)));
+  assert.ok(H[64] > H[10] * 3, 'the last room is far harder than the first of world 2: ' + H[10] + ' -> ' + H[64]);
+  for (let i = 11; i < 65; i++) { const x = LD.LEVELS[i - 1].stages.map(s => s.kind).sort().join(), y = LD.LEVELS[i].stages.map(s => s.kind).sort().join(); assert.notStrictEqual(x, y, 'level ' + (i + 1) + ' repeats the mechanics of level ' + i); }
+  const kinds = new Set(); LD.LEVELS.forEach(l => l.stages.forEach(s => kinds.add(s.kind))); assert.strictEqual(kinds.size, 14, 'all 14 mechanics are used: ' + [...kinds].join());
+  assert.ok(LD.LEVELS.filter(l => l.stages.length > 1).length >= 25, 'many multi-stage rooms'); assert.strictEqual(LD.LEVELS[64].stages.length, 6, 'the last room joins six mechanisms');
+  for (const k of ['push', 'runes', 'discs', 'rings']) assert.ok(LD.LEVELS.filter(l => l.stages.some(s => s.kind === k)).length >= 4, k + ' appears in several rooms'); assert.ok(LD.LEVELS.some(l => l.stages.some(s => s.kind === 'slide')), 'the sliding-block puzzle appears');
 });
 t('every level is valid, has a verified solution, and par is not below the best possible', () => {
   LD.LEVELS.forEach(l => { const r = E.verifyLevel(l); assert.ok(r.ok, l.levelId + ': ' + r.problems.join('; ')); assert.ok(l.par >= r.optimal, l.levelId + ' par ' + l.par + ' < optimal ' + r.optimal); assert.ok(r.stages.every(s => s.steps > 0), 'no stage starts solved'); });
@@ -176,12 +184,26 @@ t('bridge: every rule blocks with a clear message and the goal needs a locked pa
 });
 
 // ---------- trap ----------
-t('generated rooms: jar sizes, trap order direction and 5-switch / 7-jar rooms behave', () => {
-  const l25 = L(26), search = l25.stages[0].p; assert.strictEqual(search.jars.length, 7); assert.ok(search.jars.every(j => j.size && j.color)); assert.deepStrictEqual(E.clueJars(search).map(j => j.id), [search.keyIn]);
-  const l28 = L(28), trap = l28.stages[1].p; assert.strictEqual(trap.switches.length, 5); assert.strictEqual(trap.dir, 'asc'); assert.strictEqual(E.trapOrder(trap)[0], trap.switches.slice().sort((a, b) => a.wear - b.wear)[0].id, 'ascending: least worn first');
-  const wide = L(22).stages[0].p; assert.strictEqual(wide.slots, 4); assert.strictEqual(E.clueSolutions(wide).length, 1);
-  const bal = L(23).stages[0].p; assert.strictEqual(bal.stones.length, 6); assert.ok(bal.target !== 0, 'a goal that is not equal weights');
-  const g = E.createGame(L(25)); assert.strictEqual(g.def.stages.length, 3); let guard = 0; while (!g.complete && guard++ < 200) g.perform(g.stageSolution()[0]); assert.ok(g.complete);
+t('generated rooms: every clue is sufficient, jar sizes exist, trap order follows the wear marks', () => {
+  let jars = 0, traps = 0, sym = 0;
+  LD.LEVELS.slice(10).forEach(l => l.stages.forEach(s => {
+    if (s.kind === 'search') { jars++; assert.ok(s.p.jars.every(j => j.size && j.color)); assert.deepStrictEqual(E.clueJars(s.p).map(j => j.id), [s.p.keyIn], l.levelId); }
+    if (s.kind === 'trap') { traps++; const o = E.trapOrder(s.p); assert.deepStrictEqual(o, s.p.order); const w = s.p.order.map(id => s.p.switches.find(x => x.id === id).wear); assert.ok(w.every((x, i) => !i || (s.p.dir === 'asc' ? x > w[i - 1] : x < w[i - 1]))); }
+    if (s.kind === 'symbols') { sym++; assert.strictEqual(E.clueSolutions(s.p).length, 1, l.levelId); }
+  }));
+  assert.ok(jars >= 3 && traps >= 3 && sym >= 3, 'several of each: ' + [jars, traps, sym]);
+});
+t('new mechanics: crates push (never pull), runes flip patterns, disc towers obey size, blocks collide, rings drag neighbours', () => {
+  const pz = { w: 5, h: 3, walls: [[4, 1]], targets: [[3, 1]], crates: [[2, 1]], player: [1, 1] }, M = E.KIND.push, s0 = M.init(pz);
+  const r1 = M.apply(pz, s0, { t: 'step', obj: 'player', d: 'R' }); assert.ok(r1.s && r1.ev[0] === 'push' && r1.s.c[0][0] === 3 && r1.s.p[0] === 2); assert.ok(M.goal(pz, r1.s), 'one push solves it');
+  assert.ok(!M.apply(pz, r1.s, { t: 'step', obj: 'player', d: 'R' }).s, 'a crate cannot be pushed into a wall or off the board');
+  const wall = M.apply(pz, { p: [3, 1], c: [[0, 1]] }, { t: 'step', obj: 'player', d: 'R' }); assert.ok(!wall.s && /wall/i.test(wall.blocked)); assert.ok(!M.apply({ w: 4, h: 3, walls: [], targets: [[1, 1], [2, 1]], crates: [[1, 1], [2, 1]], player: [0, 1] }, { p: [0, 1], c: [[1, 1], [2, 1]] }, { t: 'step', obj: 'player', d: 'R' }).s, 'two crates in a row cannot be pushed');
+  const rp = { w: 3, h: 3, pat: 'plus', start: [0, 0, 0, 0, 0, 0, 0, 0, 0] }, R = E.KIND.runes; let rs = R.apply(rp, R.init(rp), { t: 'press', obj: 'rune_4', i: 4 }).s; assert.deepStrictEqual(rs.b, [0, 1, 0, 1, 1, 1, 0, 1, 0]); rs = R.apply(rp, rs, { t: 'press', obj: 'rune_4', i: 4 }).s; assert.deepStrictEqual(rs.b, Array(9).fill(0), 'pressing twice undoes it');
+  const corner = R.apply(rp, R.init(rp), { t: 'press', obj: 'rune_0', i: 0 }).s; assert.deepStrictEqual(corner.b.slice(0, 4), [1, 1, 0, 1]); assert.ok(!R.apply(rp, R.init(rp), { t: 'press', obj: 'rune_99', i: 99 }).s);
+  const dp = { pegs: 3, n: 3, start: [[3, 2, 1], [], []], goal: 2 }, D = E.KIND.discs, d0 = D.init(dp); assert.ok(D.apply(dp, d0, { t: 'move', obj: 'peg_0', to: 'peg_1' }).s);
+  const bad = D.apply(dp, { p: [[3, 2], [1], []] }, { t: 'move', obj: 'peg_0', to: 'peg_1' }); assert.ok(!bad.s && /bigger/.test(bad.blocked)); assert.strictEqual(E.solve('discs', dp, d0).length, 7, 'three discs need seven moves'); assert.ok(D.apply({ pegs: 3, n: 1, start: [[1], [], []], goal: 2, adjacent: true }, { p: [[1], [], []] }, { t: 'move', obj: 'peg_0', to: 'peg_2' }).blocked, 'adjacent-only towers');
+  const sp = { w: 4, h: 3, blocks: [{ id: 'key', x: 0, y: 0, len: 2, ori: 'h', key: true }, { id: 'v', x: 2, y: 0, len: 2, ori: 'v' }] }, S = E.KIND.slide, ss = S.init(sp); assert.ok(!S.apply(sp, ss, { t: 'slide', obj: 'key', to: 2 }).s && /in the way/.test(S.apply(sp, ss, { t: 'slide', obj: 'key', to: 2 }).blocked)); const sv = S.apply(sp, ss, { t: 'slide', obj: 'v', to: 1 }).s; assert.ok(!S.goal(sp, sv)); assert.strictEqual(E.solve('slide', sp, ss).length, 2, 'the vertical block is not in the key row once it drops, key then slides out');
+  const rg = { n: 8, start: [1, 2, 3], link: [[1, 1, 0], [1, 1, 1], [0, 1, 1]] }, K = E.KIND.rings, k1 = K.apply(rg, K.init(rg), { t: 'ring', obj: 'ring_0', d: 1 }).s; assert.deepStrictEqual(k1.r, [2, 3, 3], 'ring 0 drags ring 1 along but not ring 2'); assert.deepStrictEqual(K.apply(rg, k1, { t: 'ring', obj: 'ring_0', d: -1 }).s.r, [1, 2, 3], 'turning back undoes it');
 });
 t('trap: a wrong switch resets only the room; the safe order opens the exit; inspecting is free', () => {
   const g = E.createGame(L(9)), P = g.cur().p; assert.deepStrictEqual(E.trapOrder(P), ['switch_b', 'switch_c', 'switch_a']);

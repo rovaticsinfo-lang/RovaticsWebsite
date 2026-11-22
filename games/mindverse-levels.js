@@ -240,9 +240,11 @@
   LEVELS.forEach(l => { if (!l.theme) l.theme = 'jungle'; });
   const ALL = LEVELS.concat(EXTRA);
   const WORLDS = [
-    { id: 'LOST_CIVILIZATION', name: 'Lost Civilization', theme: 'jungle', from: 1, to: 10, blurb: 'Jungle temples, stone mechanisms, mirrors, water and symbols.', icon: '🗿', story: WORLD.story },
-    { id: 'SUNKEN_SANCTUM', name: 'Sunken Sanctum', theme: 'ocean', from: 11, to: 20, blurb: 'Flooded vaults, tide mirrors, coral codes and heavier puzzles.', icon: '🌊', story: 'Under the old temple lies a drowned sanctuary. Its machines are bigger, its clues are trickier.' },
-    { id: 'SKY_OBSERVATORY', name: 'Sky Observatory', theme: 'dusk', from: 21, to: 30, blurb: 'A mountain observatory at dusk: grand networks, orreries and final mysteries.', icon: '🔭', story: 'High above the clouds the last Core waits. Only the sharpest minds reach it.' }
+    { id: 'LOST_CIVILIZATION', name: 'Lost Civilization', theme: 'jungle', tune: 'jungle', from: 1, to: 10, blurb: 'Jungle temples, stone mechanisms, mirrors, water and symbols.', icon: '🗿', story: WORLD.story },
+    { id: 'SUNKEN_SANCTUM', name: 'Sunken Sanctum', theme: 'ocean', tune: 'ocean', from: 11, to: 25, blurb: 'Drowned vaults. Crates, runes, towers of discs and heavier puzzles appear.', icon: '🌊', story: 'Under the old temple lies a drowned sanctuary.' },
+    { id: 'SKY_OBSERVATORY', name: 'Sky Observatory', theme: 'dusk', tune: 'dusk', from: 26, to: 40, blurb: 'An observatory above the clouds: sliding blocks, linked rings and long chains of mechanisms.', icon: '🔭', story: 'High above the clouds an observatory keeps the second Core.' },
+    { id: 'CRYSTAL_FORGE', name: 'Crystal Forge', theme: 'forge', tune: 'forge', from: 41, to: 53, blurb: 'A living forge. Rooms join three to five mechanisms, and every mistake costs thought.', icon: '🔥', story: 'Deep in the mountain a forge of living crystal still burns.' },
+    { id: 'COSMIC_CORE', name: 'Cosmic Core', theme: 'cosmic', tune: 'cosmic', from: 54, to: 65, blurb: 'The void beyond the sky. The hardest rooms, up to six mechanisms at once.', icon: '✦', story: 'Beyond the sky the last Core hangs in the void.' }
   ];
   const FUTURE2 = FUTURE.filter(f => f.id !== 'QUANTUM_LAB' || true);
   return { WORLD, WORLDS, FUTURE: FUTURE2, LEVELS: ALL };
