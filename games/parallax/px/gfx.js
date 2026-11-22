@@ -15,6 +15,7 @@ export function makeMats(W) {
 }
 
 const texCache = new Map();
+export function clearLabelCache() { texCache.forEach(t => t.dispose()); texCache.clear(); }
 export function labelTexture(text, { w = 512, h = 128, size = 56, color = '#ffffff', bg = null, weight = '700', border = null } = {}) {
   const key = [text, w, h, size, color, bg, border].join('|'); if (texCache.has(key)) return texCache.get(key);
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');

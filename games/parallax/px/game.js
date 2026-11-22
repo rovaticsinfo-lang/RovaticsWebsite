@@ -6,7 +6,7 @@ import { LEVELS, WORLDS, HINTS, FAMILY_NAME, loreFor } from './levels.js';
 import { Session } from './session.js';
 import * as P from './progress.js';
 import { createView } from './views.js';
-import { makeMats } from './gfx.js';
+import { makeMats, clearLabelCache } from './gfx.js';
 import { World, QUALITY } from './world.js';
 import { solved, replay } from './logic.js';
 
@@ -57,7 +57,7 @@ class PX {
   }
   setWorld(wid, seed) {
     if (this.world && this.worldId === wid && this.worldSeed === seed) return; if (this.view) { this.scene.remove(this.view.group); this.view.destroy(); this.view = null; } if (this.world) { this.world.dispose(); this.world = null; } if (this.burst) this.burst.dispose(this.scene);
-    const W = WORLDS[wid - 1]; this.world = new World(this.R, this.scene, W, seed, this.Q, this.host.settings.reduceMotion); this.M = makeMats(W); this.worldId = wid; this.worldSeed = seed; this.burst = new Burst(this.scene);
+    clearLabelCache(); const W = WORLDS[wid - 1]; this.world = new World(this.R, this.scene, W, seed, this.Q, this.host.settings.reduceMotion); this.M = makeMats(W); this.worldId = wid; this.worldSeed = seed; this.burst = new Burst(this.scene);
     const sh = P.COSMETICS.find(c => c.id === this.save.equipped.shell), tr = P.COSMETICS.find(c => c.id === this.save.equipped.trail); this.world.setCosmetics(sh, tr); this.audio.setBed(wid);
   }
   /* camera distance that shows the whole board whatever the screen shape (portrait phones need to stand further back) */

@@ -13,10 +13,18 @@ class Host {
   constructor() {
     this.canvas = document.getElementById('gl'); this.root = document.getElementById('app'); this.Store = Store; this.audio = new Audio(); this.settings = { ...DEFAULTS, ...Store.load('settings', {}) }; this.profile = Store.profile();
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance', alpha: false }); this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
-    this.loop = null; this.resizers = []; this.last = performance.now(); this.autoQ = null; this.perf = { t: 0, n: 0 }; this.game = null; this.entry = null;
+    this.installGuards(); this.loop = null; this.resizers = []; this.last = performance.now(); this.autoQ = null; this.perf = { t: 0, n: 0 }; this.game = null; this.entry = null;
     addEventListener('resize', () => { this.fit(); this.resizers.forEach(f => f()); }); document.addEventListener('visibilitychange', () => { if (document.hidden) this.audio.ctx && this.audio.ctx.suspend(); else this.audio.ctx && this.audio.ctx.resume(); });
     this.audio.setVolumes(this.settings.music, this.settings.sfx); this.fit();
     setInterval(() => { this.profile.seconds += 30; Store.saveProfile(this.profile); }, 30000);
+  }
+  /* If anything goes wrong, show what happened (and a safe-mode button) instead of a frozen or blank page. */
+  installGuards() {
+    const show = (msg) => { if (this.failed) return; this.failed = true; console.error('[gz] ' + msg); const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#070b18f2;color:#e9f1ff;display:grid;place-items:center;padding:24px;font:16px system-ui;text-align:center;pointer-events:auto';
+      d.innerHTML = '<div style="max-width:560px"><h2 style="color:#ffb347">Something went wrong</h2><p style="word-break:break-word;color:#9fb0c8">' + String(msg).replace(/[<>&]/g, '') + '</p><p><button id="gz-safe" style="padding:12px 18px;border-radius:12px;border:0;background:#ffb347;font-weight:700">Reload in safe mode</button></p></div>'; document.body.appendChild(d);
+      d.querySelector('#gz-safe').onclick = () => { try { const s = JSON.parse(localStorage.getItem('rovatics.gz.settings') || '{}'); s.quality = 'low'; s.reduceMotion = true; localStorage.setItem('rovatics.gz.settings', JSON.stringify(s)); } catch (e) {} location.reload(); }; };
+    this.showError = show; addEventListener('error', e => show((e.message || 'error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''))); addEventListener('unhandledrejection', e => show('Unhandled: ' + ((e.reason && e.reason.message) || e.reason)));
+    this.canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); show('The graphics card reset (WebGL context lost). This usually means the GPU ran out of memory.'); });
   }
   fit() { const w = innerWidth, h = innerHeight; this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); this.renderer.setSize(w, h, false); }
   onResize(f) { this.resizers = [f]; }
