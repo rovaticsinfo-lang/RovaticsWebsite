@@ -58,5 +58,11 @@
     "file": "tidekeeper.html",
     "emoji": "🌙",
     "description": "You are the Moon: raise and lower the sea to guide fish, deer, turtles, crabs and drifting seeds home. 100 hand-verified tides across 10 forest-and-ocean shores."
+  },
+  {
+    "title": "MindVerse: Beyond the Puzzle",
+    "file": "mindverse.html",
+    "emoji": "🗿",
+    "description": "A cinematic 3D temple adventure: rotate mirrors, route water, balance ancient scales and wake the Mind Core. Ten hand-verified brain puzzles with real-time 3D, hints, undo and stars."
   }
 ]
