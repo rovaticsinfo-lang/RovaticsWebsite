@@ -21,6 +21,7 @@ class SeqView extends BaseView {
       const shaft = cyl(0.36, 0.44, h, mat); shaft.position.y = 0.28 + h / 2; g.add(shaft);
       const cap = sphere(0.34, mat); cap.position.y = 0.28 + h + 0.2; g.add(cap);
       for (let r = 0; r < a.rings; r++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.05, 8, 24), M.metal); ring.rotation.x = Math.PI / 2; ring.position.y = 0.5 + r * 0.2; g.add(ring); }
+      if (s.rule === 'hue') { const tg = label(String(a.hue + 1), 0.42, { w: 128, h: 96, size: 56, color: '#ffffff', bg: 'rgba(0,0,0,0.55)' }); tg.position.set(0, 0.28 + h + 0.95, 0); g.add(tg); }
       shaft.userData.mat = mat; this.reg(shaft, { k: 'tap', i }); this.reg(cap, { k: 'tap', i }); this.reg(foot, { k: 'tap', i });
       this.group.add(g); this.pillars.push({ g, mat, cap, h, col });
     });
@@ -155,6 +156,7 @@ class TiltView extends BaseView {
       const col = BALL_COLORS[i], p = this.pos(...b), ball = sphere(0.36, new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.3, roughness: 0.15, metalness: 0.5 })); ball.position.set(p.x, 0.5, p.z); this.group.add(ball);
       const gp = this.pos(...s.goals[i]), sock = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 10, 30), M.glow(col, 1.1)); sock.rotation.x = Math.PI / 2; sock.position.set(gp.x, 0.12, gp.z); this.group.add(sock);
       const dot = cyl(0.3, 0.3, 0.04, M.glow(col, 0.5)); dot.position.set(gp.x, 0.08, gp.z); this.group.add(dot);
+      if (s.balls.length > 1) { const a = label(String(i + 1), 0.42, { w: 96, h: 96, size: 60, color: '#ffffff', bg: 'rgba(0,0,0,0.55)' }), b2 = a.clone(); a.position.set(0, 0.85, 0); ball.add(a); b2.position.set(gp.x, 0.62, gp.z); this.group.add(b2); }
       return { m: ball, from: p.clone(), to: p.clone(), t: 1, col, sock };
     });
     this.sync(s);
@@ -230,10 +232,10 @@ class TanksView extends BaseView {
       for (let k = 1; k < cap; k++) { const tk = box(0.1, 0.02, 0.02, M.dark); tk.position.set(0.9, 0.2 + k * this.U, 0); g.add(tk); }
       const topr = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.05, 8, 32), M.metal); topr.rotation.x = Math.PI / 2; topr.position.y = 0.2 + h; g.add(topr);
       const fill = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), M.glow('#4fd8ff', 1)); fill.position.set(0, 0.2 + h + 0.9, -1.7 + 0.0); const pipe = cyl(0.08, 0.08, 0.9 + (0.2 + h) * 0, M.metal); pipe.position.set(0, 0.2 + h + 0.55, -0.85); pipe.rotation.x = 0.9; g.add(pipe); fill.position.set(0, 0.2 + h + 1.0, -1.5); g.add(fill);
-      const fl = label('FILL', 0.3, { w: 192, h: 64, size: 36, color: '#aef0ff' }); fl.position.set(0, 0.2 + h + 1.5, -1.5); g.add(fl);
-      const drain = sphere(0.25, M.glow('#ff6a6a', 0.9)); drain.position.set(0, 0.35, 1.25); g.add(drain); const dl = label('DRAIN', 0.3, { w: 192, h: 64, size: 34, color: '#ffb0b0' }); dl.position.set(0, 0.85, 1.25); g.add(dl);
+      const fl = label('FILL', 0.5, { w: 192, h: 64, size: 36, color: '#aef0ff' }); fl.position.set(0, 0.2 + h + 1.5, -1.5); g.add(fl);
+      const drain = sphere(0.25, M.glow('#ff6a6a', 0.9)); drain.position.set(0, 0.35, 1.25); g.add(drain); const dl = label('DRAIN', 0.5, { w: 192, h: 64, size: 34, color: '#ffb0b0' }); dl.position.set(0, 0.85, 1.25); g.add(dl);
       const txt = label('', 0.5, { w: 256, h: 96 }); txt.position.set(0, 0.2 + h + 2.2, 0); g.add(txt);
-      let gm = null; if (s.goal[i] !== null) { gm = new THREE.Mesh(new THREE.TorusGeometry(0.97, 0.045, 8, 36), M.glow('#ffcf6b', 1.5)); gm.rotation.x = Math.PI / 2; gm.position.y = 0.2 + s.goal[i] * this.U; g.add(gm); const gl = label('goal ' + s.goal[i], 0.34, { w: 256, h: 64, size: 36, color: '#ffe08a' }); gl.position.set(1.65, 0.2 + s.goal[i] * this.U, 0); g.add(gl); }
+      let gm = null; if (s.goal[i] !== null) { gm = new THREE.Mesh(new THREE.TorusGeometry(0.97, 0.045, 8, 36), M.glow('#ffcf6b', 1.5)); gm.rotation.x = Math.PI / 2; gm.position.y = 0.2 + s.goal[i] * this.U; g.add(gm); const gl = label('goal ' + s.goal[i], 0.5, { w: 256, h: 64, size: 36, color: '#ffe08a' }); gl.position.set(1.65, 0.2 + s.goal[i] * this.U, 0); g.add(gl); }
       this.group.add(g);
       [glass, bs].forEach(o => { o.userData.tank = i; this.pick.push(o); }); water.userData.tank = i; this.pick.push(water); fill.userData.mv = { k: 'fill', i }; this.pick.push(fill); drain.userData.mv = { k: 'drain', i }; this.pick.push(drain);
       this.tanks.push({ g, water, wmat, h, glass, cur: s.vol[i], txt, bs, gm, cap });
@@ -272,8 +274,8 @@ class EchoView extends BaseView {
       if (s.g[r][c] === '#') { const w = box(T - 0.04, 1.0, T - 0.04, M.dark); w.position.set(p.x, 0.5, p.z); this.group.add(w); const cap = box(T - 0.2, 0.05, T - 0.2, M.glow(M.W.accent, 0.3)); cap.position.set(p.x, 1.02, p.z); this.group.add(cap); }
       else { const f = box(T - 0.06, 0.08, T - 0.06, M.stone); f.position.set(p.x, 0.02, p.z); f.userData.cell = [r, c]; this.pick.push(f); this.group.add(f); }
     }
-    this.plates = s.plates.map(pl => { const p = this.pos(pl.r, pl.c), col = ID_COLORS[pl.id % 3], m = cyl(0.4, 0.4, 0.07, M.glow(col, 0.9)); m.position.set(p.x, 0.1, p.z); m.userData.cell = [pl.r, pl.c]; this.pick.push(m); this.group.add(m); const rg = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.04, 8, 30), M.glow(col, 1.4)); rg.rotation.x = Math.PI / 2; rg.position.set(p.x, 0.12, p.z); this.group.add(rg); return { m, id: pl.id }; });
-    this.doors = s.doors.map(d => { const p = this.pos(d.r, d.c), col = ID_COLORS[d.id % 3], gm = new THREE.Group(); gm.position.set(p.x, 0, p.z); const bar = box(T - 0.12, 1.0, 0.3, M.glow(col, 0.8)); bar.position.y = 0.5; const frame = box(T, 0.12, 0.4, M.metal); frame.position.y = 1.02; gm.add(bar, frame); this.group.add(gm); return { gm, id: d.id, y: 0, bar }; });
+    this.plates = s.plates.map(pl => { const p = this.pos(pl.r, pl.c), col = ID_COLORS[pl.id % 3], m = cyl(0.4, 0.4, 0.07, M.glow(col, 0.9)); m.position.set(p.x, 0.1, p.z); m.userData.cell = [pl.r, pl.c]; this.pick.push(m); this.group.add(m); if (s.doors.length > 1) { const lb = label('ABC'[pl.id], 0.4, { w: 96, h: 96, size: 60, color: '#ffffff', bg: 'rgba(0,0,0,0.55)' }); lb.position.set(p.x, 0.55, p.z); this.group.add(lb); } const rg = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.04, 8, 30), M.glow(col, 1.4)); rg.rotation.x = Math.PI / 2; rg.position.set(p.x, 0.12, p.z); this.group.add(rg); return { m, id: pl.id }; });
+    this.doors = s.doors.map(d => { const p = this.pos(d.r, d.c), col = ID_COLORS[d.id % 3], gm = new THREE.Group(); gm.position.set(p.x, 0, p.z); const bar = box(T - 0.12, 1.0, 0.3, M.glow(col, 0.8)); bar.position.y = 0.5; const frame = box(T, 0.12, 0.4, M.metal); frame.position.y = 1.02; gm.add(bar, frame); if (s.doors.length > 1) { const lb = label('ABC'[d.id], 0.4, { w: 96, h: 96, size: 60, color: '#ffffff', bg: 'rgba(0,0,0,0.55)' }); lb.position.set(0, 1.4, 0); gm.add(lb); } this.group.add(gm); return { gm, id: d.id, y: 0, bar }; });
     const ep = this.pos(...s.exit), portal = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.07, 10, 30), M.glow('#ffffff', 2)); portal.position.set(ep.x, 0.55, ep.z); this.group.add(portal); this.portal = portal;
     const orb = sphere(0.2, M.glow('#ffffff', 2.4)); orb.position.set(ep.x, 0.55, ep.z); this.group.add(orb);
     this.agent = avatar(M, '#ffb347', false); this.ghost = avatar(M, '#7af0ff', true); this.group.add(this.agent, this.ghost);

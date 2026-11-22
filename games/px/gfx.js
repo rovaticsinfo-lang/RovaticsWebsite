@@ -49,7 +49,7 @@ export class BaseView {
   findPick(mv) { const k = JSON.stringify(mv); return this.pick.filter(m => JSON.stringify(m.userData.mv) === k); }
   highlight(mv) {
     this.halos.forEach(h => { this.group.remove(h); }); this.halos = []; if (!mv) return;
-    const targets = this.hlTargets ? this.hlTargets(mv) : this.findPick(mv);
+    const targets = this.hlTargets ? this.hlTargets(mv) : this.findPick(mv).slice(0, 1);
     for (const t of targets) { const h = new THREE.Mesh(this.haloGeo, this.haloMat); h.renderOrder = 30; const v = new THREE.Vector3(); t.getWorldPosition(v); this.group.worldToLocal(v); h.position.copy(v); h.rotation.x = Math.PI / 2; this.group.add(h); this.halos.push(h); }
   }
   update(t, dt) { this.time += dt; this.halos.forEach((h, i) => { const s = 1 + 0.18 * Math.sin(this.time * 6 + i); h.scale.setScalar(s); h.rotation.z += dt * 2; }); if (this.tick) this.tick(t, dt); }

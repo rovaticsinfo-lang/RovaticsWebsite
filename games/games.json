@@ -40,5 +40,11 @@
     "file": "crowd-rush.html",
     "emoji": "👹",
     "description": "Lead a crowd of real running people over curving, hilly roads. Grab guns and bombs, smash obstacles and hunt down beasts, devils and the Devil King. Long levels in eight real-world settings."
+  },
+  {
+    "title": "PARALLAX · Rovatics Game Zone",
+    "file": "game-zone.html",
+    "emoji": "🌌",
+    "description": "A cinematic 3D puzzle adventure across five worlds and 100 levels: route channels, tilt gravity, steer light, balance pressure and team up with your own echo. Free hints, undo and checkpoints. No ads."
   }
 ]

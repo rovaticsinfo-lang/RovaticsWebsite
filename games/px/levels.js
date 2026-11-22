@@ -4,7 +4,7 @@ import { PUZZLES } from './data/puzzles.js';
 import { RULES } from './logic.js';
 
 export const WORLDS = [
-  { id: 1, name: 'The Forgotten Architects', short: 'Architects', tag: 'Topology · Light · Shadow · Resonance', sky: ['#0b1d2a', '#2f6f6a', '#ffd9a0'], fog: '#2a4a48', accent: '#ffcf6b', accent2: '#7be0b0', base: '#8c917f', metal: '#c9984a', sun: '#ffe2a8',
+  { id: 1, name: 'The Forgotten Architects', short: 'Architects', tag: 'Topology · Light · Shadow · Resonance', sky: ['#13294a', '#4a8a96', '#ffd29a'], fog: '#5a6a5a', accent: '#ffcf6b', accent2: '#7be0b0', base: '#a89a7c', metal: '#c9984a', sun: '#ffe2a8',
     story: 'Overgrown megastructures hum with the memory of their builders. Gates remember. Stairs fold. The first engine, the Law of Form, is asleep in the roots.' },
   { id: 2, name: 'The Gravity Engine', short: 'Gravity', tag: 'Gravity · Magnetism · Momentum · Energy', sky: ['#1a0b0b', '#7a2e12', '#ff9a4a'], fog: '#4a2214', accent: '#ff8a3c', accent2: '#4fd8ff', base: '#3d4048', metal: '#c8743a', sun: '#ffb070',
     story: 'Foundries hang between poles that no longer agree on which way is down. Rails bend toward magnets, and weight forgets itself.' },
