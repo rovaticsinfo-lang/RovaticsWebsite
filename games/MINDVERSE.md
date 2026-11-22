@@ -99,7 +99,7 @@ The UI test uses WebGL through Chrome's software renderer, so it is slow but nee
 
 * Tap a mirror, channel, valve, gear, switch or panel to use it. Tap a jar or switch to look at it first, then confirm.
 * Drag crystals and stones to a glowing spot. Or tap the object and tap the spot.
-* Look around with one finger on empty space. With two fingers: pinch to zoom, twist to turn the room, slide up or down to tilt. Double-tap empty space to reset. The buttons on the left do the same (hold to repeat), and the mouse wheel zooms.
+* Look around with one finger on empty space. With two fingers: pinch to zoom, twist to turn the room, slide up or down to tilt. Double-tap empty space to reset. The camera button (🎥, just above Undo and Restart) opens zoom, turn and tilt buttons that do the same (hold to repeat), and the mouse wheel zooms.
 * Crate levels: tap a tile to walk there, or use the arrow pad (or arrow keys). Disc towers: tap a peg, then another peg. Sliding blocks: drag along the groove.
 * Keyboard: Z undo, R restart, H hint, Q / E rotate the selected object, Esc pause.
 

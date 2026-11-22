@@ -30,7 +30,7 @@ MindVerse is a cinematic 3D adventure of brain puzzles. Every room of a jungle t
 Every puzzle is proven solvable, and the clues always give you what you need. No guessing, no pixel hunting.
 
 🎮 EASY TO PLAY, HARD TO PUT DOWN
-• Tap to use, drag to place, swipe to look around, pinch to zoom
+• Tap to use, drag to place, swipe to look around, pinch to zoom, tap the camera button for turn and zoom controls
 • Three free hints in every room: an idea, then the object, then the next move
 • Unlimited undo and restart
 • Up to three stars per room: solve it, beat the par, and find the hidden relic without hints
