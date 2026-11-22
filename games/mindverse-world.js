@@ -77,7 +77,7 @@
     scene.background = new T.Color(o.fogColor || 0x9fb98f); scene.fog = new T.FogExp2(o.fogColor || 0x9fb98f, q.fog * (o.fogMul || 1));
     root.add(G.sky(o.top || '#4f9be0', o.mid || '#bfe0f2', o.bot || '#f4e6bc')); jungleFloor(root);
     env.hemi = new T.HemisphereLight(0xaed4ff, 0x3a5220, o.hemi || .42); scene.add(env.hemi); env.sun = sunLight(scene, q, o.sun || [-16, 28, 14], o.sunI || 1.55, 0xffd7a0, o.spread);
-    root.add(G.trees(q.trees, o.treeR || 26, 22, o.seed || 4));
+    root.add(G.trees(q.trees, (o.treeR || 26) + 16, 22, o.seed || 4));
     const ferns = G.ferns(q.ferns, { x: 0, z: 0, w: 70, d: 60 }, 11, (x, z) => Math.abs(x) < (o.clearX || 10.5) && Math.abs(z) < (o.clearZ || 8)); ferns.position.y = -.4; root.add(ferns);
     const d = G.dust(q.dust, { w: 34, h: 12, d: 28 }); d.obj.position.y = .2; root.add(d.obj); anims.push(d.update);
     const ff = G.fireflies(q.fire, { w: 40, h: 4, d: 30 }); root.add(ff.obj); anims.push(ff.update);
@@ -158,7 +158,6 @@
     const fl = new T.Mesh(new T.PlaneGeometry(40, 26), G.floorMat(40, 26)); fl.rotation.x = -PI / 2; fl.position.y = -.04; fl.receiveShadow = true; root.add(fl);
     root.add(stoneWall(30, 14, 2, 0, 7, -7)); root.add(stoneWall(2, 14, 20, -15, 7, 0)); root.add(stoneWall(2, 14, 20, 15, 7, 0)); root.add(G.bevel(32, 1.6, 22, M.stoneDark, 0, 14.6, -1, .1));
     [-1, 1].forEach(s => { root.add(pillar(s * 9, -5.6, 12, false)); root.add(pillar(s * 9, 6, 12, false)); });
-    const door = slabDoor(9.4, 2.5, -6.1, 3, 5, 'drop'); root.add(door.g); env.door = door; G.tagAll(door.g, 'door'); env.pickables = [door.g]; root.add(G.bevel(4.2, 5.6, .9, M.stoneWarm, 9.4, 2.9, -6.55, .08)); const lock = new T.Mesh(new T.TorusGeometry(.24, .07, 8, 14), M.gold); lock.position.set(8.3, 2.5, -5.62); root.add(lock);
     [-12, -6, 6, 12].forEach((x, i) => { const t = G.torch(i === 1 || i === 2); t.obj.position.set(x, 0, -6); root.add(t.obj); anims.push(t.update); });
     const d = G.dust(q.dust, { w: 26, h: 10, d: 18 }); root.add(d.obj); anims.push(d.update); const rays = G.godRays([{ x: -4, y: 10, z: -1, w: 4, len: 18, rz: .3 }], 0xffd9a0); root.add(rays.obj); anims.push(rays.update);
     for (let i = 0; i < 4; i++) root.add(G.vine(-12 + i * 8, 13.6, -6, 5 + i, i * 3)); rocks(root, 5, { x: 0, z: 4, w: 26, d: 8 }, 19, M.stoneDark);
@@ -211,7 +210,7 @@
     env.setCore = lv => { env.coreLevel = lv; };
     env.stageAnchors = [];
     anims.push((t, dt) => {
-      const lv = env.coreLevel, f = Math.min(1, lv / 5), act = env.coreFinal || 0;
+      const lv = env.coreLevel, f = Math.min(1, lv / Math.max(1, env.def.stages.length)), act = env.coreFinal || 0;
       crys.rotation.y = t * (.4 + f * .8 + act * 2); rings.forEach((r, i) => { r.rotation.set(t * (.5 + i * .3) * (i % 2 ? -1 : 1) * (1 + act * 2), t * .4 * (i + 1), i * 1.05); });
       crys.material.emissiveIntensity = .15 + f * .9 + act * 1.6; halo.material.opacity = .15 + f * .35 + act * .5; halo.scale.setScalar(22 + act * 14 + Math.sin(t * 3) * 1.2); light.intensity = f * 1.6 + act * 5; beam.material.opacity = act * .45; crys.position.y = 5.2 + Math.sin(t * 1.3) * .25;
       [core.userData.f0, core.userData.f1].forEach(r => { r.material.emissiveIntensity = .1 + f * 1.2 + act * 2; });
@@ -221,6 +220,20 @@
     const door = { g: new T.Group(), set(k) { env.coreFinal = k; }, f: 0 }; env.door = door;
     for (let i = 0; i < 16; i++) { const a = i * PI / 8, t = G.torch(false); t.obj.position.set(Math.cos(a) * 12, 0, Math.sin(a) * 12 * .9 + 0); t.obj.scale.setScalar(.8); if (i % 2) root.add(t.obj), anims.push(t.update); }
   };
+
+  const THEMES = {
+    ocean: { fog: 0x1d5a6a, sun: 0x9fe0ff, sunK: .9, hemiSky: 0x6fd0ff, hemiGround: 0x1a4a56, skyTop: '#0b3a66', skyMid: '#2a8ca8', skyBot: '#a8e8e0', tintFog: .0095 },
+    dusk: { fog: 0x4a2f55, sun: 0xffb27a, sunK: .85, hemiSky: 0xd89cff, hemiGround: 0x4a2a30, skyTop: '#241044', skyMid: '#b2467a', skyBot: '#ffc27a', tintFog: .009 }
+  };
+  function applyTheme(env, name) {
+    const th = THEMES[name]; if (!th) return; const { scene, root } = env, c = new T.Color(th.fog), hasSky = root.children.some(o => o.isMesh && o.renderOrder === -10);
+    const k = hasSky ? 1 : .3;                                  // outdoor scenes take the full colour; indoor halls only a tint, so they stay dark and readable
+    if (scene.background && scene.background.isColor) scene.background.lerp(c, k);
+    if (scene.fog) scene.fog.color.lerp(c, k);
+    if (env.sun) { env.sun.color.lerp(new T.Color(th.sun), .6); env.sun.intensity *= hasSky ? th.sunK : 1; }
+    if (env.hemi) { env.hemi.color.lerp(new T.Color(th.hemiSky), .5); env.hemi.groundColor.lerp(new T.Color(th.hemiGround), .5); }
+    if (hasSky) { root.children.filter(o => o.isMesh && o.renderOrder === -10).forEach(o => root.remove(o)); root.add(G.sky(th.skyTop, th.skyMid, th.skyBot)); }
+  }
 
   /* ---------- the world manager ---------- */
   MV.createWorld = function (canvas, opts) {
@@ -232,7 +245,7 @@
     G.initMaterials.done = true;
     const base = { az: 0, el: 34, d: 17, t: new T.Vector3(0, 1, 0) }, cur = { az: 0, el: 34, d: 17, t: new T.Vector3(0, 1, 0) }, user = { az: 0, el: 0, zoom: 1 };
     let shake = 0, root = null, fx = null, def = null, stageVs = [], curStage = 0, cameraLock = false;
-    W.setSize = function (w, h) { sizeW = w; sizeH = h; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); W.aspect = w / h; if (post) post.setSize(w, h); };
+    W.setSize = function (w, h) { sizeW = w; sizeH = h; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); W.aspect = w / h; if (post) post.setSize(w, h); if (W.refit) W.refit(); };
     W.setQuality = function (name) {
       if (!QUALITY[name]) return; qName = W.qName = name; q = W.q = QUALITY[name]; renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.dpr)); renderer.shadowMap.enabled = q.shadow > 0; mkPost(); if (opts.onQuality) opts.onQuality(name);
       if (def) W.load(def, W.game, true);
@@ -246,6 +259,7 @@
       fx = G.spark(root, q.spark); W.fx = fx; const env = { scene, root, anims: W.anims, def }; W.env = env; env.q = q;
       const ctx = { fx, sfx: n => opts.onSfx && opts.onSfx(n), exitDoor: null, onWalkEnd: () => opts.onWalkEnd && opts.onWalkEnd() };
       (ENV[levelDef.env] || ENV.hall)(env, q);
+      applyTheme(env, levelDef.theme);
       levelDef.stages.forEach((st, i) => {
         const v = MV.stages[st.kind](Object.assign({}, ctx, { doorPos: [0, -7.5] }), st); const o = st.view || { x: 0, z: 0 }; v.root.position.set(o.x, 0, o.z); v.root.rotation.y = o.rot || 0; v.stageDef = st; v.idx = i; root.add(v.root); stageVs.push(v); W.anims.push(v.update);
       });
@@ -259,7 +273,14 @@
       if (!keepCam) { Object.assign(user, { az: 0, el: 0, zoom: 1 }); }
       const r = envCam(); base.az = cur.az = r.az; base.el = cur.el = r.el; base.d = cur.d = r.d; base.t.copy(r.t); cur.t.copy(r.t);
     };
-    function envCam() { const vw = def.stages[curStage].view, c = (vw && vw.cam) || def.cam, o = vw || { x: 0, z: 0, rot: 0 }, rot = o.rot || 0, cs = Math.cos(rot), sn = Math.sin(rot), lx = c.t[0], lz = c.t[2]; return { az: c.az + rot / D2R, el: c.el, d: c.d, t: new T.Vector3(o.x + lx * cs + lz * sn, c.t[1], o.z - lx * sn + lz * cs) }; }
+    function fitCam(r, fitW) {
+      const asp = W.aspect || 1, vfov = 42 * D2R, hfov = 2 * Math.atan(Math.tan(vfov / 2) * asp);
+      if (fitW && asp < 1.5) { const need = (fitW / 2) / Math.tan(hfov / 2) * 1.06; if (need > r.d) r.d = Math.min(need, 46); if (asp < .85) r.el = Math.min(64, r.el + (.85 - asp) * 30); }
+      return r;
+    }
+    function envCam() { const r0 = envCam0(), v = stageVs[curStage]; return fitCam(r0, v && v.fitW); }
+    W.refit = function () { if (!def || !stageVs.length) return; const r = envCam(); base.az = r.az; base.el = r.el; base.d = r.d; base.t.copy(r.t); };
+    function envCam0() { const vw = def.stages[curStage].view, c = (vw && vw.cam) || def.cam, o = vw || { x: 0, z: 0, rot: 0 }, rot = o.rot || 0, cs = Math.cos(rot), sn = Math.sin(rot), lx = c.t[0], lz = c.t[2]; return { az: c.az + rot / D2R, el: c.el, d: c.d, t: new T.Vector3(o.x + lx * cs + lz * sn, c.t[1], o.z - lx * sn + lz * cs) }; }
     W.setStage = function (i, instant) { curStage = i; stageVs.forEach((v, k) => { v.setLocked(k > i); v.setDone(k < i); }); if (def.env === 'core' && W.env) W.env.setCore(i); const r = envCam(); base.az = r.az; base.el = r.el; base.d = r.d; base.t.copy(r.t); if (instant) { cur.az = r.az; cur.el = r.el; cur.d = r.d; cur.t.copy(r.t); } };
     W.view = () => stageVs[curStage];
     W.sync = function (game, instant) { if (!game) return; stageVs.forEach((v, i) => { v.sync(game.states[i], instant); }); };

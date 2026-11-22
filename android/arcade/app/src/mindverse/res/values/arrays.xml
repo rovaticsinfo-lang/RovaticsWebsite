@@ -10,13 +10,13 @@
         <item>Welcome to MindVerse</item>
         <item>Tap and drag</item>
         <item>Stuck? Ask for a hint</item>
-        <item>Ten rooms, one Mind Core</item>
+        <item>30 rooms, three worlds</item>
     </string-array>
     <string-array name="ob_bodies">
         <item>Explore a lost temple, wake its ancient machines and solve the puzzle in every room. Look closely: every clue is in the room.</item>
         <item>Tap mirrors, pipes, valves, gears and switches to use them. Drag crystals and stones onto the glowing spots. Swipe empty space to look around and pinch to zoom.</item>
         <item>The light bulb gives three free hints: an idea, then the object, then the next move. Undo and restart never cost anything.</item>
-        <item>Earn up to three stars in each room: solve it, finish within par, and find the hidden relic without hints. Restore the Mind Core in room ten.</item>
+        <item>Earn up to three stars in each room: solve it, finish within par, and find the hidden relic without hints. Finish every world to restore the Cores. Your best score on each level is kept.</item>
     </string-array>
     <string-array name="about_headings">
         <item>About this game</item>
@@ -25,9 +25,9 @@
         <item>Stars and progress</item>
     </string-array>
     <string-array name="about_bodies">
-        <item>MindVerse: Beyond the Puzzle is a realistic 3D adventure of ancient mechanisms. Mirrors bend energy beams, water finds its way through stone channels, symbols hide a code, and a great scale waits to be balanced. Ten rooms lead to the Mind Core.</item>
-        <item>• Ten hand-verified brain puzzles in real-time 3D\n• Mirrors, water, symbols, weights, gears, a moving bridge and a trap\n• Three free hints, unlimited undo and restart\n• Atmospheric sound and music, all can be muted\n• Low, Medium and High graphics, and a reduce-motion option\n• Free, with no ads and no account</item>
+        <item>MindVerse: Beyond the Puzzle is a realistic 3D adventure of ancient mechanisms. Mirrors bend energy beams, water finds its way through stone channels, symbols hide a code, and a great scale waits to be balanced. Thirty rooms in three worlds lead to the Mind Core.</item>
+        <item>• 30 verified brain puzzles in three worlds, in real-time 3D\n• Mirrors, water, symbols, weights, gears, a moving bridge and a trap\n• Three free hints, unlimited undo and restart\n• Atmospheric sound and music, all can be muted\n• Low, Medium and High graphics, and a reduce-motion option\n• Free, with no ads and no account</item>
         <item>1. Tap objects to use them, or drag crystals and stones to a glowing spot.\n2. Swipe empty space to look around, pinch to zoom.\n3. Tap the light bulb if you are stuck.\n4. If the room fights back, read the message: it tells you what is blocking you.</item>
-        <item>Finish a room to earn 1 to 3 stars and unlock the next one. Replay any room from the level map. Your progress is saved on this device and nothing is sent anywhere.</item>
+        <item>Finish a room to earn 1 to 3 stars and unlock the next one. Replay any room from the level map and chase a better score. The Scores screen lists every level. Your progress is saved on this device and nothing is sent anywhere.</item>
     </string-array>
 </resources>

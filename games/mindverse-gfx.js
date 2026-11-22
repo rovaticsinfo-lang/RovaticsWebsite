@@ -79,6 +79,10 @@
     if (sym === 'spiral') { x.beginPath(); for (let a = 0; a < Math.PI * 5.2; a += .12) { const rr = s * .06 + a * s * .062; const px = Math.cos(a) * rr, py = Math.sin(a) * rr; a ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); }
     else if (sym === 'triangle') { x.beginPath(); x.moveTo(0, -s * .42); x.lineTo(s * .4, s * .3); x.lineTo(-s * .4, s * .3); x.closePath(); x.stroke(); x.beginPath(); x.arc(0, s * .02, s * .06, 0, 7); x.fill(); }
     else if (sym === 'sun') { x.beginPath(); x.arc(0, 0, s * .2, 0, 7); x.stroke(); for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; x.beginPath(); x.moveTo(Math.cos(a) * s * .3, Math.sin(a) * s * .3); x.lineTo(Math.cos(a) * s * (i % 2 ? .38 : .47), Math.sin(a) * s * (i % 2 ? .38 : .47)); x.stroke(); } }
+    else if (sym === 'wave') { for (let k = -1; k <= 1; k++) { x.beginPath(); for (let i = -10; i <= 10; i++) { const px = i * s * .04, py = k * s * .22 + Math.sin(i * .62) * s * .09; i === -10 ? x.moveTo(px, py) : x.lineTo(px, py); } x.stroke(); } }
+    else if (sym === 'moon') { x.beginPath(); x.arc(0, 0, s * .36, Math.PI * .28, Math.PI * 1.72, false); x.arc(s * .16, 0, s * .29, Math.PI * 1.6, Math.PI * .4, true); x.closePath(); x.stroke(); }
+    else if (sym === 'eye') { x.beginPath(); x.moveTo(-s * .42, 0); x.quadraticCurveTo(0, -s * .46, s * .42, 0); x.quadraticCurveTo(0, s * .46, -s * .42, 0); x.stroke(); x.beginPath(); x.arc(0, 0, s * .15, 0, 7); x.stroke(); x.beginPath(); x.arc(0, 0, s * .05, 0, 7); x.fill(); }
+    else if (sym === 'star') { x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? s * .17 : s * .42; i ? x.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : x.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } x.closePath(); x.stroke(); }
     x.restore();
   };
   G.glyphTexture = function (sym, bg, col, glow) {

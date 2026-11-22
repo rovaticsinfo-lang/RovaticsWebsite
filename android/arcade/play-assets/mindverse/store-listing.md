@@ -20,7 +20,10 @@ Wake a lost temple. Solve its ancient machines. Restore the Mind Core.
 
 MindVerse is a cinematic 3D adventure of brain puzzles. Every room of a jungle temple hides a mechanism that wants to be understood: mirrors that bend energy, water that follows stone channels, symbols that hide a code, and a great bronze scale waiting to be balanced.
 
-🗿 TEN HAND-VERIFIED PUZZLES
+🗿 30 VERIFIED PUZZLES IN THREE WORLDS
+• World 1, Lost Civilization: ten temple rooms
+• World 2, Sunken Sanctum: ten bigger puzzles
+• World 3, Sky Observatory: ten expert challenges
 • Place a crystal and open the sealed door
 • Rotate a mirror and send the beam to the receiver
 • Read a carved tablet and deduce the three-symbol sequence
@@ -30,7 +33,7 @@ MindVerse is a cinematic 3D adventure of brain puzzles. Every room of a jungle t
 • Route energy through a network of mirrors with a block in the way
 • Sequence a lever, a plate and a rail to build a safe bridge
 • Work out the safe order of the switches before the trap springs
-• Combine everything in the final chamber to restore the Mind Core
+• Combine everything in the final chambers to restore the Cores
 
 Every puzzle is proven solvable, and the clues always give you what you need. No guessing, no pixel hunting.
 
@@ -39,6 +42,7 @@ Every puzzle is proven solvable, and the clues always give you what you need. No
 • Three free hints in every room: an idea, then the object, then the next move
 • Unlimited undo and restart
 • Up to three stars per room: solve it, beat the par, and find the hidden relic without hints
+• A score for every level and a Scores screen to chase your best
 
 ✨ REAL-TIME 3D
 Warm sunlight, drifting dust, waterfalls, glowing crystals, reflective metal and living jungle. Low, Medium and High graphics settings, plus reduce motion for comfort.
@@ -51,15 +55,15 @@ Ambient jungle sound, gentle music and a sound for every mechanism, with caption
 • Works fully offline
 • No account, no tracking: your progress stays on your device
 
-MindVerse is made by Rovatics. This first world, Lost Civilization, has ten rooms. More worlds are planned.
+MindVerse is made by Rovatics. More worlds are planned.
 ```
-(1960 characters)
+(2123 characters)
 
 ## What's new (500 max)
 ```
-First release: ten 3D temple puzzles in the Lost Civilization world, free hints, undo, three stars per room, and offline play.
+30 puzzles in three worlds, new music, celebrations, a Scores screen, free hints, undo, three stars per room, and offline play.
 ```
-(126 characters)
+(127 characters)
 
 ## Category and tags
 Puzzle. Tags: puzzle, brain games, 3D, adventure, offline.
