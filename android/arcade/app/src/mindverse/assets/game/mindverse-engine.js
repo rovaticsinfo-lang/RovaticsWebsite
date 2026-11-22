@@ -81,7 +81,7 @@
   function trace(p, s) {
     const stepDeg = 180 / p.steps, segs = [], lit = {};
     const mir = p.mirrors.map(m => ({ id: m.id, x: m.x, z: m.z, th: s.m[m.id] * stepDeg }));
-    const blk = (p.blockers || []).map(b => ({ id: b.id, x: b.slots[s.b[b.id]].x, z: b.slots[s.b[b.id]].z }));
+    const blk = (p.blockers || []).map(b => ({ id: b.id, x: b.slots[s.b[b.id]].x, z: b.slots[s.b[b.id]].z })).concat((p.fixed || []).map((f, i) => ({ id: 'fixed_' + i, x: f.x, z: f.z })));
     const B = p.bounds;
     let x = p.source.x, z = p.source.z, a = p.source.dir, last = null, stop = 'wall';
     for (let k = 0; k < MAX_SEG; k++) {
@@ -294,10 +294,109 @@
     say: (p, a) => 'Turn this gear one tooth ' + (a.d > 0 ? 'clockwise.' : 'counter-clockwise.')
   };
 
+
+  /* ---- push: a Sokoban-style yard. Walk the explorer and push every crate onto a rune plate (new mechanic) ---- */
+  const DIRS4 = { U: [0, -1], D: [0, 1], L: [-1, 0], R: [1, 0] };
+  const cellIs = (list, x, y) => list.some(c => c[0] === x && c[1] === y);
+  KIND.push = {
+    key: (p, s) => s.p.join(',') + '|' + s.c.map(c => c.join(',')).sort().join(';'),
+    init: p => ({ p: p.player.slice(), c: p.crates.map(c => c.slice()) }),
+    actions: () => ['U', 'D', 'L', 'R'].map(d => ({ t: 'step', obj: 'player', d })),
+    apply(p, s, a) {
+      const d = DIRS4[a.d]; if (a.t !== 'step' || !d) return { blocked: 'Nothing to do there.' };
+      const nx = s.p[0] + d[0], ny = s.p[1] + d[1];
+      if (nx < 0 || ny < 0 || nx >= p.w || ny >= p.h || cellIs(p.walls, nx, ny)) return { blocked: 'A stone wall blocks the way.' };
+      const k = s.c.findIndex(c => c[0] === nx && c[1] === ny), n = { p: [nx, ny], c: s.c.map(c => c.slice()) };
+      if (k >= 0) {
+        const bx = nx + d[0], by = ny + d[1];
+        if (bx < 0 || by < 0 || bx >= p.w || by >= p.h || cellIs(p.walls, bx, by) || s.c.some(c => c[0] === bx && c[1] === by)) return { blocked: 'The crate will not move that way.' };
+        n.c[k] = [bx, by]; return { s: n, ev: ['push'] };
+      }
+      return { s: n, ev: ['step'] };
+    },
+    goal: (p, s) => s.c.every(c => cellIs(p.targets, c[0], c[1])),
+    say: (p, a) => 'Walk ' + ({ U: 'up', D: 'down', L: 'left', R: 'right' })[a.d] + '.'
+  };
+
+  /* ---- runes: tap a rune and it flips its neighbours too. Light every rune (Lights-Out style, new mechanic) ---- */
+  const RUNE_PAT = { plus: [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]], diag: [[0, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]], line: [[0, 0], [1, 0], [-1, 0]], ring: [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]], col: [[0, 0], [0, 1], [0, -1]], knight: [[0, 0], [1, 2], [-1, 2], [2, 1], [-2, 1], [1, -2], [-1, -2], [2, -1], [-2, -1]] };
+  KIND.runes = {
+    key: (p, s) => s.b.join(''),
+    init: p => ({ b: p.start.slice() }),
+    actions: p => p.start.map((_, i) => ({ t: 'press', obj: 'rune_' + i, i })),
+    apply(p, s, a) {
+      if (a.t !== 'press' || !(a.i >= 0 && a.i < p.start.length)) return { blocked: 'Nothing to do there.' };
+      const x = a.i % p.w, y = Math.floor(a.i / p.w), n = { b: s.b.slice() };
+      RUNE_PAT[p.pat].forEach(o => { const cx = x + o[0], cy = y + o[1]; if (cx >= 0 && cy >= 0 && cx < p.w && cy < p.h) n.b[cy * p.w + cx] ^= 1; });
+      return { s: n, ev: ['rune'] };
+    },
+    goal: (p, s) => s.b.every(v => v === 1),
+    say: (p, a) => 'Touch this rune.'
+  };
+
+  /* ---- discs: carry stone discs between pegs, a bigger disc never on a smaller one (Tower of Hanoi family, new mechanic) ---- */
+  KIND.discs = {
+    key: (p, s) => s.p.map(x => x.join('.')).join('|'),
+    init: p => ({ p: p.start.map(x => x.slice()) }),
+    actions(p, s) {
+      const out = []; s.p.forEach((from, a) => { if (!from.length) return; s.p.forEach((to, b) => { if (a === b || (p.adjacent && Math.abs(a - b) !== 1)) return; if (!to.length || to[to.length - 1] > from[from.length - 1]) out.push({ t: 'move', obj: 'peg_' + a, to: 'peg_' + b }); }); });
+      return out;
+    },
+    apply(p, s, a) {
+      const A = +String(a.obj).slice(4), B = +String(a.to).slice(4);
+      if (a.t !== 'move' || !(A >= 0 && A < s.p.length && B >= 0 && B < s.p.length) || A === B) return { blocked: 'Pick two different pegs.' };
+      if (p.adjacent && Math.abs(A - B) !== 1) return { blocked: 'Discs may only move to the next peg along.' };
+      if (!s.p[A].length) return { blocked: 'That peg has no disc.' };
+      const d = s.p[A][s.p[A].length - 1], top = s.p[B][s.p[B].length - 1]; if (top !== undefined && top < d) return { blocked: 'A bigger disc cannot sit on a smaller one.' };
+      const n = { p: s.p.map(x => x.slice()) }; n.p[A].pop(); n.p[B].push(d); return { s: n, ev: ['disc'] };
+    },
+    goal: (p, s) => s.p[p.goal].length === p.n,
+    say: (p, a) => 'Move the top disc from one peg to the next.'
+  };
+
+  /* ---- slide: sliding stone blocks in a frame; free the golden key block through the gap on the right (new mechanic) ---- */
+  function slideGrid(p, s) { const g = Array.from({ length: p.h }, () => Array(p.w).fill(null)); p.blocks.forEach(b => { for (let k = 0; k < b.len; k++) { const x = b.ori === 'h' ? s.pos[b.id] + k : b.x, y = b.ori === 'h' ? b.y : s.pos[b.id] + k; if (g[y] && x < p.w && y < p.h) g[y][x] = b.id; } }); return g; }
+  KIND.slide = {
+    key: (p, s) => p.blocks.map(b => s.pos[b.id]).join(','),
+    init: p => ({ pos: Object.fromEntries(p.blocks.map(b => [b.id, b.ori === 'h' ? b.x : b.y])) }),
+    actions(p, s) {
+      const g = slideGrid(p, s), out = [];
+      p.blocks.forEach(b => {
+        const cur = s.pos[b.id], max = (b.ori === 'h' ? p.w : p.h) - b.len;
+        for (const dir of [-1, 1]) for (let q = cur + dir; q >= 0 && q <= max; q += dir) {
+          const x = b.ori === 'h' ? (dir > 0 ? q + b.len - 1 : q) : b.x, y = b.ori === 'h' ? b.y : (dir > 0 ? q + b.len - 1 : q); const o = g[y][x]; if (o && o !== b.id) break; out.push({ t: 'slide', obj: b.id, to: q });
+        }
+      });
+      return out;
+    },
+    apply(p, s, a) {
+      const b = p.blocks.find(x => x.id === a.obj); if (a.t !== 'slide' || !b) return { blocked: 'Nothing to do there.' };
+      const cur = s.pos[b.id], max = (b.ori === 'h' ? p.w : p.h) - b.len; if (a.to === cur || a.to < 0 || a.to > max) return { blocked: 'It cannot go there.' };
+      const g = slideGrid(p, s), dir = a.to > cur ? 1 : -1;
+      for (let q = cur + dir; ; q += dir) { const x = b.ori === 'h' ? (dir > 0 ? q + b.len - 1 : q) : b.x, y = b.ori === 'h' ? b.y : (dir > 0 ? q + b.len - 1 : q), o = g[y][x]; if (o && o !== b.id) return { blocked: 'Another block is in the way.' }; if (q === a.to) break; }
+      const n = { pos: Object.assign({}, s.pos) }; n.pos[b.id] = a.to; return { s: n, ev: ['slide'] };
+    },
+    goal: (p, s) => { const k = p.blocks.find(b => b.key); return s.pos[k.id] === p.w - k.len; },
+    say: (p, a) => 'Slide this block along its groove.'
+  };
+
+  /* ---- rings: concentric rings that drag their neighbours along. Line up every mark at the top (new mechanic) ---- */
+  KIND.rings = {
+    key: (p, s) => s.r.join(','),
+    init: p => ({ r: p.start.slice() }),
+    actions: p => { const out = []; p.start.forEach((_, i) => { out.push({ t: 'ring', obj: 'ring_' + i, d: 1 }); out.push({ t: 'ring', obj: 'ring_' + i, d: -1 }); }); return out; },
+    apply(p, s, a) {
+      const i = +String(a.obj).slice(5); if (a.t !== 'ring' || !(i >= 0 && i < s.r.length)) return { blocked: 'Nothing to do there.' };
+      const n = { r: s.r.slice() }; p.link[i].forEach((c, j) => { if (c) n.r[j] = mod(s.r[j] + c * a.d, p.n); }); return { s: n, ev: ['gear'] };
+    },
+    goal: (p, s) => s.r.every(v => v === 0),
+    say: (p, a) => 'Turn this ring one notch ' + (a.d > 0 ? 'clockwise.' : 'counter-clockwise.')
+  };
+
   /* ======================= solver (BFS) ======================= */
   function solve(kind, p, s0, limit) {
     const M = KIND[kind]; limit = limit || 250000;
-    if (M.goal(p, s0)) return [];
+    solve.last = 1; if (M.goal(p, s0)) return [];
     const kf = M.key ? s => M.key(p, s) : JSON.stringify, nodes = [{ s: s0, parent: -1, a: null }], seen = new Set([kf(s0)]);
     for (let i = 0; i < nodes.length && nodes.length < limit; i++) {
       const acts = M.actions(p, nodes[i].s);
@@ -306,7 +405,7 @@
         if (!r.s || r.fail) continue;
         const key = kf(r.s); if (seen.has(key)) continue; seen.add(key);
         nodes.push({ s: r.s, parent: i, a: acts[j] });
-        if (M.goal(p, r.s)) { const path = []; for (let k = nodes.length - 1; nodes[k].parent >= 0; k = nodes[k].parent) path.unshift(nodes[k].a); return path; }
+        if (M.goal(p, r.s)) { solve.last = nodes.length; const path = []; for (let k = nodes.length - 1; nodes[k].parent >= 0; k = nodes[k].parent) path.unshift(nodes[k].a); return path; }
       }
     }
     return null;
@@ -337,6 +436,11 @@
       if (st.kind === 'balance') { need(p.stones.length >= 2 && p.stones.every(s => s.w > 0), 'stones need positive weights'); need(p.cap >= 1, 'cap'); }
       if (st.kind === 'water') { need(p.tiles.filter(t => t.t === 'source').length === 1, 'exactly one source'); need(p.tiles.some(t => t.t === 'receiver'), 'a receiver'); need(new Set(p.tiles.map(t => t.id)).size === p.tiles.length, 'tile ids unique'); p.tiles.forEach(t => need(BASE[t.t], 'unknown tile type ' + t.t)); }
       if (st.kind === 'search') { need(p.jars.some(j => j.id === p.keyIn), 'keyIn is not a jar'); need(p.jars.length >= 2 && p.jars.length <= 8, 'between 2 and 8 jars'); }
+      if (st.kind === 'push') { need(p.w >= 3 && p.h >= 3 && p.crates.length === p.targets.length && p.crates.length >= 1, 'crates and plates must match'); need(!cellIs(p.walls, p.player[0], p.player[1]), 'player starts in a wall'); }
+      if (st.kind === 'runes') { need(RUNE_PAT[p.pat] && p.start.length === p.w * p.h, 'rune grid'); }
+      if (st.kind === 'discs') { need(p.start.reduce((a, x) => a + x.length, 0) === p.n && p.goal >= 0 && p.goal < p.start.length, 'discs'); }
+      if (st.kind === 'slide') { need(p.blocks.filter(b => b.key).length === 1, 'exactly one key block'); }
+      if (st.kind === 'rings') { need(p.link.length === p.start.length && p.n >= 4, 'rings'); }
       if (st.kind === 'trap') { need(p.order.every(id => p.switches.some(w => w.id === id)), 'order refers to unknown switch'); need(p.switches.length >= 2 && p.switches.length <= 6, 'between 2 and 6 switches'); }
     });
     return true;
@@ -345,11 +449,11 @@
   /* Prove a level: every stage solvable, clues sufficient, par not below the best possible, start not already solved. */
   function verifyLevel(def) {
     validateLevel(def);
-    const problems = [], stages = []; let moves = 0;
+    const problems = [], stages = []; let moves = 0, hardness = 0;
     def.stages.forEach(st => {
       const M = KIND[st.kind], s0 = M.init(st.p), p = st.p;
       if (M.goal(p, s0)) problems.push(st.id + ': already solved at the start');
-      const path = solve(st.kind, p, s0);
+      const path = solve(st.kind, p, s0); hardness += Math.log2(1 + (solve.last || 1));
       if (!path) { problems.push(st.id + ': no solution'); stages.push({ id: st.id, steps: null }); return; }
       const paid = path.filter(a => !a.free).length; moves += paid; stages.push({ id: st.id, steps: path.length, moves: paid, path });
       if (st.kind === 'symbols') { const c = clueSolutions(p); if (c.length !== 1 || c[0].join() !== p.solution.join()) problems.push(st.id + ': clue allows ' + c.length + ' answers'); }
@@ -357,7 +461,7 @@
       if (st.kind === 'trap') { const o = trapOrder(p); if (o.join() !== p.order.join()) problems.push(st.id + ': wear marks do not give the stated order'); if (new Set(p.switches.map(w => w.wear)).size !== p.switches.length) problems.push(st.id + ': wear marks are ambiguous'); }
     });
     if (def.par < moves) problems.push('par ' + def.par + ' is below the best possible ' + moves);
-    return { ok: !problems.length, problems, optimal: moves, stages };
+    return { ok: !problems.length, problems, optimal: moves, hardness: Math.round(hardness * 10) / 10, stages };
   }
 
   /* ======================= game session ======================= */

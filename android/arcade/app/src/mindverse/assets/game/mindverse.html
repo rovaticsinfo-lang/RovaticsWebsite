@@ -57,6 +57,12 @@
   .card p{margin:0 0 10px;line-height:1.45;color:#efe6c8}
   .card .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
   .card ol{margin:6px 0 10px;padding-left:20px;line-height:1.5}
+  .dpad{position:absolute;right:calc(10px + var(--safe-r));bottom:calc(76px + var(--safe-b) + var(--reserve));display:grid;grid-template-columns:repeat(3,50px);grid-template-areas:'. u .' 'l d r';gap:6px}
+  .dpad [data-d=U]{grid-area:u}.dpad [data-d=L]{grid-area:l}.dpad [data-d=D]{grid-area:d}.dpad [data-d=R]{grid-area:r}
+  .dpad .ib{width:50px;height:50px;font-size:1.2rem}
+  .cambar{position:absolute;left:calc(8px + var(--safe-l));top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(2,40px);gap:6px;touch-action:none}
+  .ib.sm{width:40px;height:40px;font-size:1rem;opacity:.82;touch-action:none}
+  @media (max-height:560px){.cambar{grid-template-columns:repeat(3,38px)}}
   .rotbar{position:absolute;right:calc(12px + var(--safe-r));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
   .rotbar .ib{width:56px;height:56px;font-size:1.5rem}
   #selring,#hintring,#hintdest{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;pointer-events:none;border:3px solid var(--cyan);box-shadow:0 0 18px var(--cyan),inset 0 0 14px rgba(122,232,255,.4);display:none}
@@ -163,6 +169,8 @@
     </div>
     <div class="goal" id="goal"><i>Objective</i><span id="goalTxt"></span></div>
     <div id="cap"></div>
+    <div class="dpad" id="dpad" hidden><button class="ib" data-d="U" aria-label="Walk up">▲</button><button class="ib" data-d="L" aria-label="Walk left">◀</button><button class="ib" data-d="D" aria-label="Walk down">▼</button><button class="ib" data-d="R" aria-label="Walk right">▶</button></div>
+    <div class="cambar" id="camBar"><button class="ib sm" id="zIn" aria-label="Zoom in">＋</button><button class="ib sm" id="zOut" aria-label="Zoom out">－</button><button class="ib sm" id="tL" aria-label="Turn view left">◀</button><button class="ib sm" id="tR" aria-label="Turn view right">▶</button><button class="ib sm" id="tUp" aria-label="Tilt up">▲</button><button class="ib sm" id="tDn" aria-label="Tilt down">▼</button></div>
     <div class="rotbar" id="rotBar" hidden><button class="ib" id="rotL" aria-label="Rotate counter-clockwise">⟲</button><button class="ib" id="rotR" aria-label="Rotate clockwise">⟳</button></div>
     <div id="selring"></div><div id="hintring"></div><div id="hintdest"></div><div id="hintarrow">👇</div>
     <div class="card" id="card" hidden></div>
@@ -207,6 +215,7 @@
 <script src="mindverse-levels.js"></script>
 <script src="mindverse-gfx.js"></script>
 <script src="mindverse-props.js"></script>
+<script src="mindverse-looks.js"></script>
 <script src="mindverse-world.js"></script>
 <script src="mindverse-audio.js"></script>
 <script src="mindverse-splash.js"></script>
@@ -252,7 +261,7 @@
   function updateMenu() {
     const done = Object.keys(save.done).length, st = E.totalStars(save), rel = Object.keys(save.relics).length;
     $('mPlay').textContent = done ? (done >= LEVELS.length ? '▶ Replay a level' : '▶ Continue: level ' + nextLevel()) : '▶ Play';
-    $('menuFoot').innerHTML = done ? '★ ' + st + ' / ' + LEVELS.length * 3 + ' &nbsp;·&nbsp; ✦ ' + rel + ' / ' + LEVELS.length + ' relics &nbsp;·&nbsp; ' + totalScore() + ' pts' : 'A realistic 3D adventure of ancient mechanisms, mirrors, water and symbols. 30 levels in 3 worlds.';
+    $('menuFoot').innerHTML = done ? '★ ' + st + ' / ' + LEVELS.length * 3 + ' &nbsp;·&nbsp; ✦ ' + rel + ' / ' + LEVELS.length + ' relics &nbsp;·&nbsp; ' + totalScore() + ' pts' : 'A realistic 3D adventure of ancient mechanisms, mirrors, water and symbols. 65 levels in 5 worlds.';
   }
   function nextLevel() { for (let i = 0; i < LEVELS.length; i++) if (!save.done[LEVELS[i].levelId]) return i + 1; return LEVELS.length; }
   const worldOf = L => LD.WORLDS.find(w => w.id === L.worldId) || LD.WORLDS[0];
@@ -297,9 +306,12 @@
 
   /* ============ playing a level ============ */
   function startLevel(n, opts) {
-    n = Math.max(1, Math.min(LEVELS.length, n | 0)); def = LEVELS[n - 1]; game = E.createGame(def); attemptTick = 0; selected = null; hintObj = null; hintDest = null; busy = false;
+    n = Math.max(1, Math.min(LEVELS.length, n | 0)); beginLevel(LEVELS[n - 1], n, opts);
+  }
+  function beginLevel(d, n, opts) {
+    def = d; game = E.createGame(def); attemptTick = 0; selected = null; hintObj = null; hintDest = null; busy = false;
     save.last = n; persist(); world.load(def, game); show('play'); hideCard(); closeModal(); updateHud(true);
-    $('tName').textContent = n + ' · ' + def.title; $('tWorld').textContent = worldOf(def).name; $('goal').classList.remove('min'); A.setTheme(def.theme || 'jungle'); A.setIntensity(.25 + Math.min(.6, (n - 1) / 40));
+    $('tName').textContent = n + ' · ' + def.title; $('tWorld').textContent = worldOf(def).name; $('goal').classList.remove('min'); A.setTheme((LD.WORLDS.find(w => w.id === def.worldId) || {}).tune || 'jungle'); A.setIntensity(.25 + Math.min(.6, (n - 1) / 40));
     clearMarks(); if (!(opts && opts.noIntro)) showIntro(); if (def.levelId === 'WC_L01' && !save.seenHow) { save.seenHow = 1; persist(); }
   }
   function showIntro() {
@@ -308,7 +320,7 @@
   }
   function toastTip() {
     const tips = { 1: 'Drag the crystal onto the plate, or tap a stone to send it there.', 2: 'Tap the mirror to turn it. The ticks on the floor show each position.', 3: 'Read the stone tablet, then tap each panel to change its symbol.', 4: 'Drag stones onto the pans, or tap a stone to move it. Numbers show each side.', 5: 'Tap channel pieces to turn them. Tap a valve wheel to open it.', 6: 'Tap the relief on the wall first. Then you can open the jars.', 7: 'Drag the stone block to another socket if it blocks the beam.', 8: 'Tap the lever, the plate and the wheel. Read the messages if something refuses to move.', 9: 'Tap a switch to study it. A wrong press resets the room, nothing else is lost.', 10: 'Five mechanisms, one after another. Each wakes the next.' };
-    const k = curStageDef().kind, byKind = { beam: 'Turn mirrors so one beam passes through every relay. Move blocks that are in the way.', symbols: 'Use every rule on the tablet at once. The clue button shows them as words.', balance: 'The plaque tells you what must match. Stones need a pan.', water: 'Turn pieces to make a path. Valves must be open.', search: 'Read the relief first. Open a jar when only one still fits.', bridge: 'Each control only works in some situations. Read the messages.', trap: 'Study the switches. A wrong press resets only the room.', gear: 'The gears turn each other in opposite directions.' };
+    const k = curStageDef().kind, byKind = { push: 'Walk into a crate to push it. Push every crate onto a glowing plate. Tap a tile to walk there. Undo is free.', runes: 'Touching a rune flips it and some neighbours. Light every rune.', discs: 'Tap a peg, then another peg, to move the top disc. A big disc never goes on a small one.', slide: 'Drag blocks along their grooves. Free the golden block through the gap on the right.', rings: 'Turning a ring also turns the linked rings. Line up every blue mark with the pointer.', beam: 'Turn mirrors so one beam passes through every relay. Move blocks that are in the way.', symbols: 'Use every rule on the tablet at once. The clue button shows them as words.', balance: 'The plaque tells you what must match. Stones need a pan.', water: 'Turn pieces to make a path. Valves must be open.', search: 'Read the relief first. Open a jar when only one still fits.', bridge: 'Each control only works in some situations. Read the messages.', trap: 'Study the switches. A wrong press resets only the room.', gear: 'The gears turn each other in opposite directions.' };
     toast(tips[def.n] || (def.stages.length > 1 ? 'Several mechanisms in turn. ' : '') + (byKind[k] || def.objective), '', 4600);
   }
   function curStageDef() { return def.stages[game.stage]; }
@@ -319,7 +331,7 @@
     $('goalTxt').textContent = curStageDef().goal; $('undoBtn').disabled = !game.canUndo() || busy; $('hintBtn').disabled = game.complete || busy;
     $('hintN').textContent = game.hints; $('hintN').parentElement.querySelector('small').style.display = game.hints ? 'grid' : 'none';
     const cs = curStageDef(), cp = cs.p, cst = game.state(), clue = cs.kind === 'symbols' ? cp.clueLines : cs.kind === 'trap' ? cp.clueText : (cs.kind === 'search' && cst.seen && cst.seen.clue) ? cp.clueText : null; $('clueBtn').hidden = !clue;
-    const v = world.view(); const sel = selected && v && v.rotate(selected, 1); $('rotBar').hidden = !sel;
+    const v = world.view(); const sel = selected && v && v.rotate(selected, 1); $('rotBar').hidden = !sel; $('dpad').hidden = curStageDef().kind !== 'push' || game.complete;
   }
   function clearMarks() { ['selring', 'hintring', 'hintdest', 'hintarrow'].forEach(i => { $(i).style.display = 'none'; }); $('rotBar').hidden = true; selected = null; hintObj = null; hintDest = null; }
 
@@ -359,7 +371,7 @@
   const PRAISE = ['Well solved!', 'Sharp thinking!', 'Brilliant!', 'Magnificent!', 'Beautifully done!'];
   function celebrate(res) {
     return new Promise(done => {
-      const box = $('cele'), worldEnd = def.n % 10 === 0, last = def.n === LEVELS.length, cvs = $('confetti');
+      const box = $('cele'), worldEnd = def.n === worldOf(def).to, last = def.n === LEVELS.length, cvs = $('confetti');
       $('celeTitle').textContent = last ? 'ALL WORLDS COMPLETED!' : worldEnd ? 'WORLD COMPLETED!' : 'LEVEL ' + def.n + ' COMPLETED!';
       $('celeSub').textContent = (res.stars === 3 ? 'Perfect! ' : '') + (worldEnd ? worldOf(def).name + ' restored. ' : '') + PRAISE[(def.n + res.stars) % PRAISE.length] + ' ' + '★'.repeat(res.stars);
       box.hidden = false; sound('fanfare'); buzz([30, 40, 30, 40, 90]);
@@ -380,9 +392,9 @@
   function showComplete() {
     if (!game || mode !== 'play' || !game.complete || $('modal').dataset.done === def.levelId + game.moves) return; $('modal').dataset.done = def.levelId + game.moves;
     const res = game.result(); E.recordResult(save, def, res, game.restarts + 1); if (game.relic) save.relics[def.levelId] = 1; persist();
-    const last = def.n === LEVELS.length, worldEnd = def.n % 10 === 0, rows = res.parts.map(p => '<tr><td>' + p.label + '</td><td class="' + (p.v < 0 ? 'neg' : '') + '">' + (p.v > 0 ? '+' : '') + p.v + '</td></tr>').join('');
+    const last = def.n === LEVELS.length, worldEnd = def.n === worldOf(def).to, rows = res.parts.map(p => '<tr><td>' + p.label + '</td><td class="' + (p.v < 0 ? 'neg' : '') + '">' + (p.v > 0 ? '+' : '') + p.v + '</td></tr>').join('');
     const best = save.done[def.levelId].best, goals = [['Solve the puzzle', true], ['Within par (' + def.par + ' moves)', res.s2], ['Find the hidden relic with no hints', res.s3]].map(g => '<div style="text-align:left;color:' + (g[1] ? 'var(--gold2)' : 'var(--muted)') + '">' + (g[1] ? '★ ' : '☆ ') + g[0] + '</div>').join('');
-    const msg = last ? '<h2>All three worlds complete!</h2><p style="text-align:center;color:#cfc6a6">You restored every Core. A true master of MindVerse.</p>' : worldEnd ? '<h2>' + worldOf(def).name + ' restored</h2><p style="text-align:center;color:#cfc6a6">The way to the next world is open.</p>' : '<h2>Level ' + def.n + ' completed</h2><div style="text-align:center;color:#cfc6a6;font-family:Georgia,serif">' + def.title + '</div>';
+    const msg = last ? '<h2>All five worlds complete!</h2><p style="text-align:center;color:#cfc6a6">You restored every Core across all five worlds. A true master of MindVerse.</p>' : worldEnd ? '<h2>' + worldOf(def).name + ' restored</h2><p style="text-align:center;color:#cfc6a6">The way to the next world is open.</p>' : '<h2>Level ' + def.n + ' completed</h2><div style="text-align:center;color:#cfc6a6;font-family:Georgia,serif">' + def.title + '</div>';
     openModal(msg + '<div class="bigstars" id="bs">' + stars(res.stars) + '</div>' + goals + '<table class="sc">' + rows + '<tr class="tot"><td>Level score</td><td>' + res.total + '</td></tr></table><div style="text-align:center;color:var(--muted);font-size:.85rem">Best on this level: ' + best + ' · Total score ' + totalScore() + ' · ★ ' + E.totalStars(save) + '</div><div class="row">' + (last ? '<button class="btn primary" id="rMap">Level map</button>' : '<button class="btn primary" id="rNext">Next level ▶</button>') + '<button class="btn" id="rAgain">Play again</button><button class="btn" id="rScores">🏆 Scores</button><button class="btn" id="rMap2">Levels</button></div>');
     let k = 0; $('bs').querySelectorAll('.on').forEach(s => { s.style.animationDelay = (k++ * .35 + .2) + 's'; }); setTimeout(() => sound('stageDone'), 150);
     const go = id => $(id) && ($(id).onclick = ({ rNext: () => startLevel(def.n + 1), rAgain: () => startLevel(def.n, { noIntro: true }), rMap: openMap, rMap2: openMap, rScores: openScores }[id])); ['rNext', 'rAgain', 'rMap', 'rMap2', 'rScores'].forEach(go);
@@ -390,42 +402,61 @@
   function openModal(html) { const m = $('modal'); m.innerHTML = '<div class="box">' + html + '</div>'; m.hidden = false; }
   function closeModal() { $('modal').hidden = true; $('modal').dataset.done = ''; }
 
-  /* ---- input ---- */
-  const cv = $('c'), ptrs = new Map(); let drag = null, orbit = null, pinch = null, down = null;
+  /* ---- input: one finger = tap / drag an object / turn the view; two fingers = pinch to zoom, twist to turn, slide up or down to tilt ---- */
+  const cv = $('c'), ptrs = new Map(); let drag = null, orbit = null, gest = null, down = null, lastEmptyTap = 0;
   function relPos(e) { return { x: e.clientX, y: e.clientY }; }
+  const twoPts = () => { const a = [...ptrs.values()]; return [a[0], a[1]]; };
+  function startGesture() { const [a, b] = twoPts(); gest = { d: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; }
   cv.addEventListener('pointerdown', e => {
-    if (mode !== 'play' || busy && !game.complete && false) return; A.init(); cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, relPos(e));
-    if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) }; drag && cancelDrag(); down = null; return; }
-    if (ptrs.size > 2) return;
+    if (mode !== 'play') return; A.init(); if (e.isPrimary) { ptrs.clear(); gest = null; }       // a primary pointer means no other finger is down: forget any stale one
+    try { cv.setPointerCapture(e.pointerId); } catch (x) { } ptrs.set(e.pointerId, relPos(e));
+    if (ptrs.size >= 2) { drag && cancelDrag(); down = null; orbit = null; startGesture(); return; }
     const pk = busy ? null : world.pick(e.clientX, e.clientY); down = { x: e.clientX, y: e.clientY, pk, t: performance.now(), moved: false };
     const v = world.view(); if (pk && v && !game.complete) { const d = v.drag(pk.oid); if (d && !v.locked) down.dragSpec = d; }
-    if (!down.dragSpec && !(pk && pk.oid)) orbit = { x: e.clientX, y: e.clientY };
+    orbit = { x: e.clientX, y: e.clientY };
   });
   cv.addEventListener('pointermove', e => {
     if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, relPos(e));
-    if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch.d > 0) world.zoom(pinch.d / Math.max(1, d)); pinch.d = d; return; }
+    if (ptrs.size >= 2 && gest) {
+      const [a, b] = twoPts(), d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), ang = Math.atan2(b.y - a.y, b.x - a.x), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      let da = ang - gest.ang; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+      world.gesture(-da * 57.3 * S.sens - (mx - gest.mx) * .12 * S.sens, (my - gest.my) * .16 * S.sens, gest.d / d);
+      gest = { d, ang, mx, my }; return;
+    }
     if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y;
     if (!down.moved && Math.hypot(dx, dy) > 8) { down.moved = true; if (down.dragSpec) startDrag(down.dragSpec, down.pk.oid); }
     if (drag) { updateDrag(e.clientX, e.clientY); return; }
-    if (down.moved && (orbit || down.pk)) { const o = orbit || { x: down.x, y: down.y }; world.orbit((e.clientX - o.x) * S.sens, (e.clientY - o.y) * S.sens); orbit = { x: e.clientX, y: e.clientY }; }
+    if (down.moved && orbit) { world.orbit((e.clientX - orbit.x) * S.sens, (e.clientY - orbit.y) * S.sens); orbit = { x: e.clientX, y: e.clientY }; }
   });
   function endPtr(e) {
-    ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (ptrs.size) return;
+    ptrs.delete(e.pointerId); if (ptrs.size < 2) gest = null;
+    if (ptrs.size) { const r = [...ptrs.values()][0]; orbit = { x: r.x, y: r.y }; down = null; return; }       // one finger left after a gesture: keep turning, no accidental tap
     const d = down; down = null; orbit = null; if (!d) { drag && cancelDrag(); return; }
     if (drag) { dropDrag(e.clientX, e.clientY); return; }
-    if (!d.moved && !busy) onTap(d.pk);
+    if (!d.moved && !busy) {
+      if (!d.pk || !d.pk.oid) { const n = performance.now(); if (n - lastEmptyTap < 320) { world.resetCam(); toast('View reset', '', 900); lastEmptyTap = 0; } else lastEmptyTap = n; }
+      onTap(d.pk);
+    }
   }
-  cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); if (drag) cancelDrag(); down = null; orbit = null; pinch = null; });
-  cv.addEventListener('wheel', e => { e.preventDefault(); world && world.zoom(e.deltaY > 0 ? 1.08 : .92); }, { passive: false });
+  cv.addEventListener('pointerup', endPtr); cv.addEventListener('lostpointercapture', e => { if (ptrs.has(e.pointerId) && !down && !gest && !drag) ptrs.delete(e.pointerId); }); cv.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); if (drag) cancelDrag(); down = null; orbit = null; if (ptrs.size < 2) gest = null; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); if (!world) return; if (e.shiftKey) world.gesture(-e.deltaY * .15, 0, 0); else world.zoom(Math.pow(1.0016, e.deltaY)); }, { passive: false });
   cv.addEventListener('contextmenu', e => e.preventDefault());
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(n => document.addEventListener(n, e => e.preventDefault()));            // iOS: never zoom the page
+  /* on-screen camera buttons (hold to repeat) */
+  (function () {
+    const hold = (id, fn) => { const el = $(id); let iv = null; const stop = () => { clearInterval(iv); iv = null; }; el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); A.init(); fn(); iv = setInterval(fn, 50); try { el.setPointerCapture(e.pointerId); } catch (x) { } }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => el.addEventListener(n, stop)); };
+    hold('zIn', () => world.zoom(.93)); hold('zOut', () => world.zoom(1.075)); hold('tL', () => world.gesture(4, 0, 0)); hold('tR', () => world.gesture(-4, 0, 0)); hold('tUp', () => world.gesture(0, -2.5, 0)); hold('tDn', () => world.gesture(0, 2.5, 0));
+  })();
   function startDrag(spec, oid) {
     const v = world.view(); drag = { spec, oid, view: v, zone: null }; v.setDragging(spec.group); sound('pick'); buzz(8); selected = oid; world.hideRelicFocus && 0;
   }
   function stageLocal(d, cx, cy, y) { const p = world.groundPoint(cx, cy, y == null ? d.spec.y : y); if (!p) return null; const l = d.view.root.worldToLocal(p.clone()); return { x: l.x, z: l.z }; }
   // a drop spot counts when the finger is over it as seen on screen: each spot is tested at its own height
   function pickZone(d, cx, cy) { let best = null, bd = d.spec.r * d.spec.r; Object.keys(d.spec.zones).forEach(id => { const z = d.spec.zones[id], l = stageLocal(d, cx, cy, z.y == null ? .5 : z.y); if (!l) return; const q = (l.x - z.x) ** 2 + (l.z - z.z) ** 2; if (q <= bd) { bd = q; best = id; } }); return best; }
+  let seqId = 0;
+  function runSeq(list) { const id = ++seqId; let i = 0; (function next() { if (id !== seqId || !game || game.complete || i >= list.length) return; const res = perform(list[i++], true); if (res && res.ok && !res.stageDone) setTimeout(next, 150); else if (res && !res.ok) toast(res.blocked, 'bad'); })(); }
   function updateDrag(cx, cy) {
-    const l = stageLocal(drag, cx, cy); if (!l) return; const g = drag.spec.group; g.position.set(l.x, drag.spec.y, l.z); drag.zone = pickZone(drag, cx, cy);
+    const l = stageLocal(drag, cx, cy); if (!l) return; const g = drag.spec.group, ax = drag.spec.axis; if (ax && !drag.o) drag.o = { x: g.position.x, z: g.position.z }; g.position.set(ax === 'v' ? drag.o.x : l.x, ax ? .8 : drag.spec.y, ax === 'h' ? drag.o.z : l.z); drag.zone = pickZone(drag, cx, cy);
   }
   function dropDrag(cx, cy) {
     const d = drag; drag = null; d.view.setDragging(null); const l = stageLocal(d, cx, cy); const z = l ? pickZone(d, cx, cy) : null;
@@ -443,6 +474,7 @@
     if (r.inspect) { const res = perform(r.inspect, true); if (res && res.ok && res.info) { if (r.card) showObjCard(r, res.info); else showInfoCard(pk.oid, res.info); } sound('tap'); }
     if (r.clue && !r.inspect) { showClue(); }
     if (r.action) perform(r.action);
+    else if (r.actions) runSeq(r.actions);
     else if (r.note && !r.clue) { toast(r.note, '', 2800); sound('tap'); }
     updateHud();
   }
@@ -466,6 +498,7 @@
   $('restartBtn').onclick = () => { A.init(); openModal('<h2>Restart this puzzle?</h2><p style="text-align:center">Everything goes back to how it started. Your saved progress stays.</p><div class="row"><button class="btn primary" id="yRes">Restart</button><button class="btn" id="nRes">Keep playing</button></div>'); $('nRes').onclick = closeModal; $('yRes').onclick = () => { closeModal(); game.restart(); world.setStage(game.stage, true); world.sync(game, true); clearMarks(); hideCard(); sound('reset'); updateHud(); toast('Back to the start.', '', 1500); }; };
   $('camBtn').onclick = () => { A.init(); world.resetCam(); sound('tap'); };
   $('goal').onclick = () => $('goal').classList.toggle('min');
+  $('dpad').querySelectorAll('button').forEach(b => { b.onclick = () => { A.init(); perform({ t: 'step', obj: 'player', d: b.dataset.d }); }; });
   $('rotL').onclick = () => rotSel(-1); $('rotR').onclick = () => rotSel(1);
   function rotSel(d) { const v = world.view(); if (!selected || !v) return; const a = v.rotate(selected, d); if (a) perform(a); }
   $('hintBtn').onclick = () => {
@@ -538,6 +571,7 @@
     if (mode !== 'play' || !game) return; const k = e.key.toLowerCase();
     if (k === 'z' || (e.ctrlKey && k === 'z')) $('undoBtn').click(); else if (k === 'r') $('restartBtn').click(); else if (k === 'h') $('hintBtn').click(); else if (k === 'escape') { if (!$('modal').hidden) closeModal(); else $('pauseBtn').click(); }
     else if (k === 'q') rotSel(-1); else if (k === 'e') rotSel(1);
+    else if (curStageDef().kind === 'push' && { arrowup: 'U', arrowdown: 'D', arrowleft: 'L', arrowright: 'R', w: 'U', s: 'D', a: 'L', d: 'R' }[k]) { e.preventDefault(); perform({ t: 'step', obj: 'player', d: { arrowup: 'U', arrowdown: 'D', arrowleft: 'L', arrowright: 'R', w: 'U', s: 'D', a: 'L', d: 'R' }[k] }); }
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden) A.pause(); else A.resume(); });
   function ctxOk() { return true; }
@@ -559,7 +593,7 @@
           if (!bootWorld()) return;
           world.load(LEVELS[0], E.createGame(LEVELS[0])); world.hideRelic(); updateMenu(); show('menu'); requestAnimationFrame(loop); bar.style.width = '100%'; txt.textContent = 'Ready';
           const q = new URLSearchParams(location.search); if (q.get('level')) startLevel(+q.get('level'), { noIntro: true });
-          window.__mv = { E, LD, get game() { return game; }, get world() { return world; }, get save() { return save; }, get mode() { return mode; }, get busy() { return busy; }, startLevel, perform, showComplete, finishFlow, openScores, openMap, toMenu, onTap, get selected() { return selected; }, set selected(v) { selected = v; }, sound, get hint() { return { obj: hintObj, dest: hintDest }; }, get drag() { return drag; }, S, A };
+          window.__mv = { E, LD, get game() { return game; }, get world() { return world; }, get save() { return save; }, get mode() { return mode; }, get busy() { return busy; }, startLevel, beginLevel, perform, showComplete, finishFlow, openScores, openMap, toMenu, onTap, get selected() { return selected; }, set selected(v) { selected = v; }, sound, get hint() { return { obj: hintObj, dest: hintDest }; }, get drag() { return drag; }, S, A };
           const wait = Math.max(300, (/[?&]fast/.test(location.search) ? 0 : 2600) - (performance.now() - t0));
           setTimeout(() => { $('splash').classList.add('gone'); setTimeout(() => { sp && sp.dispose(); $('splash').hidden = true; }, 800); }, wait);
         }, 60);

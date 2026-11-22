@@ -20,20 +20,12 @@ Wake a lost temple. Solve its ancient machines. Restore the Mind Core.
 
 MindVerse is a cinematic 3D adventure of brain puzzles. Every room of a jungle temple hides a mechanism that wants to be understood: mirrors that bend energy, water that follows stone channels, symbols that hide a code, and a great bronze scale waiting to be balanced.
 
-🗿 30 VERIFIED PUZZLES IN THREE WORLDS
+🗿 65 VERIFIED PUZZLES IN FIVE WORLDS
 • World 1, Lost Civilization: ten temple rooms
-• World 2, Sunken Sanctum: ten bigger puzzles
-• World 3, Sky Observatory: ten expert challenges
-• Place a crystal and open the sealed door
-• Rotate a mirror and send the beam to the receiver
-• Read a carved tablet and deduce the three-symbol sequence
-• Balance stones of different weights on an ancient scale
-• Turn channels and open valves to bring water to the basin
-• Find the hidden key by reading the clues
-• Route energy through a network of mirrors with a block in the way
-• Sequence a lever, a plate and a rail to build a safe bridge
-• Work out the safe order of the switches before the trap springs
-• Combine everything in the final chambers to restore the Cores
+• World 2, Sunken Sanctum: fifteen rooms
+• World 3, Sky Observatory: fifteen rooms
+• World 4, Crystal Forge: thirteen rooms
+• World 5, Cosmic Core: twelve rooms, up to six mechanisms at once
 
 Every puzzle is proven solvable, and the clues always give you what you need. No guessing, no pixel hunting.
 
@@ -61,7 +53,7 @@ MindVerse is made by Rovatics. More worlds are planned.
 
 ## What's new (500 max)
 ```
-30 puzzles in three worlds, new music, celebrations, a Scores screen, free hints, undo, three stars per room, and offline play.
+65 puzzles in five worlds, livelier music, rising difficulty, smoother pinch and turn controls, celebrations, a Scores screen, free hints, undo, three stars per room, and offline play.
 ```
 (127 characters)
 
