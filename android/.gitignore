@@ -1,0 +1,14 @@
+# Generated build output
+build/
+.gradle/
+.idea/
+*.class
+*.lock
+*.apk
+*.aab
+
+# Secrets / machine-specific - never commit
+keystore.properties
+local.properties
+*.jks
+*.keystore
