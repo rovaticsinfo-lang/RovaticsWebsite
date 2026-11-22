@@ -22,7 +22,7 @@ Branch `Parallax` (cut from `Devil-hunters`). Web only. Nothing here touches And
 
 * `tests/parallax-logic.test.mjs`: 12 tests, all passing (levels, solutions, hints, session, rewards, progression, cosmetics, save repair).
 * Browser, real touch taps through the 3D picking: levels 1, 2, 3, 4, 21, 22, 23, 41, 43, 44, 61, 64, 81, 84, 85, 87, 88, 90, 92, 95, 96, 99, 100 completed.
-* Browser, whole campaign through the real game pipeline (`startLevel` then every solution move): see the result line in the final report.
+* Browser, whole campaign through the real game pipeline (`startLevel`, then every solution move, win re-verification, rewards, save): **100 of 100 completed in order, 300 stars, 12 of 13 achievements (the 13th needs shop purchases), no console errors.**
 
 ## Known limitations (please read)
 
