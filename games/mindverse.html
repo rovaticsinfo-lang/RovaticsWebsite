@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0b1511">
 <title>MindVerse: Beyond the Puzzle</title>
 <style>
-  :root{--gold:#f2c25a;--gold2:#ffe3a0;--ink:#0b1511;--panel:rgba(14,22,19,.82);--line:rgba(242,194,90,.38);--text:#fbf3dc;--muted:#bfb48f;--cyan:#7ae8ff;--good:#8dffb0;--bad:#ff7b8a;
+  :root{--reserve:0px;--gold:#f2c25a;--gold2:#ffe3a0;--ink:#0b1511;--panel:rgba(14,22,19,.82);--line:rgba(242,194,90,.38);--text:#fbf3dc;--muted:#bfb48f;--cyan:#7ae8ff;--good:#8dffb0;--bad:#ff7b8a;
         --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
   *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:#06100c;color:var(--text);font-family:'Segoe UI',system-ui,Arial,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -43,16 +43,16 @@
   .goal{position:absolute;left:calc(10px + var(--safe-l));top:calc(66px + var(--safe-t));max-width:min(360px,60vw);padding:9px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-size:.9rem;line-height:1.35;backdrop-filter:blur(6px);cursor:pointer}
   .goal i{display:block;font-style:normal;color:var(--gold);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:2px}
   .goal.min{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .bar{position:absolute;left:calc(10px + var(--safe-l));right:calc(10px + var(--safe-r));bottom:calc(10px + var(--safe-b));display:flex;gap:10px;align-items:flex-end;justify-content:space-between;pointer-events:none}
+  .bar{position:absolute;left:calc(10px + var(--safe-l));right:calc(10px + var(--safe-r));bottom:calc(10px + var(--safe-b) + var(--reserve));display:flex;gap:10px;align-items:flex-end;justify-content:space-between;pointer-events:none}
   .bar>*{pointer-events:auto}
   .grp{display:flex;gap:10px}
-  #toast{position:absolute;left:50%;bottom:calc(86px + var(--safe-b));transform:translateX(-50%);max-width:min(560px,92vw);padding:10px 18px;border-radius:14px;background:rgba(10,16,13,.92);border:1px solid var(--line);text-align:center;font-size:.95rem;line-height:1.35;opacity:0;transition:opacity .25s;pointer-events:none;z-index:5}
+  #toast{position:absolute;left:50%;bottom:calc(86px + var(--safe-b) + var(--reserve));transform:translateX(-50%);max-width:min(560px,92vw);padding:10px 18px;border-radius:14px;background:rgba(10,16,13,.92);border:1px solid var(--line);text-align:center;font-size:.95rem;line-height:1.35;opacity:0;transition:opacity .25s;pointer-events:none;z-index:5}
   #toast.show{opacity:1}
   #toast.bad{border-color:var(--bad)}
   #toast.good{border-color:var(--good)}
   #cap{position:absolute;left:50%;top:calc(62px + var(--safe-t));transform:translateX(-50%);padding:5px 12px;border-radius:8px;background:rgba(0,0,0,.6);font-size:.8rem;color:#cfe;opacity:0;transition:opacity .2s;pointer-events:none;font-style:italic}
   #cap.show{opacity:1}
-  .card{position:absolute;left:50%;bottom:calc(88px + var(--safe-b));transform:translateX(-50%);width:min(460px,92vw);padding:14px 18px;border-radius:16px;background:rgba(14,22,19,.95);border:1px solid var(--gold);box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:6}
+  .card{position:absolute;left:50%;bottom:calc(88px + var(--safe-b) + var(--reserve));transform:translateX(-50%);width:min(460px,92vw);padding:14px 18px;border-radius:16px;background:rgba(14,22,19,.95);border:1px solid var(--gold);box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:6}
   .card h4{margin:0 0 4px;font-family:Georgia,serif;color:var(--gold2);font-size:1.05rem}
   .card p{margin:0 0 10px;line-height:1.45;color:#efe6c8}
   .card .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
@@ -117,6 +117,8 @@
   @media (max-width:560px){.nodes{grid-template-columns:repeat(3,1fr)}.title{max-width:40vw}.goal{top:calc(64px + var(--safe-t))}}
   @media (max-height:520px){.goal{display:none}.logo{font-size:2.4rem}.tag{margin-bottom:12px}}
   #intro{pointer-events:auto}
+  .rv-brand-badge{position:absolute;left:50%;bottom:calc(14px + var(--safe-b));transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;opacity:.85;border-radius:999px;background:rgba(4,14,20,.6);border:1px solid var(--line);color:var(--gold2);font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;letter-spacing:.04em;pointer-events:none}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
   #loading{position:absolute;inset:0;z-index:50;display:grid;place-items:center;background:#06100c;font-family:Georgia,serif;color:var(--gold2);letter-spacing:.2em}
   #nogl{position:absolute;inset:0;z-index:60;display:grid;place-items:center;padding:24px;text-align:center;background:#06100c}
 </style>
@@ -153,6 +155,7 @@
       <a class="btn" href="../games.html" style="text-align:center;text-decoration:none;line-height:26px">← All games</a>
     </div>
     <div class="foot" id="menuFoot"></div>
+    <div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="../assets/rovatics-logo.png" alt=""><span>Rovatics</span></div>
   </div>
   <div class="screen" id="map" hidden>
     <div class="mapwrap">
@@ -254,7 +257,11 @@
   const CAPS = { rot: 'stone grinds', place: 'a stone thuds', plateOn: 'the plate hums to life', relay: 'energy chimes', glyph: 'a glyph glows', door: 'the heavy door rumbles open', trap: 'spikes thunder up', key: 'a key chimes', stageDone: 'a mechanism awakens', complete: 'the chamber sings', turn: 'a channel grinds', valve: 'a valve squeaks', bridge: 'the bridge groans', rail: 'a rail creaks', gear: 'gears clank', switchOk: 'a switch clicks', relic: 'a shard sparkles', core: 'the Mind Core awakens' };
   let capT = 0;
   function sound(n) { A.fx(n); if (S.captions && CAPS[n]) { const c = $('cap'); c.textContent = '[' + CAPS[n] + ']'; c.classList.add('show'); clearTimeout(capT); capT = setTimeout(() => c.classList.remove('show'), 1600); } }
-  function buzz(ms) { if (S.haptics && navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { } } }
+  function buzz(ms) {
+    if (!S.haptics) return;
+    try { if (window.RovaticsApp && RovaticsApp.haptic) { RovaticsApp.haptic(Array.isArray(ms) || ms > 60 ? 'heavy' : 'tick'); return; } } catch (e) { }
+    if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { } }
+  }
 
   /* ============ 3D world ============ */
   let world = null, game = null, def = null, mode = 'menu', busy = false, selected = null, hintObj = null, hintDest = null, attemptTick = 0;
@@ -494,6 +501,17 @@
     }
     requestAnimationFrame(loop);
   }
+
+  /* ---- Android Back: return true when the game handled it, false at the top level (the app then asks before exiting) ---- */
+  window.__androidBack = function () {
+    if (!$('intro').hidden) { $('intro').hidden = true; return true; }
+    if (game && game.complete && mode === 'play') { closeModal(); openMap(); return true; }
+    if (!$('modal').hidden) { closeModal(); return true; }
+    if (!$('card').hidden) { hideCard(); return true; }
+    if (mode === 'play') { $('pauseBtn').click(); return true; }
+    if (mode === 'map') { toMenu(); return true; }
+    return false;
+  };
 
   /* ---- keyboard (desktop) ---- */
   window.addEventListener('keydown', e => {
