@@ -106,6 +106,7 @@ shot('mv_ui_l1.png')
 # finish by dragging onto the plate
 wait("(function(){var c=__mv.world.view().crystal,z=__mv.game.cur().p.zones[__mv.game.state().at];return Math.abs(c.position.x-z.x)<.1&&Math.abs(c.position.z-z.z)<.1})()", 30); d2 = dest({'t': 'move', 'obj': 'crystal', 'to': 'plate'})
 for _try in range(3):
+    ev("document.getElementById('card').hidden=true")       # the hint card can sit over the crystal
     settle(); d2 = dest({'t': 'move', 'obj': 'crystal', 'to': 'plate'}); c = pos('crystal'); drag(c['x'], c['y'], d2['x'], d2['y'])
     if wait('__mv.game.complete', 20): break
     if True: print('   L1 plate retry', c, d2, _try, ev("JSON.stringify({at: __mv.game.state().at, drag: !!__mv.drag, busy: __mv.busy, sel: __mv.selected, pk: (function(){var p=__mv.world.pick(%f,%f);return p&&p.oid})(), lock: __mv.world.view().locked, done: __mv.game.complete})" % (c['x'], c['y'])))

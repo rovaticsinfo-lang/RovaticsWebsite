@@ -402,7 +402,7 @@
   function openModal(html) { const m = $('modal'); m.innerHTML = '<div class="box">' + html + '</div>'; m.hidden = false; }
   function closeModal() { $('modal').hidden = true; $('modal').dataset.done = ''; }
 
-  /* ---- input: one finger = tap / drag an object / turn the view; two fingers = pinch to zoom, twist to turn, slide up or down to tilt ---- */
+  /* ---- input: one finger = tap / drag an object / turn the view; two fingers = pinch to zoom only (the top-down angle never changes) ---- */
   const cv = $('c'), ptrs = new Map(); let drag = null, orbit = null, gest = null, down = null, lastEmptyTap = 0;
   function relPos(e) { return { x: e.clientX, y: e.clientY }; }
   const twoPts = () => { const a = [...ptrs.values()]; return [a[0], a[1]]; };
@@ -420,13 +420,13 @@
     if (ptrs.size >= 2 && gest) {
       const [a, b] = twoPts(), d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), ang = Math.atan2(b.y - a.y, b.x - a.x), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       let da = ang - gest.ang; if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
-      world.gesture(-da * 57.3 * S.sens - (mx - gest.mx) * .12 * S.sens, (my - gest.my) * .16 * S.sens, gest.d / d);
+      world.gesture(0, 0, gest.d / d);       // two fingers only zoom: the viewing angle stays put (turn with one finger, tilt with the camera button)
       gest = { d, ang, mx, my }; return;
     }
     if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y;
     if (!down.moved && Math.hypot(dx, dy) > 8) { down.moved = true; if (down.dragSpec) startDrag(down.dragSpec, down.pk.oid); }
     if (drag) { updateDrag(e.clientX, e.clientY); return; }
-    if (down.moved && orbit) { world.orbit((e.clientX - orbit.x) * S.sens, (e.clientY - orbit.y) * S.sens); orbit = { x: e.clientX, y: e.clientY }; }
+    if (down.moved && orbit) { world.orbit((e.clientX - orbit.x) * S.sens, e.pointerType === 'touch' ? 0 : (e.clientY - orbit.y) * S.sens); orbit = { x: e.clientX, y: e.clientY }; }
   });
   function endPtr(e) {
     ptrs.delete(e.pointerId); if (ptrs.size < 2) gest = null;
@@ -453,7 +453,7 @@
   }
   function stageLocal(d, cx, cy, y) { const p = world.groundPoint(cx, cy, y == null ? d.spec.y : y); if (!p) return null; const l = d.view.root.worldToLocal(p.clone()); return { x: l.x, z: l.z }; }
   // a drop spot counts when the finger is over it as seen on screen: each spot is tested at its own height
-  function pickZone(d, cx, cy) { let best = null, bd = d.spec.r * d.spec.r; Object.keys(d.spec.zones).forEach(id => { const z = d.spec.zones[id], l = stageLocal(d, cx, cy, z.y == null ? .5 : z.y); if (!l) return; const q = (l.x - z.x) ** 2 + (l.z - z.z) ** 2; if (q <= bd) { bd = q; best = id; } }); return best; }
+  function pickZone(d, cx, cy) { let best = null, bd = d.spec.r * d.spec.r; Object.keys(d.spec.zones).forEach(id => { const z = d.spec.zones[id], l = stageLocal(d, cx, cy, z.y == null ? .5 : z.y), l2 = stageLocal(d, cx, cy, d.spec.axis ? .8 : d.spec.y); if (!l && !l2) return; const q = Math.min(l ? (l.x - z.x) ** 2 + (l.z - z.z) ** 2 : 1e9, l2 ? (l2.x - z.x) ** 2 + (l2.z - z.z) ** 2 : 1e9); if (q <= bd) { bd = q; best = id; } }); return best; }       // the piece is drawn at its drag height, the zone sits at its own height: a drop counts if either lines up
   let seqId = 0;
   function runSeq(list) { const id = ++seqId; let i = 0; (function next() { if (id !== seqId || !game || game.complete || i >= list.length) return; const res = perform(list[i++], true); if (res && res.ok && !res.stageDone) setTimeout(next, 150); else if (res && !res.ok) toast(res.blocked, 'bad'); })(); }
   function updateDrag(cx, cy) {
