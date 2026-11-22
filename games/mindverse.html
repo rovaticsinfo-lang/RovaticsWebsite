@@ -60,9 +60,10 @@
   .dpad{position:absolute;right:calc(10px + var(--safe-r));bottom:calc(76px + var(--safe-b) + var(--reserve));display:grid;grid-template-columns:repeat(3,50px);grid-template-areas:'. u .' 'l d r';gap:6px}
   .dpad [data-d=U]{grid-area:u}.dpad [data-d=L]{grid-area:l}.dpad [data-d=D]{grid-area:d}.dpad [data-d=R]{grid-area:r}
   .dpad .ib{width:50px;height:50px;font-size:1.2rem}
-  .cambar{position:absolute;left:calc(8px + var(--safe-l));top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(2,40px);gap:6px;touch-action:none}
+  .camtog{position:absolute;left:calc(10px + var(--safe-l));bottom:calc(68px + var(--safe-b) + var(--reserve));width:40px;height:40px;font-size:1.05rem;opacity:.85;touch-action:manipulation}
+  .camtog.on{border-color:var(--gold);box-shadow:0 0 12px rgba(242,194,90,.45);opacity:1}
+  .cambar{position:absolute;left:calc(56px + var(--safe-l));bottom:calc(68px + var(--safe-b) + var(--reserve));display:flex;gap:6px;touch-action:none}
   .ib.sm{width:40px;height:40px;font-size:1rem;opacity:.82;touch-action:none}
-  @media (max-height:560px){.cambar{grid-template-columns:repeat(3,38px)}}
   .rotbar{position:absolute;right:calc(12px + var(--safe-r));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
   .rotbar .ib{width:56px;height:56px;font-size:1.5rem}
   #selring,#hintring,#hintdest{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;pointer-events:none;border:3px solid var(--cyan);box-shadow:0 0 18px var(--cyan),inset 0 0 14px rgba(122,232,255,.4);display:none}
@@ -168,7 +169,8 @@
     <div class="goal" id="goal"><i>Objective</i><span id="goalTxt"></span></div>
     <div id="cap"></div>
     <div class="dpad" id="dpad" hidden><button class="ib" data-d="U" aria-label="Walk up">▲</button><button class="ib" data-d="L" aria-label="Walk left">◀</button><button class="ib" data-d="D" aria-label="Walk down">▼</button><button class="ib" data-d="R" aria-label="Walk right">▶</button></div>
-    <div class="cambar" id="camBar"><button class="ib sm" id="zIn" aria-label="Zoom in">＋</button><button class="ib sm" id="zOut" aria-label="Zoom out">－</button><button class="ib sm" id="tL" aria-label="Turn view left">◀</button><button class="ib sm" id="tR" aria-label="Turn view right">▶</button><button class="ib sm" id="tUp" aria-label="Tilt up">▲</button><button class="ib sm" id="tDn" aria-label="Tilt down">▼</button></div>
+    <button class="ib sm camtog" id="camTog" aria-label="Show camera controls" aria-expanded="false">🎥</button>
+    <div class="cambar" id="camBar" hidden><button class="ib sm" id="zIn" aria-label="Zoom in">＋</button><button class="ib sm" id="zOut" aria-label="Zoom out">－</button><button class="ib sm" id="tL" aria-label="Turn view left">◀</button><button class="ib sm" id="tR" aria-label="Turn view right">▶</button><button class="ib sm" id="tUp" aria-label="Tilt up">▲</button><button class="ib sm" id="tDn" aria-label="Tilt down">▼</button></div>
     <div class="rotbar" id="rotBar" hidden><button class="ib" id="rotL" aria-label="Rotate counter-clockwise">⟲</button><button class="ib" id="rotR" aria-label="Rotate clockwise">⟳</button></div>
     <div id="selring"></div><div id="hintring"></div><div id="hintdest"></div><div id="hintarrow">👇</div>
     <div class="card" id="card" hidden></div>
@@ -443,6 +445,7 @@
   /* on-screen camera buttons (hold to repeat) */
   (function () {
     const hold = (id, fn) => { const el = $(id); let iv = null; const stop = () => { clearInterval(iv); iv = null; }; el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); A.init(); fn(); iv = setInterval(fn, 50); try { el.setPointerCapture(e.pointerId); } catch (x) { } }); ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => el.addEventListener(n, stop)); };
+    const camTog = $('camTog'), camBar = $('camBar'); camTog.addEventListener('click', () => { const open = camBar.hidden; camBar.hidden = !open; camTog.classList.toggle('on', open); camTog.setAttribute('aria-expanded', open ? 'true' : 'false'); camTog.setAttribute('aria-label', open ? 'Hide camera controls' : 'Show camera controls'); });
     hold('zIn', () => world.zoom(.93)); hold('zOut', () => world.zoom(1.075)); hold('tL', () => world.gesture(4, 0, 0)); hold('tR', () => world.gesture(-4, 0, 0)); hold('tUp', () => world.gesture(0, -2.5, 0)); hold('tDn', () => world.gesture(0, 2.5, 0));
   })();
   function startDrag(spec, oid) {
