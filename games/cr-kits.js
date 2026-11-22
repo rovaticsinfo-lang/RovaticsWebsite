@@ -7,6 +7,7 @@ import { clamp, lerp } from './cr-util.js';
 import { ROAD_W } from './cr-level.js';
 
 const HW = ROAD_W / 2, CHUNK = 110;
+const SEGS = len => Math.min(2000, Math.ceil(len / 4));   // long strips need segments so the road bend can follow them
 const _v = new THREE.Vector3(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3();
 
 /* ---------- model building blocks ---------- */
@@ -334,7 +335,7 @@ function kitCity(c, night) {
   const th = c.th;
   const strip = c.track(new THREE.MeshStandardMaterial({ map: c.roadTex, roughness: night ? 0.45 : 0.8 }));
   for (const sd of [-1, 1]) {
-    const q = new THREE.Mesh(new THREE.PlaneGeometry(6.4, c.roadLen), strip); q.rotation.x = -Math.PI / 2; q.position.set(sd * 20.4, th.bankH + 0.03, c.roadMid); q.receiveShadow = true; c.g.add(q);
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(6.4, c.roadLen, 1, SEGS(c.roadLen)), strip); q.rotation.x = -Math.PI / 2; q.position.set(sd * 20.4, th.bankH + 0.03, c.roadMid); q.receiveShadow = true; c.g.add(q);
   }
   buildRows(c, { rows: 3, ax0: 25, rowDepth: 27, wMin: 11, wMax: 22, dMin: 12, dMax: 24, h0: [10, 30], h1: [28, 85], fill: 0.92,
     colors: night ? ['#9aa0b0', '#8d96aa', '#a79fb0', '#8a93a3'] : ['#e8e2d6', '#cfd6de', '#d9b99a', '#b8c4cf', '#e6d2b5', '#aab6c2', '#ffffff'] });
@@ -382,11 +383,11 @@ function kitHighway(c) {
   const concrete = c.track(new THREE.MeshStandardMaterial({ color: '#8e9296', roughness: 0.9 }));
   for (const sd of [-1, 1]) {
     const w = 8.4, x = sd * 12.9;
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, c.roadLen), slabMat); top.rotation.x = -Math.PI / 2; top.position.set(x, 0, c.roadMid); top.receiveShadow = true; c.g.add(top);
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 1.4, c.roadLen), concrete); slab.position.set(x, -0.72, c.roadMid); slab.receiveShadow = true; c.g.add(slab);
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, c.roadLen, 1, SEGS(c.roadLen)), slabMat); top.rotation.x = -Math.PI / 2; top.position.set(x, 0, c.roadMid); top.receiveShadow = true; c.g.add(top);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 1.4, c.roadLen, 1, 1, SEGS(c.roadLen)), concrete); slab.position.set(x, -0.72, c.roadMid); slab.receiveShadow = true; c.g.add(slab);
     c.inst(new THREE.CylinderGeometry(1.0, 1.3, -th.floorY - 1.4, 8), concrete, Array.from({ length: Math.floor(c.roadLen / 24) }, (_, i) => ({ x, y: (th.floorY - 1.4) / 2, z: c.roadStart - 12 - i * 24, s: 1 })), { cast: true });
     for (const zz of [0]) { /* median barrier on the far outer edge */ }
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.95, c.roadLen), concrete); bar.position.set(x + sd * 4.25, 0.45, c.roadMid); bar.castShadow = true; c.g.add(bar);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.95, c.roadLen, 1, 1, SEGS(c.roadLen)), concrete); bar.position.set(x + sd * 4.25, 0.45, c.roadMid); bar.castShadow = true; c.g.add(bar);
   }
   carFleet(c, [{ x: -10.8, v: 24, n: 6 }, { x: -14.8, v: 29, n: 6 }, { x: 10.8, v: -21, n: 6 }, { x: 14.8, v: -26, n: 6 }]);
   carFleet(c, [{ x: -10.8, v: 24, n: 2 }, { x: 14.8, v: -26, n: 2 }], { geo: geo('truck'), colors: ['#e0e0e0', '#2a6fb8', '#c9392b', '#f2f2f2'] });
@@ -410,8 +411,8 @@ function kitRail(c) {
   const concrete = c.track(new THREE.MeshStandardMaterial({ color: '#8c8a84', roughness: 0.95 }));
   for (const sd of [-1, 1]) {
     const w = 7.6, x = sd * 11.2;
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, c.roadLen), slabMat); top.rotation.x = -Math.PI / 2; top.position.set(x, 0, c.roadMid); top.receiveShadow = true; c.g.add(top);
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 1.4, c.roadLen), concrete); slab.position.set(x, -0.72, c.roadMid); slab.receiveShadow = true; c.g.add(slab);
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, c.roadLen, 1, SEGS(c.roadLen)), slabMat); top.rotation.x = -Math.PI / 2; top.position.set(x, 0, c.roadMid); top.receiveShadow = true; c.g.add(top);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 1.4, c.roadLen, 1, 1, SEGS(c.roadLen)), concrete); slab.position.set(x, -0.72, c.roadMid); slab.receiveShadow = true; c.g.add(slab);
     c.inst(new THREE.CylinderGeometry(1.2, 1.7, -th.floorY - 1.4, 8), concrete, Array.from({ length: Math.floor(c.roadLen / 26) }, (_, i) => ({ x, y: (th.floorY - 1.4) / 2, z: c.roadStart - 12 - i * 26, s: 1 })), { cast: true });
   }
   const loco = [], wag = [];
@@ -426,7 +427,7 @@ function kitRail(c) {
   /* catenary masts, wires and shadows */
   const masts = c.line(22, HW + 0.2, { y: 0, offset: 6 });
   c.inst(geo('mast'), c.matV, masts, { cast: true });
-  for (const [yy, ww] of [[6.45, 0.05], [5.05, 0.06]]) { const wire = new THREE.Mesh(new THREE.BoxGeometry(ww, ww, c.roadLen), c.matV2); wire.position.set(0, yy, c.roadMid); wire.castShadow = true; c.g.add(wire); }
+  for (const [yy, ww] of [[6.45, 0.05], [5.05, 0.06]]) { const wire = new THREE.Mesh(new THREE.BoxGeometry(ww, ww, c.roadLen, 1, 1, SEGS(c.roadLen)), c.matV2); wire.position.set(0, yy, c.roadMid); wire.castShadow = true; c.g.add(wire); }
   c.inst(geo('signal'), c.matV, c.line(150, HW + 0.2, { y: 0, offset: 60 }), { cast: true });
   c.inst(geo('pine'), c.matV, c.scatter(70, 16, 90, { s0: 0.9, s1: 1.7, minY: th.waterY + 0.6 }), { cast: true, vary: true });
   c.inst(geo('oak'), c.matV, c.scatter(40, 16, 90, { s0: 0.9, s1: 1.5, minY: th.waterY + 0.6 }), { cast: true, vary: true });
@@ -439,8 +440,8 @@ function kitAirport(c) {
   const th = c.th;
   /* taxiway + apron strips on the airfield beside the runway */
   const tw = c.track(new THREE.MeshStandardMaterial({ map: c.taxiTex, roughness: 0.85 }));
-  const tq = new THREE.Mesh(new THREE.PlaneGeometry(9, c.roadLen), tw); tq.rotation.x = -Math.PI / 2; tq.position.set(-21, 0.03, c.roadMid); tq.receiveShadow = true; c.g.add(tq);
-  const apron = new THREE.Mesh(new THREE.PlaneGeometry(70, c.roadLen), c.track(new THREE.MeshStandardMaterial({ color: '#6f7378', roughness: 0.95 })));
+  const tq = new THREE.Mesh(new THREE.PlaneGeometry(9, c.roadLen, 1, SEGS(c.roadLen)), tw); tq.rotation.x = -Math.PI / 2; tq.position.set(-21, 0.03, c.roadMid); tq.receiveShadow = true; c.g.add(tq);
+  const apron = new THREE.Mesh(new THREE.PlaneGeometry(70, c.roadLen, 1, SEGS(c.roadLen)), c.track(new THREE.MeshStandardMaterial({ color: '#6f7378', roughness: 0.95 })));
   apron.rotation.x = -Math.PI / 2; apron.position.set(70, 0.02, c.roadMid); apron.receiveShadow = true; c.g.add(apron);
   /* blue edge lights + yellow signs */
   const edge = []; for (const sd of [-1, 1]) for (let z = c.Z0; z > c.Z1; z -= 9) edge.push({ x: sd * (HW + 0.35), y: 0.02, z });

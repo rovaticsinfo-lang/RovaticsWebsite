@@ -5,10 +5,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { clamp, lerp, fmt } from './cr-util.js';
-import { genLevel, ROAD_W } from './cr-level.js';
+import { genLevel, ROAD_W, baseSpeed, startBonus } from './cr-level.js';
 import { World, THEMES, EDGE } from './cr-world.js';
 import { Bursts } from './cr-fx.js';
+import { bendify, bendX, bendY, bendSlope, bendVec } from './cr-bend.js';
 import * as Snd from './cr-audio.js';
+import { Intro, INTRO_SECONDS } from './cr-intro.js';
+let intro = null;
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -48,7 +51,7 @@ const TEAM_COL = { enemy: '#ff3a4a', neutral: '#ffe9a0' };
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'rovatics.crowdrush.v1';
-const save = { level: 1, coins: 0, upStart: 0, upGold: 0, skin: 0, skins: [1, 0, 0, 0, 0, 0], muted: false };
+const save = { totalScore: 0, bestScore: 0, level: 1, coins: 0, upStart: 0, upGold: 0, skin: 0, skins: [1, 0, 0, 0, 0, 0], muted: false };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { /* private mode */ }
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ } };
 const costStart = () => Math.round(40 * Math.pow(1.5, save.upStart));
@@ -79,6 +82,7 @@ function resize() {
   camera.aspect = W / H; camera.updateProjectionMatrix();
   pointScale = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   sparks.setScale(pointScale); bits.setScale(pointScale);
+  if (intro) intro.resize(W, H);
 }
 window.addEventListener('resize', resize);
 
@@ -164,15 +168,16 @@ function initPeople() {
   mats.neutral = teamMaterial(TEAM_COL.neutral, 0.3);
   mats.boss = teamMaterial('#7a1030', 0.7, 0x000000);
   teamColors.player.set(SKINS[save.skin].c);
+  [mats.player, mats.enemy, mats.neutral, mats.boss].forEach(bendify);
   for (let i = 0; i < RUN_N; i++) runMasters.push(makeMaster('run', i, RUN_N));
   for (let i = 0; i < IDLE_N; i++) idleMasters.push(makeMaster('idle', i, IDLE_N));
 
   const sg = new THREE.CircleGeometry(0.62, 14); sg.rotateX(-Math.PI / 2);
   shadows = new THREE.InstancedMesh(sg, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.34, depthWrite: false }), POOL_N);
-  shadows.frustumCulled = false; shadows.renderOrder = 2; scene.add(shadows);
+  shadows.frustumCulled = false; shadows.renderOrder = 2; scene.add(shadows); bendify(shadows.material);
   const rg = new THREE.RingGeometry(0.46, 0.64, 24); rg.rotateX(-Math.PI / 2);
   rings = new THREE.InstancedMesh(rg, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }), POOL_N);
-  rings.frustumCulled = false; rings.renderOrder = 3; scene.add(rings);
+  rings.frustumCulled = false; rings.renderOrder = 3; scene.add(rings); bendify(rings.material);
   for (let i = 0; i < POOL_N; i++) { rings.setMatrixAt(i, ZERO); rings.setColorAt(i, teamColors.player); }
   pool = { items: [], free: [] };
   for (let i = 0; i < POOL_N; i++) {
@@ -202,11 +207,12 @@ function initPeople() {
     const a = (i / 5) * Math.PI * 2; const sp = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.9, 4), gold);
     sp.position.set(Math.cos(a) * 0.55, 0.45, Math.sin(a) * 0.55); crown.add(sp);
   }
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.3, 10), gold); crown.add(band);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.3, 10), gold); crown.add(band); bendify(gold);
   rig.add(crown);
   const extras = new THREE.Group(); rig.add(extras);
   const tele = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 15), new THREE.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
   tele.rotation.x = -Math.PI / 2; tele.visible = false; scene.add(tele);
+  bendify(tele.material);
   bossObj = { root, mixer, idle, walk, mesh, rig, crown, extras, tele, w: 0, gold, halo: null };
 }
 
@@ -215,19 +221,19 @@ function buildBossExtras(tier, S) {
   const ex = bossObj.extras;
   for (const c of [...ex.children]) { ex.remove(c); if (c.geometry) c.geometry.dispose(); }
   const dark = new THREE.MeshStandardMaterial({ color: '#2a2230', roughness: 0.4, metalness: 0.7, flatShading: true });
-  const eye = new THREE.MeshBasicMaterial({ color: '#ff2a1a' });
+  const eye = new THREE.MeshBasicMaterial({ color: '#ff2a1a' }); bendify(dark); bendify(eye);
   if (tier >= 1) for (const sx of [-1, 1]) for (const k of [0, 1]) {
     const sp = new THREE.Mesh(new THREE.ConeGeometry(0.07 * S, 0.34 * S, 6), tier >= 3 ? bossObj.gold : dark);
     sp.position.set(sx * (0.33 + k * 0.06) * S, (1.5 + k * 0.1) * S, 0); sp.rotation.z = -sx * (0.7 + k * 0.5); ex.add(sp);
   }
-  if (tier >= 2) {
+  if (tier >= 0) {
     for (const sx of [-1, 1]) {
       const horn = new THREE.Mesh(new THREE.ConeGeometry(0.035 * S, 0.3 * S, 6), dark); horn.position.set(sx * 0.15 * S, 1.8 * S, -0.02 * S); horn.rotation.z = -sx * 0.55; ex.add(horn);
       const e = new THREE.Mesh(new THREE.SphereGeometry(0.02 * S, 8, 6), eye); e.position.set(sx * 0.045 * S, 1.66 * S, -0.12 * S); ex.add(e);
     }
   }
   if (tier >= 3) {
-    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.4 * S, 0.022 * S, 8, 40), new THREE.MeshBasicMaterial({ color: '#ffe066' })); halo.position.y = 2.05 * S; halo.rotation.x = Math.PI / 2; ex.add(halo); bossObj.halo = halo;
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(0.4 * S, 0.022 * S, 8, 40), bendify(new THREE.MeshBasicMaterial({ color: '#ffe066' }))); halo.position.y = 2.05 * S; halo.rotation.x = Math.PI / 2; ex.add(halo); bossObj.halo = halo;
   } else bossObj.halo = null;
   bossObj.crown.position.set(0, 1.74 * S, 0); bossObj.crown.scale.setScalar(S * 0.31);
 }
@@ -247,7 +253,7 @@ function makeLabel(kind) {
   el.style.display = 'none'; labelsEl.appendChild(el); return el;
 }
 function toScreen(x, y, z) {
-  _v.set(x, y, z).project(camera);
+  _v.set(x, y, z); bendVec(_v); _v.project(camera);
   return { x: (_v.x * 0.5 + 0.5) * W, y: (-_v.y * 0.5 + 0.5) * H, ok: _v.z < 1 && _v.z > -1 };
 }
 function placeLabel(el, x, y, z, minY = 0) {
@@ -335,7 +341,7 @@ class Crowd {
     if (!this.active) return;
     const isP = this.team === 'player';
     const f = 1 - Math.exp(-dt * (this.fighting ? 5 : 10));
-    const yawBase = YAW0 + (this.dir > 0 ? Math.PI : 0);
+    const yawBase = YAW0 + (this.dir > 0 ? Math.PI : 0) + Math.atan(bendSlope(this.z));   // face along the bend of the road
     const jumping = isP && G.jump.t >= 0;
     const onRoad = isP && G.boss && G.state !== 'home' && G.state !== 'result';
     const arenaZ = G.lvl ? G.lvl.boss.z + 20 : -1e9;
@@ -343,7 +349,7 @@ class Crowd {
       const p = this.persons[k], o = p.o, m = o.mesh;
       if (p.fall) {
         p.age += dt; p.vy -= 22 * dt; p.y += p.vy * dt; p.x += p.vx * dt; p.z += p.vz * dt;
-        if (p.y < world.drop.y - 0.35) { this.finishFall(p, k); continue; }
+        if (p.y < world.drop.y - bendY(p.z) - 0.35) { this.finishFall(p, k); continue; }
         m.position.set(p.x, p.y, p.z);
         _q.setFromEuler(_eu.set(p.age * p.tx, yawBase, p.age * p.tz)); m.quaternion.copy(_q);
         m.scale.setScalar(PS);
@@ -379,7 +385,7 @@ class Crowd {
 function team_hex(team) { return team === 'player' ? SKINS[save.skin].c : TEAM_COL[team]; }
 /* Splash, fire or dust where someone lands after falling off the road. */
 function dropFx(x, z) {
-  const y = world.drop.y, kind = world.drop.kind;
+  const y = world.drop.y - bendY(z), kind = world.drop.kind;
   if (kind === 'water') { sparks.emit(x, y + 0.2, z, '#cfeeff', 12, 5.5, 0.3, 0.7, -9, 1.5); bits.emit(x, y + 0.1, z, '#ffffff', 8, 3, 0.5, 0.9, -5, 1.2); Snd.sfx.splash(); }
   else if (kind === 'lava') { sparks.emit(x, y + 0.3, z, '#ff8a2a', 18, 8, 0.34, 1.0, -6, 1.7); bits.emit(x, y + 0.2, z, '#40302c', 6, 3, 0.7, 1.4, -1, 1.2); Snd.sfx.sizzle(); }
   else { bits.emit(x, y + 0.2, z, '#cdbd9a', 12, 4, 0.7, 1.0, -2, 0.8); sparks.emit(x, y + 0.2, z, '#ffeeb0', 4, 3, 0.2, 0.4); Snd.sfx.thud(); }
@@ -424,13 +430,14 @@ function clearLevel() {
 
 function loadLevel(n) {
   clearLevel();
-  const startN = 4 + save.upStart * 2;
+  const startN = 4 + startBonus(n) + save.upStart * 2;   // one more person for every three levels reached, plus shop upgrades
   const lvl = genLevel(n, startN); G.lvl = lvl;
   world.build(lvl);
   G.coinsRun = 0; G.t0 = 0; G.runT = 0; G.endT = 0; G.targetX = 0; G.shake = 0; G.fovKick = 0; G.bossBanner = false; hudCoins = hudProg = -1;
   G.jump.t = -1; G.jumpH = JUMP_H; G.jumpDur = JUMP_DUR; G.boost = 0; G.tsc = 1; G.endR = 0; G.cheered = false;
   G.speedMul = 1; G.pad.up = G.pad.dn = false; G.fallen = 0; G.fellTip = false; G.tipJump = false; G.tipEdge = false; thrShown = fxShown = -1;
   Snd.setAmbience(THEMES[lvl.theme].id); Snd.duckAmbience(false);
+  G.guns = 0; G.bombs = 0; G.gunT = 0; G.fly = []; G.score = 0; G.parts = { coins: 0, kills: 0, wreck: 0, devil: 0, crowd: 0, gates: 0 }; refreshChips();
   const P = new Crowd('player', () => QUAL[Q].P, -1); P.x = 0; P.z = 0; P.activate(); P.setCount(startN); P.syncVisual(true);
   P.persons.forEach(p => { const a = p.slot * GOLD, rr = FORM_C * Math.sqrt(p.slot + 0.5); p.x = clamp(Math.cos(a) * rr, -3.85, 3.85); p.z = Math.sin(a) * rr; p.s = 1; });
   G.player = P;
@@ -439,7 +446,7 @@ function loadLevel(n) {
   const b = lvl.boss;
   const S = b.scale;
   G.boss = {
-    z: b.z, z0: b.z, x: 0, hp: b.hp, hpMax: b.hpMax, tier: b.tier, style: b.style, name: b.name, scale: S, hint: b.hint, state: 'idle',
+    z: b.z, z0: b.z, x: 0, hp: b.hp, hpMax: b.hpMax, tier: b.tier, style: b.style, name: b.name, scale: S, hint: b.hint, power: b.power || 1, state: 'idle',
     tick: 0, stompT: 0, deadT: 0, hitFlash: 0, rad: S * 0.48, atk: { phase: 0, t: 1.6, side: 1 }, zFight: 0
   };
   if (G.bossLabel) G.bossLabel.remove();
@@ -459,6 +466,8 @@ function loadLevel(n) {
 
 function refreshHud() {
   $('lvH').textContent = 'LEVEL ' + G.lvl.n; $('lvHud').textContent = 'LV ' + G.lvl.n; $('themeH').textContent = THEMES[G.lvl.theme].name + ' · ' + G.lvl.boss.name;
+  const secs = G.lvl.seconds, mm = Math.floor(secs / 60), ss = String(secs % 60).padStart(2, '0');
+  $('statsH').innerHTML = 'Levels completed <b>' + Math.max(0, save.level - 1) + '</b> · Total score <b>' + fmt(save.totalScore) + '</b> · Best run <b>' + fmt(save.bestScore) + '</b><br>Run time about ' + mm + ':' + ss + ' · Start crowd <b>' + G.lvl.startN + '</b>';
   $('coinsH').textContent = fmt(save.coins);
   $('upStartLv').textContent = '+' + save.upStart * 2; $('upStartCost').textContent = fmt(costStart());
   $('upGoldLv').textContent = '+' + save.upGold * 10 + '%'; $('upGoldCost').textContent = fmt(costGold());
@@ -487,7 +496,7 @@ function setState(s) {
   G.state = s;
   document.body.classList.toggle('playing', s !== 'home');
   layer('home', s === 'home'); layer('hud', s === 'play' || s === 'win' || s === 'lose');
-  layer('pause', s === 'pause'); layer('result', s === 'result'); layer('ctrl', s === 'play'); Snd.duckAmbience(s === 'pause');
+  layer('pause', s === 'pause'); layer('result', s === 'result'); layer('ctrl', s === 'play'); Snd.duckAmbience(s === 'pause'); refreshChips();
   if (s !== 'play') { G.pad.up = G.pad.dn = false; document.querySelectorAll('.pad.on').forEach(b => b.classList.remove('on')); }
 }
 function goHome() { loadLevel(save.level); setState('home'); }
@@ -506,7 +515,7 @@ function passGate(gt) {
   switch (o.op) { case '+': n = before + o.v; break; case 'x': n = before * o.v; break; case '-': n = before - o.v; break; default: n = Math.ceil(before / o.v); }
   n = Math.max(0, Math.round(n));
   world.flashGate(gt, side);
-  const good = n >= before;
+  const good = n >= before; if (good) addScore(10, 'gates');
   const gx = side ? 2 : -2;
   for (let i = 0; i < 5; i++) sparks.emit(gx + (Math.random() - 0.5) * 3.2, 1 + Math.random() * 2.4, gt.z, good ? '#6cb0ff' : '#ff5a6a', 7, 5, 0.26, 0.9, -3, 0.5, 0.6);
   if (n <= 0) { P.count = 0; P.hit(0); finish(false); return; }
@@ -567,10 +576,15 @@ function slamImpact(side) {
   Snd.sfx.stomp(); Snd.sfx.explode(); G.shake = 1; haptic('heavy'); flashScreen('#ff5a2a', 0.2);
   for (let i = 0; i < 24; i++) bits.emit(side * (0.5 + Math.random() * 3.6), 0.3, P.z - 1 + (Math.random() - 0.5) * 12, '#d9c9a0', 1, 6, 0.8, 0.9, -4, 0.8, 0);
   sparks.emit(side * 2.3, 0.6, P.z - 1, '#ff7a3a', 40, 9, 0.4, 0.8, -6, 1.2, 4);
-  const per = Math.max(1, Math.round(P.count / Math.max(1, P.persons.length))), victims = [];
-  for (const p of P.persons) if (!p.fall && p.y < 0.7 && p.x * side > -0.2 && Math.abs(p.z - (P.z - 1)) < 7.5) victims.push(p);
-  for (const p of victims) { if (P.count <= 0) break; P.hit(per, p); }
-  if (victims.length) floatText('-' + fmt(victims.length * per), '#ff6a6a', side * 2.3, 2.4, P.z);
+  const victims = [];
+  for (const p of P.persons) if (!p.fall && p.y < 0.7 && p.x * side > 0.5 && Math.abs(p.z - (P.z - 1)) < 7.5) victims.push(p);
+  if (victims.length) {
+    /* a slam takes a share of the crowd that grows with the devil's power, never more than about a quarter */
+    const share = Math.min(0.26, 0.1 * Math.sqrt(B.power)) * (victims.length / Math.max(1, P.persons.length)) * 2;
+    const loss = Math.max(1, Math.min(P.count - 1, Math.ceil(P.count * share)));
+    for (const p of victims.slice(1)) sparks.emit(p.x, 0.8, p.z, '#ff7a6a', 4, 5, 0.25, 0.5);
+    P.hit(loss, victims[0]); floatText('-' + fmt(loss), '#ff6a6a', side * 2.3, 2.4, P.z);
+  }
 }
 function dodgeAttacks(dt) {
   const A = G.boss.atk, P = G.player;
@@ -610,8 +624,9 @@ function updateBoss(dt) {
       const L = Math.max(1, Math.ceil(Math.min(P.count, B.hp) * FIGHT_RATE[B.style]));
       let dmg = L;
       if (B.style === 'smash') dmg = P.jy > 0.8 ? L * 3 : (Math.random() < 0.3 ? L : 0);   // only a leaping crowd really hurts him
-      dmg = Math.min(dmg, B.hp);
-      B.hp -= dmg; P.hit(L); if (dmg) B.hitFlash = 1;
+      dmg = Math.min(Math.ceil(dmg * (1 + firepower())) + (G.guns ? Math.ceil(B.hpMax * 0.003 * G.guns) : 0), B.hp);   // guns add damage
+      B.hp -= dmg; P.hit(Math.ceil(L * B.power));   // the devil kills more people per blow as levels rise
+      if (dmg) B.hitFlash = 1;
       sparks.emit((Math.random() - 0.5) * 3, B.scale * (0.2 + Math.random() * 0.8), B.z + B.rad * 0.6, B.style === 'smash' && dmg ? '#ffffff' : '#ffd24a', dmg ? 6 : 2, 6, 0.3, 0.5);
       if (dmg) { Snd.sfx.bossHit(); haptic('tick'); }
       if (B.hp <= 0) { if (P.count <= 0) P.setCount(1); finish(true); return; }
@@ -624,6 +639,7 @@ const HAZ_R2 = 1.55;
 function updateHazards(dt) {
   const P = G.player;
   for (const h of G.lvl.hazards) {
+    if (h.dead) continue;
     h.cd -= dt;
     if (Math.abs(h.z - P.z) > P.radius + 4 || h.cd > 0) continue;
     let hit = null;
@@ -650,7 +666,7 @@ function updateCollect(dt) {
     if (c.taken || Math.abs(c.z - P.z) > 2.4) continue;
     /* ground coins need feet on the ground; air coins need a jump (the crowd reaches about 2 m above its feet) */
     if (Math.abs(c.x - P.x) < P.radius * 0.85 + 0.6 && c.y >= P.jy - 0.5 && c.y <= P.jy + 2.3) {
-      c.taken = true; world.hideCoin(c); G.coinsRun++;
+      c.taken = true; world.hideCoin(c); G.coinsRun++; addScore(10, 'coins');
       sparks.emit(c.x, c.y, c.z, '#ffd23a', 4, 3, 0.2, 0.4); Snd.sfx.coin();
     }
   }
@@ -662,6 +678,15 @@ function updateCollect(dt) {
       Snd.sfx.box(); haptic('success'); flashScreen('#ffe9a0', 0.2);
       if (b.reward.t === 'crowd') { P.setCount(P.count + b.reward.v); floatText('🎁 +' + b.reward.v, '#7cff8a', P.x, 3.2, P.z); showTip('🎁 +' + b.reward.v + ' PEOPLE!'); }
       else { G.coinsRun += b.reward.v; floatText('🎁 +' + b.reward.v + ' 🪙', '#ffd23a', P.x, 3.2, P.z); showTip('🎁 +' + b.reward.v + ' COINS!'); }
+    }
+  }
+  for (const w of G.lvl.weapons) {
+    if (w.taken || Math.abs(w.z - P.z) > 2.8) continue;
+    if (Math.abs(w.x - P.x) < P.radius * 0.9 + 1.1 && w.y >= P.jy - 0.5 && w.y <= P.jy + 3.0) {
+      w.taken = true; world.hideWeapon(w); haptic('success'); flashScreen(w.type === 'gun' ? '#9fd0ff' : '#ffb09a', 0.18);
+      sparks.emit(w.x, w.y, w.z, w.type === 'gun' ? '#58a6ff' : '#ff6a4a', 30, 8, 0.35, 0.8, -4, 0.8, 1);
+      if (w.type === 'gun') { G.guns++; Snd.sfx.cock(); showTip('🔫 GUN! More firepower'); } else { G.bombs = Math.min(9, G.bombs + 1); Snd.sfx.cock(); showTip('💣 BOMB! Tap BOMB to throw'); }
+      addScore(15, 'coins'); refreshChips();
     }
   }
   for (const rc of G.recruits) {
@@ -678,6 +703,68 @@ function updateCollect(dt) {
   }
 }
 
+/* ---- score, weapons ---- */
+function addScore(n, part) { G.score += n; if (G.parts && part) G.parts[part] = (G.parts[part] || 0) + n; const el = $('scoreV'); if (el) el.textContent = fmt(G.score); }
+const firepower = () => Math.min(3, 0.22 * G.guns);
+function refreshChips() {
+  const w = $('wpnChip'); if (w) w.textContent = '🔫 ' + G.guns + '   💣 ' + G.bombs;
+  const b = $('bombBtn'); if (b) b.style.display = G.bombs > 0 && G.state === 'play' ? '' : 'none';
+  const s = $('scoreV'); if (s) s.textContent = fmt(G.score);
+}
+const hazardPos = h => ({ x: h.type === 'wall' ? h.gx : h.type === 'spikes' ? (h.x0 + h.x1) / 2 : h.x, z: h.z });
+function wreck(h) {
+  world.destroyHazard(h); const p = hazardPos(h);
+  sparks.emit(p.x, 1, p.z, '#ffb04a', 40, 9, 0.45, 0.8, -6, 1, 1.5); sparks.emit(p.x, 1, p.z, '#ffffff', 14, 6, 0.3, 0.5); bits.emit(p.x, 0.6, p.z, '#6a6f78', 14, 6, 0.8, 1, -5, 0.8, 1);
+  Snd.sfx.boom(); G.shake = Math.max(G.shake, 0.35); addScore(25, 'wreck');
+}
+function targetsAhead(maxD) {
+  const P = G.player, list = [];
+  for (const h of G.lvl.hazards) { if (h.dead) continue; const d = P.z - h.z; if (d > 3 && d < maxD) list.push({ k: 'h', o: h, d }); }
+  for (const e of G.enemies) { if (e.done || !e.active) continue; const d = P.z - e.z; if (d > 3 && d < maxD) list.push({ k: 'e', o: e, d }); }
+  return list.sort((a, b) => a.d - b.d);
+}
+function killEnemyCrowd(e) { e.fighting = false; e.done = true; e.release(); addScore(50, 'kills'); }
+/* guns fire by themselves at the nearest obstacle or rival crowd ahead */
+function autoFire(dt) {
+  if (!G.guns || G.state !== 'play') return;
+  G.gunT -= dt; if (G.gunT > 0) return;
+  G.gunT = Math.max(0.16, 0.5 - 0.03 * G.guns);
+  const t = targetsAhead(36)[0]; if (!t) return;
+  const P = G.player, tp = t.k === 'h' ? hazardPos(t.o) : { x: t.o.x, z: t.o.z };
+  for (let i = 1; i <= 6; i++) { const u = i / 6; sparks.emit(P.x + (tp.x - P.x) * u, 1.6 - 0.5 * u, P.z - 1 + (tp.z - P.z + 1) * u, '#ffe9a0', 1, 0.3, 0.2, 0.22, 0, 0, 0); }
+  Snd.sfx.shot();
+  if (t.k === 'h') {
+    t.o.hp = (t.o.hp !== undefined ? t.o.hp : (t.o.type === 'wall' ? 7 : 4)) - 1 - Math.floor(G.guns / 4);
+    sparks.emit(tp.x, 1.1, tp.z, '#ffd24a', 4, 4, 0.2, 0.3);
+    if (t.o.hp <= 0) wreck(t.o);
+  } else {
+    t.o.hit(1 + Math.floor(G.guns / 2)); addScore(2, 'kills'); sparks.emit(tp.x, 1.2, tp.z, '#ff7a6a', 4, 4, 0.2, 0.3);
+    if (t.o.count <= 0) killEnemyCrowd(t.o);
+  }
+}
+/* bombs: thrown by the BOMB button at the nearest rival crowd, obstacle or the devil */
+function throwBomb() {
+  if (G.state !== 'play' || G.bombs <= 0) return;
+  const P = G.player, B = G.boss, list = targetsAhead(52); const pick = list.find(x => x.k === 'e') || list[0]; let fn, to;
+  if (pick && pick.k === 'e') { const e = pick.o; to = { x: e.x, z: e.z }; fn = () => { e.hit(Math.ceil(e.count * 0.7)); addScore(40, 'kills'); if (e.count <= 0) killEnemyCrowd(e); }; }
+  else if (pick) { const h = pick.o; to = hazardPos(h); fn = () => { for (const o of G.lvl.hazards) if (!o.dead && Math.abs(o.z - h.z) < 10) wreck(o); }; }
+  else if ((B.state === 'walk' || B.state === 'fight') && P.z - B.z < 90) { to = { x: 0, z: B.z + B.rad }; fn = () => { B.hp = Math.max(1, B.hp - Math.ceil(B.hpMax * 0.12)); B.hitFlash = 1; sparks.emit(0, B.scale * 0.6, B.z + B.rad, '#ffffff', 40, 10, 0.5, 0.8); }; }
+  else { showTip('No target ahead'); return; }
+  G.bombs--; refreshChips(); Snd.sfx.shot(); haptic('tick');
+  G.fly.push({ t: 0, dur: 0.75, from: { x: P.x, z: P.z - 1 }, to, fn });
+}
+function updateFlights(dt) {
+  for (let i = G.fly.length - 1; i >= 0; i--) {
+    const f = G.fly[i]; f.t += dt / f.dur; const u = Math.min(1, f.t);
+    const x = f.from.x + (f.to.x - f.from.x) * u, z = f.from.z + (f.to.z - f.from.z) * u, y = 1.6 + Math.sin(Math.PI * u) * 6 - u * 0.8;
+    sparks.emit(x, y, z, '#ff9a3a', 2, 1, 0.5, 0.35, 0, 0, 0.2);
+    if (u >= 1) {
+      G.fly.splice(i, 1); sparks.emit(f.to.x, 1, f.to.z, '#ffb04a', 90, 13, 0.6, 1, -6, 1, 2); sparks.emit(f.to.x, 1, f.to.z, '#ffffff', 30, 9, 0.4, 0.6);
+      Snd.sfx.explode(); G.shake = 1; haptic('heavy'); f.fn();
+    }
+  }
+}
+
 function updatePlay(dt) {
   const P = G.player, lvl = G.lvl, B = G.boss;
   G.runT += dt;
@@ -687,7 +774,7 @@ function updatePlay(dt) {
   const gas = G.pad.up || keys.w || keys.W, brake = G.pad.dn || keys.s || keys.S || keys.ArrowDown;
   if (gas) G.speedMul = Math.min(SPEED_MAX, G.speedMul + 1.0 * dt);
   if (brake) G.speedMul = Math.max(SPEED_MIN, G.speedMul - 1.5 * dt);
-  let sp = (10 + Math.min(lvl.n, 20) * 0.12) * G.speedMul;
+  let sp = baseSpeed(lvl.n) * G.speedMul;
   if (G.boost > 0) { G.boost -= dt; sp *= 1.6; }   // speed strip
   if (P.fighting) sp *= 0.25;
   if (B.state === 'walk') sp = 7; else if (B.state === 'fight') sp = 0;
@@ -723,6 +810,7 @@ function updatePlay(dt) {
   updateEnemies(dt); if (G.state !== 'play') return;
   updateHazards(dt); if (G.state !== 'play') return;
   updateCollect(dt);
+  autoFire(dt); updateFlights(dt);
   updateBoss(dt);
   if (P.count <= 0 && G.state === 'play') finish(false);
   /* footstep dust */
@@ -739,7 +827,7 @@ function finish(win) {
   if (win) {
     /* the finishing blow: slow motion, a camera on the boss, and a defeat that depends on how this level\'s boss was fought */
     const B = G.boss; B.state = 'dying'; B.deadT = 0; B.hitFlash = 1; B.fx1 = B.fell = false; B.slideV = 0; B.vy = 0; B.fy = 0;
-    P.running = false; G.endR = 0; G.cheered = false; G.tsc = 0.35; showTelegraph(0);
+    P.running = false; G.endR = 0; G.cheered = false; G.tsc = 0.35; showTelegraph(0); addScore(1000 * (B.tier + 1), 'devil');
     Snd.sfx.explode(); haptic('heavy'); flashScreen('#ffffff', 0.35); G.shake = 1;
     sparks.emit(0, B.scale * 0.8, B.z + B.rad * 0.5, '#ffd24a', 90, 14, 0.5, 1.2, -6, 0.8, 2); sparks.emit(0, B.scale * 0.8, B.z + B.rad * 0.5, '#ff6a2a', 60, 11, 0.6, 1.0, -6, 0.8, 2);
     if (B.style === 'smash') Snd.sfx.rocket();
@@ -750,6 +838,10 @@ function finish(win) {
 
 function showResult() {
   const win = G.win, lvl = G.lvl, P = G.player;
+  if (win) addScore(P.count * 5, 'crowd');
+  save.totalScore += G.score; save.bestScore = Math.max(save.bestScore, G.score);
+  $('resScore').textContent = fmt(G.score);
+  const pt = G.parts; $('resParts').innerHTML = '🪙 coins ' + fmt(pt.coins) + ' · ⚔ kills ' + fmt(pt.kills) + ' · 💥 wrecks ' + fmt(pt.wreck) + ' · ➕ gates ' + fmt(pt.gates) + (win ? '<br>👹 ' + G.boss.name + ' ' + fmt(pt.devil) + ' · 👥 survivors ' + fmt(pt.crowd) : '') + '<br>Levels completed ' + (win && lvl.n === save.level ? lvl.n : Math.max(0, save.level - 1)) + ' · Total score ' + fmt(save.totalScore);
   const par = Math.max(1, lvl.estFinal - lvl.boss.hpMax);
   const ratio = P.count / par;
   const stars = win ? (ratio >= 0.9 ? 3 : ratio >= 0.45 ? 2 : 1) : 0;
@@ -774,7 +866,8 @@ function fitDistance() {
   const half = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * camera.aspect);
   return clamp(5.0 / Math.tan(half), 12, 24);
 }
-function cameraTargets() {
+function cameraTargets() { cameraTargetsRaw(); bendVec(posTmp); bendVec(lookTmp); }
+function cameraTargetsRaw() {
   const P = G.player, B = G.boss, s = G.state, D = fitDistance();
   if (s === 'home' || s === 'result' || s === 'pause' && G.prev === 'home') {
     const a = Math.PI * 0.86 + Math.sin(G.t * 0.35) * 0.55, R = 8.5;
@@ -829,7 +922,7 @@ function fireworks(x, y, z, n) {
   bits.confetti(x, y, z, 50, 10);
 }
 function bigDropFx(x, z) {
-  const y = world.drop.y, kind = world.drop.kind;
+  const y = world.drop.y - bendY(z), kind = world.drop.kind;
   if (kind === 'water') { sparks.emit(x, y + 0.3, z, '#cfeeff', 120, 13, 0.7, 1.6, -9, 1.6, 4); bits.emit(x, y, z, '#ffffff', 50, 6, 1.2, 1.6, -5, 1.2, 4); Snd.sfx.bigSplash(); }
   else if (kind === 'lava') { sparks.emit(x, y + 0.3, z, '#ff8a2a', 140, 15, 0.8, 1.8, -6, 1.8, 4); bits.emit(x, y, z, '#40302c', 40, 5, 1.4, 2.2, -1, 1.2, 4); Snd.sfx.bigSplash(); Snd.sfx.sizzle(); }
   else { bits.emit(x, y + 0.3, z, '#cdbd9a', 80, 9, 1.4, 1.8, -2, 1, 5); sparks.emit(x, y + 0.5, z, '#ffeeb0', 30, 8, 0.4, 0.8, -4, 1, 3); Snd.sfx.thud(); Snd.sfx.explode(); }
@@ -870,7 +963,7 @@ function updateBossDying(dt) {
     } else {
       B.tf += dt; B.vy -= 26 * dt; B.fy += B.vy * dt; B.z -= 4 * dt;
       rig.position.set(0, B.fy, B.z); rig.quaternion.copy(face).multiply(_qb.setFromAxisAngle(X_AXIS, Math.min(2.6, B.tf * 1.6)));
-      if (B.fy < world.drop.y - S * 0.35 && !B.fx1) { B.fx1 = true; bigDropFx(0, B.z); rig.visible = false; G.shake = 1.5; }
+      if (B.fy < world.drop.y - bendY(B.z) - S * 0.35 && !B.fx1) { B.fx1 = true; bigDropFx(0, B.z); rig.visible = false; G.shake = 1.5; }
     }
   } else {
     /* smash: crouches, then is blasted into the sky like a rocket and bursts into fireworks */
@@ -1004,11 +1097,13 @@ function holdButton(id, flag) {
   for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => on(false));
 }
 holdButton('thrUp', 'up'); holdButton('thrDn', 'dn');
+$('bombBtn').addEventListener('pointerdown', e => { e.preventDefault(); throwBomb(); });
 $('jumpBtn').addEventListener('pointerdown', e => { e.preventDefault(); $('jumpBtn').classList.add('on'); jumpNow(); });
 for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('jumpBtn').addEventListener(ev, () => $('jumpBtn').classList.remove('on'));
 window.addEventListener('keydown', e => {
   keys[e.key] = true;
   if ((e.key === ' ' || e.key === 'ArrowUp') && G.state === 'play') { e.preventDefault(); jumpNow(); }
+  if ((e.key === 'b' || e.key === 'B') && G.state === 'play') throwBomb();
   if (e.key === 'Escape' || e.key === 'p') { if (G.state === 'play') pauseGame(); else if (G.state === 'pause') resumeGame(); }
   if ((e.key === 'Enter' || e.key === ' ') && G.state === 'home') startRun();
 });
@@ -1046,16 +1141,26 @@ async function boot() {
   try {
     if (!renderer.capabilities.isWebGL2) throw new Error('WebGL 2 is not available on this device.');
     resize(); applyQualityInit();
+    /* the Rovatics Game Zone opening plays while the game loads */
+    intro = new Intro(renderer, 'fonts/helvetiker_bold.typeface.json'); intro.resize(W, H);
+    const introReady = intro.load().catch(e => { console.warn('intro skipped', e); if (intro) intro.dispose(); intro = null; $('loading').style.background = 'radial-gradient(circle at 50% 40%,#1c3c8a,#060d24)'; $('loading').classList.add('plain'); });
+    let il = performance.now();
+    const introLoop = now => { if (!intro || !intro.alive) return; const d = Math.min(0.05, (now - il) / 1000); il = now; intro.update(d); intro.render(); requestAnimationFrame(introLoop); };
+    requestAnimationFrame(introLoop);
     setProgress(0.08, 'Calling the runners…');
     const loader = new GLTFLoader();
     gltf = await new Promise((res, rej) => loader.load('models/soldier.glb', res, e => { if (e.total) setProgress(0.1 + 0.7 * e.loaded / e.total); }, rej));
+    await introReady;
+    while (intro && intro.ready && intro.t < INTRO_SECONDS) await new Promise(r => setTimeout(r, 60));
     setProgress(0.85, 'Building the crowd…');
+    await new Promise(r => setTimeout(r, 30));
     initPeople();
     refreshMute();
     const lvlNo = params.has('level') ? Math.max(1, +params.get('level') | 0) : save.level;
     loadLevel(lvlNo);
     setProgress(1, 'Ready!');
     await new Promise(r => setTimeout(r, 250));
+    if (intro) { intro.dispose(); intro = null; }
     setState('home'); layer('loading', false);
     requestAnimationFrame(t => { last = t; frame(t); });
   } catch (err) {

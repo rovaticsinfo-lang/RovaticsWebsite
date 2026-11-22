@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { clamp, lerp, smoothstep, rng, fbm2 } from './cr-util.js';
 import { ROAD_W } from './cr-level.js';
 import { Ambient } from './cr-fx.js';
+import { setBend, bendGroup } from './cr-bend.js';
 import { buildKit, windowTextures, disposeKitCache } from './cr-kits.js';
 
 const HW = ROAD_W / 2;
@@ -255,7 +256,7 @@ function mysteryTexture() {
 export class World {
   constructor(scene, renderer, opts) {
     this.scene = scene; this.renderer = renderer; this.density = opts.decorScale || 1; this.fx = null;
-    this.pads = []; this.strips = [];
+    this.pads = []; this.strips = []; this.weapons = []; this.wlists = [];
     this.group = null; this.theme = THEMES[0]; this.coinMesh = null; this.boxMesh = null; this.coins = []; this.boxes = []; this.hazards = []; this.gates = [];
     this.fleets = []; this.craters = []; this.disposables = []; this.t = 0; this.drop = { y: -2.4, kind: 'water' }; this.envRT = null;
     scene.fog = new THREE.FogExp2(0xbfe6ff, 0.0085);
@@ -360,14 +361,14 @@ export class World {
     const roadMat = new THREE.MeshStandardMaterial({ map: rt, bumpMap: bump, bumpScale: 1.2, roughness: wet ? 0.32 : (th.road === 'rail' ? 1 : 0.78), metalness: wet ? 0.25 : 0.02 });
     if (paint.emissive) { const et = this.track(paint.emissive); et.repeat.set(1, roadLen / 16); roadMat.emissiveMap = et; roadMat.emissive = new THREE.Color(0xffffff); roadMat.emissiveIntensity = th.road === 'lava' ? 1.6 : 1.1; }
     this.track(roadMat);
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, roadLen), roadMat);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, roadLen, 1, Math.ceil(roadLen / 4)), roadMat);
     road.rotation.x = -Math.PI / 2; road.position.set(0, 0, roadMid); road.receiveShadow = true; g.add(road);
     const slabColor = new THREE.Color(ROAD_BASE[th.road]).multiplyScalar(0.7);
     const slabMat = this.track(new THREE.MeshStandardMaterial({ color: slabColor, roughness: 0.95, flatShading: true }));
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(ROAD_W + 0.9, 1.5, roadLen), slabMat); slab.position.set(0, -0.78, roadMid); slab.castShadow = true; slab.receiveShadow = true; g.add(slab);
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(ROAD_W + 0.9, 1.5, roadLen, 1, 1, Math.ceil(roadLen / 4)), slabMat); slab.position.set(0, -0.78, roadMid); slab.castShadow = true; slab.receiveShadow = true; g.add(slab);
     if (th.curb) {
       const curbMat = this.track(new THREE.MeshStandardMaterial({ color: th.edge, roughness: 0.85 }));
-      [-1, 1].forEach(s => { const cb = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, roadLen), curbMat); cb.position.set(s * (HW + 0.17), 0.07, roadMid); cb.receiveShadow = true; g.add(cb); });
+      [-1, 1].forEach(s => { const cb = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, roadLen, 1, 1, Math.ceil(roadLen / 4)), curbMat); cb.position.set(s * (HW + 0.17), 0.07, roadMid); cb.receiveShadow = true; g.add(cb); });
     }
     const pillarH = -1.5 - th.floorY, pillars = Math.floor(roadLen / 22);
     if (pillarH > 0.5) {
@@ -403,7 +404,9 @@ export class World {
     this.strips = lvl.strips; lvl.strips.forEach(s => this.buildStrip(g, s));
     this.coins = lvl.coins; this.buildCoins(g, lvl.coins);
     this.boxes = lvl.boxes; this.buildBoxes(g, lvl.boxes);
+    this.weapons = lvl.weapons; this.buildWeapons(g, lvl.weapons);
     this.buildArena(g, th, bossZ, lvl);
+    setBend(lvl.n, lvl.length); bendGroup(g);   // curves and hills: bend everything that was just built
   }
 
   buildGate(g, gt) {
@@ -427,7 +430,9 @@ export class World {
     const cap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), cm); cap.position.set(0, 4.5, 0); grp.add(cap);
   }
 
-  buildHazard(g, h) {
+  buildHazard(g, h) { const n0 = g.children.length; this._buildHazard(g, h); h.parts = g.children.slice(n0); }
+  destroyHazard(h) { h.dead = true; (h.parts || []).forEach(p => { p.visible = false; }); }
+  _buildHazard(g, h) {
     if (h.type === 'wall') {
       /* a barrier across the road with one gap: squeeze through it or jump over */
       const stripes = this.track(textTex(128, 64, (cx, w, hh) => {
@@ -536,6 +541,30 @@ export class World {
   }
   hideBox(b) { this.boxMesh.setMatrixAt(b.i, this._zero); this.boxMesh.instanceMatrix.needsUpdate = true; }
 
+  buildWeapons(g, list) {
+    this.wlists = [];
+    for (const type of ['gun', 'bomb']) {
+      const arr = list.filter(x => x.type === type); if (!arr.length) continue;
+      const tex = this.track(textTex(128, 128, (cx, w, h) => {
+        cx.fillStyle = type === 'gun' ? '#1d3a63' : '#6b1a1a'; cx.fillRect(0, 0, w, h);
+        cx.strokeStyle = type === 'gun' ? '#58a6ff' : '#ff6a4a'; cx.lineWidth = 8; cx.strokeRect(5, 5, w - 10, h - 10);
+        cx.fillStyle = '#fff';
+        if (type === 'gun') { cx.fillRect(18, 40, 84, 22); cx.fillRect(18, 34, 56, 10); cx.beginPath(); cx.moveTo(30, 62); cx.lineTo(54, 62); cx.lineTo(46, 100); cx.lineTo(24, 100); cx.fill(); cx.fillRect(100, 44, 14, 12); }
+        else { cx.beginPath(); cx.arc(64, 72, 30, 0, 7); cx.fill(); cx.fillRect(58, 30, 12, 14); cx.strokeStyle = '#ffd23a'; cx.lineWidth = 6; cx.beginPath(); cx.moveTo(70, 32); cx.quadraticCurveTo(92, 18, 98, 34); cx.stroke(); cx.fillStyle = '#ffd23a'; cx.beginPath(); cx.arc(99, 34, 7, 0, 7); cx.fill(); }
+      }));
+      const mat = this.track(new THREE.MeshStandardMaterial({ map: tex, emissive: type === 'gun' ? '#2a6fd0' : '#d03a1a', emissiveIntensity: 0.55, roughness: 0.5, metalness: 0.3 }));
+      const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1.25, 1.25, 1.25), mat, arr.length);
+      mesh.frustumCulled = false; mesh.castShadow = true; g.add(mesh);
+      arr.forEach((w2, i) => { w2.i = i; w2.mesh = mesh; this.setWeapon(w2, 0); });
+      this.wlists.push({ mesh, arr });
+    }
+  }
+  setWeapon(w, t) {
+    const o = this._o; o.position.set(w.x, w.y + Math.sin(t * 2.4 + w.ph) * 0.18, w.z); o.rotation.set(0, t * 1.6 + w.ph, 0); o.scale.set(1, 1, 1); o.updateMatrix();
+    w.mesh.setMatrixAt(w.i, o.matrix);
+  }
+  hideWeapon(w) { w.mesh.setMatrixAt(w.i, this._zero); w.mesh.instanceMatrix.needsUpdate = true; }
+
   buildArena(g, th, bossZ, lvl) {
     const L = lvl.length;
     const plat = new THREE.Mesh(new THREE.CylinderGeometry(17, 18.5, 1.6, 44), this.track(new THREE.MeshStandardMaterial({ color: new THREE.Color(ROAD_BASE[th.road]).multiplyScalar(0.9), roughness: 0.9 })));
@@ -602,6 +631,11 @@ export class World {
       let dirty = false;
       for (const b of this.boxes) { if (b.taken || Math.abs(b.z - cz) > 70) continue; this.setBox(b, t); dirty = true; }
       if (dirty) this.boxMesh.instanceMatrix.needsUpdate = true;
+    }
+    for (const wl of this.wlists) {
+      let dirty = false;
+      for (const x of wl.arr) { if (x.taken || Math.abs(x.z - cz) > 70) continue; this.setWeapon(x, t); dirty = true; }
+      if (dirty) wl.mesh.instanceMatrix.needsUpdate = true;
     }
     for (const f of this.fleets) f.update(t, cz);
     if (this.fx && this.craters.length) {

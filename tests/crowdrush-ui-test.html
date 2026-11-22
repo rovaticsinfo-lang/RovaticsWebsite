@@ -25,18 +25,33 @@ document.getElementById('f').onload=async()=>{try{
 
  // ---- boss tiers, boss styles, level variety and distance ----
  const info=[]; for(let L=1;L<=12;L++){ C.loadLevel(L); info.push({n:L,len:G.lvl.length,tier:G.boss.name,style:G.boss.style,pads:G.lvl.pads.length,strips:G.lvl.strips.length,hz:new Set(G.lvl.hazards.map(h=>h.type))}); }
- ok(["BOSS","SUPER BOSS","BIG BOSS","FINAL BIG BOSS"].every((nm,i)=>info[i*3].tier===nm),"boss tiers climb every three levels: "+[0,3,6,9].map(i=>info[i].tier).join(", "));
+ ok(["BEAST","DEVIL","ARCH DEVIL","DEVIL KING"].every((nm,i)=>info[i*3].tier===nm),"devil tiers climb every three levels: "+[0,3,6,9].map(i=>info[i].tier).join(", "));
  ok(new Set(info.slice(0,4).map(x=>x.style)).size===4,"four different boss styles: "+info.slice(0,4).map(x=>x.style).join(", "));
- ok(info[11].len>info[0].len+120,"later levels are much longer ("+info[0].len+" m to "+info[11].len+" m)");
+ ok(info[0].len>=1400&&info[11].len>info[0].len+1500,"levels are long and keep growing ("+info[0].len+" m to "+info[11].len+" m)");
+ const mins=L=>{ C.loadLevel(L); return G.lvl.seconds; };
+ ok(mins(1)===150&&mins(2)===165&&mins(10)===285,"level 1 takes 2:30 and every level adds 15 s (L1 "+mins(1)+" s, L2 "+mins(2)+" s, L10 "+mins(10)+" s)");
+ const sc=[1,2,3,5,6,9].map(L=>{ C.loadLevel(L); return G.player.count; });
+ ok(sc.join()==="4,4,5,5,6,7","starting crowd grows by one every 3 levels: "+sc.join(", "));
+ C.loadLevel(1); ok(G.lvl.weapons.some(w=>w.type==="gun")&&G.lvl.weapons.some(w=>w.type==="bomb"),"levels contain guns and bombs to collect");
  const kinds=new Set(); info.forEach(x=>x.hz.forEach(k=>kinds.add(k))); if(info.some(x=>x.pads)) kinds.add("pad"); if(info.some(x=>x.strips)) kinds.add("strip");
  ok(["saw","spikes","wall","roller","pad","strip"].every(k=>kinds.has(k)),"levels use many obstacle kinds: "+[...kinds].join(", "));
  // each boss style can be beaten and ends with a defeat animation, cheer and result card
  for(const L of [1,2,3,4]){
-  C.loadLevel(L); C.startRun(); const Pb=G.player; Pb.setCount(G.boss.hp*2+30); G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true); G.lvl.hazards.forEach(h=>h.cd=1e9); Pb.z=G.boss.z+60;
-  const st=G.boss.style, iv=setInterval(()=>{ if(G.boss.style==="smash"&&G.boss.state==="fight"&&G.jump.t<0) C.jumpNow(); },120);
+  C.loadLevel(L); C.startRun(); const Pb=G.player; Pb.setCount(Math.min(G.boss.hp*3+40,900)); G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true); G.lvl.hazards.forEach(h=>h.cd=1e9); Pb.z=G.boss.z+70;
+  const st=G.boss.style, iv=setInterval(()=>{ if(G.boss.style==="dodge"&&G.boss.state==="fight") G.targetX=G.boss.atk.phase===1?-G.boss.atk.side*2.4:0; if(G.boss.style==="smash"&&G.boss.state==="fight"&&G.jump.t<0) C.jumpNow(); },120);
   for(let i=0;i<2400&&G.state!=="result";i++) await wait(250); clearInterval(iv);
   ok(G.state==="result"&&G.win&&G.cheered,"boss style "+st+" can be beaten, with a victory cheer");
  }
+ // ---- weapons and score ----
+ C.loadLevel(3); C.startRun(); { const Pw=G.player; Pw.setCount(30); const L=G.lvl; L.gates.forEach(g=>g.done=true); L.enemies.forEach(e=>e.done=true);
+  const gun=L.weapons.find(w=>w.type==="gun"&&w.y<2); Pw.z=gun.z+8; Pw.x=gun.x; G.targetX=gun.x;
+  for(let i=0;i<300&&!gun.taken;i++){ G.targetX=gun.x; await wait(50); }
+  ok(gun.taken&&G.guns===1,"collecting a gun raises firepower");
+  const saw=L.hazards.find(h=>h.type==="saw"||h.type==="wall"); saw.hp=1; G.guns=3; Pw.z=saw.z+14; Pw.x=0; G.targetX=0;
+  for(let i=0;i<200&&!saw.dead;i++){ G.targetX=0; await wait(50); }
+  ok(saw.dead&&G.score>0,"guns shoot obstacles out of the way and earn score ("+G.score+")");
+  G.bombs=1; const h2=L.hazards.find(h=>!h.dead); if(h2){ Pw.z=h2.z+20; await wait(300); C.G.player.z=h2.z+20; } }
+ ok(typeof w.__androidBack==="function","back hook kept");
  // ---- jump ----
  C.loadLevel(1); C.startRun(); const P=G.player; G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true);
  await wait(200); C.jumpNow(); await wait(600);
@@ -77,7 +92,7 @@ document.getElementById('f').onload=async()=>{try{
  ok(withJ>noJ,'jumping over the blades keeps more people ('+withJ+' vs '+noJ+' of 40 without)');
 
  // ---- boss win flow still works ----
- C.loadLevel(1); C.startRun(); const P5=G.player; P5.setCount(120); P5.z=G.boss.z+60; G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true);
+ C.loadLevel(1); C.startRun(); const P5=G.player; P5.setCount(Math.min(G.boss.hp*3+40,900)); P5.z=G.boss.z+70; G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true);
  for(let i=0;i<1600&&G.state!=='result';i++) await wait(250);
  ok(G.state==='result'&&G.win===true,'a big crowd beats the boss (state '+G.state+', win '+G.win+', left '+G.player.count+', boss hp '+G.boss.hp+')');
 }catch(e){ok(false,'exception: '+e.message)}

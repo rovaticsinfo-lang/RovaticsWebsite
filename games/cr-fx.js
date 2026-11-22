@@ -1,12 +1,14 @@
 /* Crowd Rush Legends: GPU point-sprite particles (bursts, confetti) and ambient floating motes. */
 import * as THREE from 'three';
+import { BEND, BEND_GLSL } from './cr-bend.js';
 
 const POINT_VS = `
+${BEND_GLSL}
 attribute vec3 aColor; attribute float aSize; attribute float aAlpha;
 uniform float uScale; varying vec3 vC; varying float vA;
 void main(){
   vC = aColor; vA = aAlpha;
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vec4 mv = viewMatrix * vec4(position + bendOff(position.z), 1.0);
   gl_PointSize = max(1.0, aSize * uScale / max(0.1, -mv.z));
   gl_Position = projectionMatrix * mv;
 }`;
@@ -37,7 +39,7 @@ export class Bursts {
     g.setAttribute('position', this.aPos); g.setAttribute('aColor', this.aCol);
     g.setAttribute('aSize', this.aSize); g.setAttribute('aAlpha', this.aAlpha);
     this.mat = new THREE.ShaderMaterial({
-      uniforms: { uScale: { value: 600 } }, vertexShader: POINT_VS, fragmentShader: POINT_FS,
+      uniforms: { uScale: { value: 600 }, uBP: BEND.P, uBA: BEND.A, uBL: BEND.L }, vertexShader: POINT_VS, fragmentShader: POINT_FS,
       transparent: true, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending
     });
     this.points = new THREE.Points(g, this.mat);
