@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#050b1a">
+<title>PARALLAX: The Laws of the Lost Universe | Rovatics Game Zone</title>
+<style>
+  :root{--reserve:0px;--gold:#f2c25a;--gold2:#ffe3a0;--ink:#050b1a;--panel:rgba(8,16,36,.8);--line:rgba(242,194,90,.4);--text:#f6f1e2;--muted:#aebbd4;--cyan:#7ad8ff;--good:#8dffb0;--bad:#ff7b8a;--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;overflow:hidden;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+  [hidden]{display:none!important}
+  #app{position:fixed;inset:0}
+  #c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  .btn{min-height:46px;padding:10px 22px;border-radius:999px;border:1px solid var(--line);background:rgba(14,26,52,.78);font-weight:700;letter-spacing:.2px;backdrop-filter:blur(6px);color:var(--text)}
+  .btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold2)} .btn:disabled{opacity:.4;cursor:not-allowed}
+  a.btn{color:inherit;text-align:center;text-decoration:none;display:block;line-height:26px}
+  .btn.primary{background:linear-gradient(120deg,#b98a2e,#f2c25a 55%,#ffe3a0);color:#2a1c05;border:0;box-shadow:0 6px 22px rgba(242,194,90,.3)}
+  .btn.primary:hover:not(:disabled){filter:brightness(1.1);color:#2a1c05} .btn.big{font-size:1.1rem;padding:13px 30px}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(18px + var(--safe-t)) 18px calc(18px + var(--safe-b));overflow:auto;background:radial-gradient(ellipse at 50% 40%,rgba(4,12,30,.55),rgba(3,8,22,.88));z-index:10}
+  .logo{font-family:Georgia,'Times New Roman',serif;font-size:clamp(2.8rem,11vw,6rem);letter-spacing:.1em;margin:0;line-height:1;text-align:center;background:linear-gradient(180deg,#fff4cc,#f2c25a 52%,#a8761c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 20px rgba(0,0,0,.7)) drop-shadow(0 0 26px rgba(80,170,255,.45))}
+  .tag{margin:10px 0 24px;letter-spacing:.3em;text-transform:uppercase;color:var(--cyan);font-size:clamp(.66rem,2.4vw,.9rem);text-align:center;text-shadow:0 0 14px rgba(122,216,255,.55)}
+  .motto{font-family:Georgia,serif;font-style:italic;color:var(--gold2);margin:-10px 0 22px;text-align:center;opacity:.9}
+  .menu{display:flex;flex-direction:column;gap:12px;width:min(330px,86vw)}
+  .zone-title{font-family:Georgia,serif;font-size:clamp(1.4rem,5vw,2.2rem);letter-spacing:.2em;color:var(--gold2);margin:0 0 4px;text-align:center}
+  .zone-sub{letter-spacing:.34em;text-transform:uppercase;color:var(--cyan);font-size:.74rem;margin:0 0 22px;text-align:center}
+  .cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-width:980px}
+  .gcard{position:relative;width:min(300px,84vw);height:190px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#0a1530;text-align:left;box-shadow:0 12px 36px rgba(0,0,0,.5);transition:transform .2s,border-color .2s;display:block;color:inherit;text-decoration:none}
+  .gcard:hover{transform:translateY(-4px) scale(1.015);border-color:var(--gold)}
+  .gcard .art{position:absolute;inset:0;background-size:cover}
+  .gcard .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(2,6,16,.92))}
+  .gcard .meta{position:absolute;left:16px;right:16px;bottom:14px}
+  .gcard b{display:block;font-family:Georgia,serif;font-size:1.35rem;letter-spacing:.08em;color:var(--gold2)} .gcard span{font-size:.8rem;color:var(--muted);letter-spacing:.05em}
+  .gcard .tagp{position:absolute;top:12px;right:12px;padding:4px 10px;border-radius:999px;background:rgba(242,194,90,.92);color:#2a1c05;font-weight:800;font-size:.7rem;letter-spacing:.1em}
+  .gcard.soon{opacity:.6;filter:saturate(.6)} .gcard.soon:hover{transform:none;border-color:var(--line)}
+  .rv-brand-badge{position:absolute;left:50%;bottom:calc(14px + var(--safe-b));transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;opacity:.9;border-radius:999px;background:rgba(4,12,26,.65);border:1px solid var(--line);color:var(--gold2);font:700 .78rem/1 'Segoe UI',system-ui,Arial,sans-serif;letter-spacing:.04em}
+  .rv-brand-badge img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+  #splash{position:absolute;inset:0;z-index:60;background:radial-gradient(ellipse at 50% 40%,#0d2a4a,#030a14 70%);transition:opacity .7s} #splash.gone{opacity:0;pointer-events:none}
+  #splashCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .spl-load{position:absolute;left:0;right:0;bottom:calc(7% + var(--safe-b));display:flex;flex-direction:column;align-items:center;gap:9px;font:700 .8rem 'Segoe UI',system-ui,Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);text-shadow:0 2px 12px #000}
+  .spl-bar{width:min(320px,62vw);height:7px;border-radius:5px;background:rgba(255,255,255,.14);overflow:hidden;border:1px solid rgba(242,194,90,.4)}
+  .spl-bar i{display:block;height:100%;width:6%;background:linear-gradient(90deg,#37d8ff,#f2c25a);box-shadow:0 0 14px #f2c25a;transition:width .5s}
+  /* ----- HUD ----- */
+  #hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+  #hud>*{pointer-events:auto}
+  .ib{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:1.25rem;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(6px);position:relative;color:var(--text);touch-action:manipulation}
+  .ib:active{transform:scale(.94)} .ib:disabled{opacity:.35}
+  .ib small{position:absolute;right:-3px;top:-3px;min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#2a1c05;font-weight:800;font-size:.68rem;display:grid;place-items:center;padding:0 4px}
+  #pauseBtn{position:absolute;left:calc(10px + var(--safe-l));top:calc(10px + var(--safe-t))}
+  #topPill{position:absolute;left:50%;top:calc(8px + var(--safe-t));transform:translateX(-50%);text-align:center;padding:7px 28px 8px;border-radius:12px;background:linear-gradient(180deg,rgba(14,28,60,.92),rgba(7,14,34,.92));border:1px solid var(--line);clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%);min-width:min(300px,56vw);pointer-events:none}
+  #topPill small{display:block;color:var(--cyan);letter-spacing:.22em;font-size:.62rem;text-transform:uppercase} #topPill b{font-family:Georgia,serif;font-size:1.05rem;color:var(--gold2)}
+  #objBox{position:absolute;left:50%;top:calc(66px + var(--safe-t));transform:translateX(-50%);width:min(520px,70vw);text-align:center;font-size:.82rem;color:#e9eefb;padding:6px 12px;border-radius:10px;background:rgba(6,12,28,.55);pointer-events:none;text-shadow:0 1px 6px #000}
+  #objBox i{font-style:normal;color:var(--gold);letter-spacing:.16em;font-size:.62rem;text-transform:uppercase;display:block}
+  #prog{margin-top:5px;height:6px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden} #prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#37d8ff,#f2c25a);transition:width .4s;font-size:0}
+  #progTxt{font-size:.72rem;color:var(--muted);margin-top:3px}
+  #topR{position:absolute;right:calc(10px + var(--safe-r));top:calc(10px + var(--safe-t));display:flex;gap:10px;align-items:center}
+  #coinChip{position:absolute;right:calc(10px + var(--safe-r));top:calc(68px + var(--safe-t));padding:5px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:800;color:var(--gold2);pointer-events:none}
+  #joyZone{position:absolute;left:0;bottom:0;width:44%;height:60%;touch-action:none}
+  #joyBase{position:absolute;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;border:2px solid rgba(242,194,90,.55);background:radial-gradient(circle,rgba(20,40,80,.35),rgba(8,16,36,.5));pointer-events:none;opacity:.0;transition:opacity .15s}
+  #joyKnob{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff4cc,#f2c25a 60%,#a8761c);box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;opacity:0;transition:opacity .15s}
+  #joyHint{position:absolute;left:calc(26px + var(--safe-l));bottom:calc(32px + var(--safe-b) + var(--reserve));width:92px;height:92px;border-radius:50%;border:2px dashed rgba(242,194,90,.4);display:grid;place-items:center;font-size:2rem;opacity:.75;pointer-events:none}
+  #rightBar{position:absolute;right:calc(14px + var(--safe-r));bottom:calc(20px + var(--safe-b) + var(--reserve));display:flex;flex-direction:column;align-items:center;gap:12px}
+  #actBtn{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 35% 28%,#fff1be,#f2c25a 55%,#a8761c);color:#2a1c05;border:2px solid #ffe9a8;box-shadow:0 8px 28px rgba(0,0,0,.55),0 0 26px rgba(242,194,90,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2rem;line-height:1;animation:pulse 1.3s ease-in-out infinite;touch-action:manipulation}
+  #actBtn span{font-size:.62rem;font-weight:900;letter-spacing:.04em;margin-top:3px;max-width:80px;text-align:center;line-height:1.05}
+  #actBtn.off{background:radial-gradient(circle at 35% 28%,#3a4a68,#1c2740);border-color:rgba(242,194,90,.3);color:#8fa0bf;box-shadow:0 8px 24px rgba(0,0,0,.45);animation:none}
+  @keyframes pulse{50%{transform:scale(1.06);box-shadow:0 8px 28px rgba(0,0,0,.55),0 0 40px rgba(242,194,90,.8)}}
+  #jumpBtn{width:58px;height:58px;font-size:1.3rem}
+  #leftBar{position:absolute;left:calc(14px + var(--safe-l));top:calc(70px + var(--safe-t));display:flex;flex-direction:column;gap:10px}
+  #camBar{position:absolute;right:calc(116px + var(--safe-r));bottom:calc(20px + var(--safe-b) + var(--reserve));display:flex;gap:8px}
+  .ib.sm{width:40px;height:40px;font-size:1rem}
+  #hintCard{position:absolute;left:50%;bottom:calc(14px + var(--safe-b) + var(--reserve));transform:translateX(-50%);width:min(440px,calc(100vw - 300px));min-width:250px;display:flex;gap:12px;align-items:center;padding:12px 16px;border-radius:16px;background:rgba(8,18,40,.94);border:1px solid var(--gold);box-shadow:0 12px 36px rgba(0,0,0,.6);z-index:6}
+  #hintCard .bulb{font-size:2rem;filter:drop-shadow(0 0 10px #ffd24a)} #hintCard b{display:block;color:var(--gold2);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase} #hintCard p{margin:3px 0 0;font-size:1rem;line-height:1.3}
+  #hintCard .x{margin-left:auto;font-size:1.3rem;opacity:.7;padding:4px 8px}
+  #toast{position:absolute;left:50%;top:calc(132px + var(--safe-t));transform:translateX(-50%);max-width:min(560px,88vw);padding:10px 18px;border-radius:14px;background:rgba(6,12,28,.93);border:1px solid var(--line);text-align:center;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:7}
+  #toast.show{opacity:1} #toast.good{border-color:var(--good);color:var(--good)} #toast.bad{border-color:var(--bad);color:#ffd0d6}
+  #cap{position:absolute;left:50%;bottom:calc(120px + var(--safe-b));transform:translateX(-50%);padding:4px 12px;border-radius:8px;background:rgba(0,0,0,.7);font-size:.8rem;opacity:0;transition:opacity .2s;pointer-events:none} #cap.show{opacity:1}
+  #cineBar{position:absolute;inset:0;pointer-events:none;z-index:4}
+  #cineBar::before,#cineBar::after{content:'';position:absolute;left:0;right:0;height:9%;background:#000;transition:transform .6s}
+  #cineBar::before{top:0;transform:translateY(-100%)} #cineBar::after{bottom:0;transform:translateY(100%)} #cineBar.on::before,#cineBar.on::after{transform:none}
+  #cineTxt{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);width:min(680px,88vw);text-align:center;font-family:Georgia,serif;font-size:clamp(1rem,3.4vw,1.5rem);color:var(--gold2);text-shadow:0 2px 14px #000;opacity:0;transition:opacity .8s;z-index:6;pointer-events:none} #cineTxt.on{opacity:1}
+  #cineTxt b{display:block;font-size:clamp(1.5rem,6vw,2.6rem);letter-spacing:.1em;margin-bottom:6px}
+  #skip{position:absolute;right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b));z-index:8;padding:8px 18px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid var(--line);font-weight:700;font-size:.85rem}
+  .modal{position:absolute;inset:0;display:grid;place-items:center;padding:18px;background:rgba(2,6,16,.74);z-index:30;overflow:auto}
+  .box{width:min(460px,94vw);padding:22px;border-radius:20px;background:linear-gradient(180deg,rgba(14,26,56,.97),rgba(6,12,30,.97));border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.65);text-align:center}
+  .box h2{font-family:Georgia,serif;margin:0 0 6px;color:var(--gold2);letter-spacing:.06em} .box p{color:var(--muted);line-height:1.45;margin:6px 0}
+  .box .row{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+  .stars{font-size:2.3rem;letter-spacing:.1em;color:#40506e;margin:8px 0} .stars .on{color:var(--gold);text-shadow:0 0 18px rgba(242,194,90,.7)}
+  .stats{display:flex;justify-content:center;gap:18px;color:var(--muted);font-size:.85rem;margin:8px 0} .stats b{display:block;color:var(--text);font-size:1.15rem}
+  .set{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;text-align:left} .set input[type=range]{width:55%} .set select{background:#0e1a38;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px}
+  .lv{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(16,30,62,.7);text-align:left;width:100%}
+  .lv:disabled{opacity:.45} .lv .n{font-family:Georgia,serif;font-size:1.8rem;color:var(--gold);width:34px} .lv b{display:block} .lv small{color:var(--muted)} .lv .st{margin-left:auto;color:var(--gold);letter-spacing:.1em;white-space:nowrap}
+  #nogl{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:#050b1a;z-index:80}
+  #fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .5s;z-index:40} #fade.on{opacity:1}
+  #loadingTxt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:41;font-family:Georgia,serif;letter-spacing:.2em;color:var(--gold2);opacity:0;transition:opacity .4s;pointer-events:none;text-align:center} #loadingTxt.on{opacity:1}
+  @media (max-width:760px){#hintCard{width:calc(100vw - 230px);min-width:200px;left:calc(50% - 10px)} #objBox{font-size:.74rem;width:60vw} #camBar{display:none}}
+  @media (max-height:480px){#objBox{display:none} #actBtn{width:78px;height:78px;font-size:1.6rem} #toast{top:calc(64px + var(--safe-t))}}
+</style>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="parallax.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+  <div id="cineBar"></div>
+  <div id="cineTxt"></div>
+  <div id="hud" hidden>
+    <div id="joyZone"></div><div id="joyBase"></div><div id="joyKnob"></div><div id="joyHint">🕹️</div>
+    <button class="ib" id="pauseBtn" aria-label="Pause">☰</button>
+    <div id="topPill"><small id="tWorld">The Forgotten Architects</small><b id="tName">Level 1 · The Forgotten Gate</b></div>
+    <div id="objBox"><i>Objective</i><span id="objTxt"></span><div id="prog"><i id="progBar"></i></div><div id="progTxt"></div></div>
+    <div id="topR"><button class="ib" id="undoBtn" aria-label="Undo">↶</button><button class="ib" id="restartBtn" aria-label="Restart">↻</button><button class="ib" id="hintBtn" aria-label="Hint">💡<small id="hintN">3</small></button></div>
+    <div id="coinChip">🪙 <span id="coinN">0</span></div>
+    <div id="camBar"><button class="ib sm" id="zIn" aria-label="Zoom in">＋</button><button class="ib sm" id="zOut" aria-label="Zoom out">－</button><button class="ib sm" id="cL" aria-label="Turn left">◀</button><button class="ib sm" id="cR" aria-label="Turn right">▶</button><button class="ib sm" id="cU" aria-label="Tilt up">▲</button><button class="ib sm" id="cD" aria-label="Tilt down">▼</button></div>
+    <div id="rightBar"><button class="ib" id="camBtn" aria-label="Reset camera">⌖</button><button class="ib" id="jumpBtn" aria-label="Jump">⤒</button><button id="actBtn" class="off" aria-label="Interact">✋<span id="actLbl">Move close</span></button></div>
+    <div id="hintCard" hidden><div class="bulb">💡</div><div><b id="hintTitle">Hint 1 of 3</b><p id="hintTxt"></p></div><button class="x" id="hintX" aria-label="Close hint">✕</button></div>
+    <div id="toast"></div><div id="cap"></div>
+  </div>
+  <button id="skip" hidden>Skip ▸</button>
+  <div class="screen" id="zone" hidden>
+    <h1 class="zone-title">ROVATICS GAME ZONE</h1><p class="zone-sub">Choose your adventure</p>
+    <div class="cards" id="cards"></div>
+    <div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="logo.png" alt=""><span>Rovatics</span></div>
+  </div>
+  <div class="screen" id="menu" hidden>
+    <h1 class="logo">PARALLAX</h1><div class="tag">The Laws of the Lost Universe</div><div class="motto">Explore · Solve · Discover</div>
+    <div class="menu">
+      <button class="btn primary big" id="mPlay">▶ Play</button>
+      <button class="btn" id="mLevels">Levels</button>
+      <button class="btn" id="mProg">🏆 Player progress</button>
+      <button class="btn" id="mHow">How to play</button>
+      <button class="btn" id="mSet">Settings</button>
+      <button class="btn" id="mZone">← Rovatics Game Zone</button>
+    </div>
+    <div class="rv-brand-badge" aria-label="Made by Rovatics"><img src="logo.png" alt=""><span>Rovatics Game Zone</span></div>
+  </div>
+  <div id="modal" class="modal" hidden></div>
+  <div id="fade"></div><div id="loadingTxt"></div>
+  <div id="splash"><canvas id="splashCv"></canvas><div class="spl-load"><div class="spl-bar"><i id="splBar"></i></div><span id="splTxt">Loading</span></div></div>
+  <div id="nogl" hidden><div><h2 class="serif" style="color:var(--gold2)">3D graphics are not available</h2><p style="color:#cfd8ee;max-width:420px">PARALLAX needs WebGL. Try a recent Chrome, Edge, Firefox or Safari with hardware acceleration turned on.</p><a class="btn" href="../games.html" style="margin-top:14px;display:inline-block">← All games</a></div></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="parallax-engine.js"></script>
+<script src="mindverse-gfx.js"></script>
+<script src="parallax-avatar.js"></script>
+<script src="parallax-env.js"></script>
+<script src="parallax-env-b.js"></script>
+<script src="parallax-world.js"></script>
+<script src="mindverse-audio.js"></script>
+<script src="mindverse-splash.js"></script>
+<script>
+(function () {
+  'use strict';
+  const E = window.ParallaxEngine, MV = window.MV, $ = id => document.getElementById(id), KEY = 'rovatics.parallax.v1';
+  let save = E.loadSave(localStorage, KEY), S = save.settings; const persist = () => E.writeSave(localStorage, KEY, save);
+  const A = MV.audio.create(() => S);
+  let world = null, game = null, mode = 'boot', runCoins = 0, picked = [], toastT = 0, capT = 0, hintOpen = false, finishing = false, lvIndex = 0;
+  const GAMES = [   // the Game Zone launcher is data driven: add an entry here to list another Rovatics game
+    { id: 'parallax', title: 'PARALLAX', sub: 'The Laws of the Lost Universe', tag: 'PLAY', art: 'radial-gradient(ellipse at 70% 30%,#7ad8ff55,transparent 50%),linear-gradient(160deg,#1b3d7a,#0a1a3a 55%,#3a2a55)', go: () => showMenu() },
+    { id: 'mindverse', title: 'MindVerse', sub: 'Beyond the Puzzle', tag: '65 LEVELS', art: 'radial-gradient(ellipse at 30% 30%,#3aa86a66,transparent 55%),linear-gradient(160deg,#173a2a,#0a1a14)', href: 'mindverse.html' },
+    { id: 'more', title: 'More games', sub: 'The full Rovatics collection', tag: 'ALL', art: 'linear-gradient(160deg,#2b2350,#0a0f26)', href: '../games.html' }
+  ];
+  const show = m => { mode = m; $('zone').hidden = m !== 'zone'; $('menu').hidden = m !== 'menu'; $('hud').hidden = m !== 'play'; $('skip').hidden = true; };
+  const toast = (t, kind, ms) => { const e = $('toast'); e.textContent = t; e.className = 'show ' + (kind || ''); clearTimeout(toastT); toastT = setTimeout(() => { e.className = ''; }, ms || 2600); };
+  const CAPS = { rot: 'stone grinds', key: 'a pillar hums', plateOn: 'a symbol glows', door: 'the great gate opens', blocked: 'nothing happens', complete: 'the chamber sings', core: 'the core ignites', hint: 'a friendly hint chimes' };
+  function sound(n) { A.fx(n); if (S.captions && CAPS[n]) { const c = $('cap'); c.textContent = '[' + CAPS[n] + ']'; c.classList.add('show'); clearTimeout(capT); capT = setTimeout(() => c.classList.remove('show'), 1500); } }
+  function buzz(ms) { if (!S.haptics) return; try { if (window.RovaticsApp && RovaticsApp.haptic) { RovaticsApp.haptic(ms > 40 ? 'heavy' : 'tick'); return; } } catch (e) { } try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { } }
+  const qualityFor = n => n === 'auto' ? MV.pAutoQuality() : n;
+  function fade(on, ms) { return new Promise(r => { $('fade').classList.toggle('on', on); setTimeout(r, ms || 520); }); }
+  function stars(n) { return [0, 1, 2].map(i => '<span class="' + (i < n ? 'on' : '') + '">★</span>').join(''); }
+
+  /* ---------- screens ---------- */
+  function buildZone() {
+    $('cards').innerHTML = GAMES.map((g, i) => '<' + (g.href ? 'a href="' + g.href + '"' : 'button') + ' class="gcard" data-i="' + i + '"><div class="art" style="background:' + g.art + '"></div><div class="shade"></div><span class="tagp">' + g.tag + '</span><div class="meta"><b>' + g.title + '</b><span>' + g.sub + '</span></div></' + (g.href ? 'a' : 'button') + '>').join('');
+    $('cards').querySelectorAll('button.gcard').forEach(b => { b.onclick = () => { A.init(); sound('tap'); GAMES[+b.dataset.i].go(); }; });
+  }
+  function showZone() { show('zone'); A.setTheme('dusk'); }
+  function showMenu() { show('menu'); const done = Object.keys(save.levels).length; $('mPlay').textContent = done ? '▶ Continue' : '▶ Play'; A.setTheme('dusk'); }
+  function modal(html) { const m = $('modal'); m.innerHTML = '<div class="box">' + html + '</div>'; m.hidden = false; }
+  const closeModal = () => { $('modal').hidden = true; $('modal').innerHTML = ''; };
+  function openLevels() {
+    modal('<h2>Choose a level</h2>' + E.LEVELS.map((L, i) => { const r = save.levels[L.n], open = L.n === 1 || save.levels[L.n - 1]; return '<button class="lv" data-n="' + L.n + '" ' + (open ? '' : 'disabled') + ' style="margin-top:10px"><span class="n">' + L.n + '</span><span><b>' + L.title + '</b><small>' + L.world + '</small></span><span class="st">' + (open ? (r ? '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars) : 'NEW') : '🔒') + '</span></button>'; }).join('') + '<div class="row"><button class="btn" id="lvBack">Back</button></div>');
+    $('modal').querySelectorAll('.lv').forEach(b => { b.onclick = () => { closeModal(); startLevel(+b.dataset.n); }; }); $('lvBack').onclick = closeModal;
+  }
+  function openProgress() {
+    const tot = Object.values(save.levels).reduce((a, r) => a + r.stars, 0);
+    modal('<h2>Player progress</h2><div class="stats"><div><b>' + save.coins + '</b>coins</div><div><b>' + tot + ' / 9</b>stars</div><div><b>' + Object.keys(save.levels).length + ' / 3</b>levels</div></div>' + E.LEVELS.map(L => { const r = save.levels[L.n]; return '<div class="lv" style="margin-top:8px"><span class="n">' + L.n + '</span><span><b>' + L.title + '</b><small>' + (r ? 'Best ' + r.best + ' moves · ' + r.coins + ' coins earned' : 'Not played yet') + '</small></span><span class="st">' + (r ? '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars) : '—') + '</span></div>'; }).join('') + '<div class="row"><button class="btn" id="pgOk">Close</button></div>');
+    $('pgOk').onclick = closeModal;
+  }
+  function openHow() {
+    modal('<h2>How to play</h2><p><b>Move</b> with the joystick on the left (or W A S D). <b>Look</b> by dragging on the right side, pinch to zoom.</p><p>Walk up to something glowing and press the gold <b>hand button</b> (or E / Space) to use it. You can also tap an object and your explorer will walk there.</p><p>Stuck? The <b>💡 hint</b> has three steps: look, try, then clear directions. Hints only cost the third star.</p><p>↶ undoes your last move, ↻ restarts the room.</p><div class="row"><button class="btn primary" id="hwOk">Got it</button></div>');
+    $('hwOk').onclick = closeModal;
+  }
+  function openSettings(fromPause) {
+    modal('<h2>Settings</h2><div class="set"><label>Music</label><input type="range" id="sMus" min="0" max="1" step=".05" value="' + S.music + '"></div><div class="set"><label>Sound effects</label><input type="range" id="sSfx" min="0" max="1" step=".05" value="' + S.sfx + '"></div><div class="set"><label>Look sensitivity</label><input type="range" id="sSens" min=".5" max="2" step=".1" value="' + S.sens + '"></div><div class="set"><label>Graphics</label><select id="sQ"><option value="auto">Auto</option><option value="low">Low (fast)</option><option value="medium">Medium</option><option value="high">High</option></select></div><div class="set"><label>Vibration</label><input type="checkbox" id="sHap" ' + (S.haptics ? 'checked' : '') + '></div><div class="set"><label>Sound captions</label><input type="checkbox" id="sCap" ' + (S.captions ? 'checked' : '') + '></div><div class="row"><button class="btn" id="sReset">Erase saved progress</button><button class="btn primary" id="sOk">Done</button></div>');
+    $('sQ').value = S.quality; $('sMus').oninput = e => { S.music = +e.target.value; A.apply(); persist(); }; $('sSfx').oninput = e => { S.sfx = +e.target.value; A.apply(); persist(); }; $('sSfx').onchange = () => sound('key'); $('sSens').oninput = e => { S.sens = +e.target.value; persist(); };
+    $('sQ').onchange = e => { S.quality = e.target.value; persist(); if (world) world.setQuality(qualityFor(S.quality)); }; $('sHap').onchange = e => { S.haptics = e.target.checked; persist(); }; $('sCap').onchange = e => { S.captions = e.target.checked; persist(); };
+    $('sReset').onclick = () => { if (confirm('Erase all stars, coins and levels on this device?')) { save = E.defaultSave(); S = save.settings; persist(); closeModal(); showMenu(); } }; $('sOk').onclick = () => { closeModal(); if (fromPause) openPause(); };
+  }
+  function openPause() {
+    modal('<h2>Paused</h2><p>' + game.L.title + '</p><div class="row"><button class="btn primary" id="pResume">Resume</button><button class="btn" id="pRestart">Restart room</button><button class="btn" id="pSet">Settings</button><button class="btn" id="pMenu">Main menu</button></div>');
+    $('pResume').onclick = closeModal; $('pRestart').onclick = () => { closeModal(); restart(); }; $('pSet').onclick = () => openSettings(true); $('pMenu').onclick = () => { closeModal(); toMenu(); };
+  }
+  function toMenu() { world && world.cancelWalk(); finishing = false; $('cineBar').classList.remove('on'); $('cineTxt').classList.remove('on'); showMenu(); }
+
+  /* ---------- level flow ---------- */
+  async function startLevel(n, o) {
+    o = o || {}; A.init(); lvIndex = n - 1; game = E.createGame(lvIndex); runCoins = 0; picked = []; finishing = false; hintOpen = false; $('hintCard').hidden = true;
+    $('loadingTxt').textContent = E.LEVELS[lvIndex].title; $('loadingTxt').classList.add('on'); await fade(true, 450); closeModal();
+    if (!bootWorld()) return; save.last = n; persist();
+    world.load(game, { picked }); show('play'); updateHud(true); A.setTheme(E.LEVELS[lvIndex].tune); A.setIntensity(.5);
+    $('loadingTxt').classList.remove('on'); await fade(false, 500); await playIntro(!!o.firstTime || (n === 1 && !save.levels[1]));
+  }
+  function introKeys() {
+    const LV = world.LV, s = LV.start, L = game.L, dist = LV.cam.dist, p = LV.cam.pitch, back = [s.x - Math.sin(s.yaw) * Math.cos(p) * dist, 1.55 + Math.sin(p) * dist + .4, s.z - Math.cos(s.yaw) * Math.cos(p) * dist];
+    if (L.kind === 'mirrors') return [{ t: 0, p: [26, 30, 40], l: [0, 8, -26] }, { t: 3, p: [-16, 14, 6], l: [0, 9, -27] }, { t: 6, p: [6, 6, 26], l: [0, 8, -20] }, { t: 8.2, p: back, l: [s.x, 3.2, s.z] }];
+    if (L.kind === 'bridge') return [{ t: 0, p: [26, 24, -34], l: [14, 6, 0] }, { t: 3, p: [-4, 18, 4], l: [8, 4, -10] }, { t: 6, p: [-26, 9, 28], l: [-10, 1, 10] }, { t: 8.2, p: back, l: [s.x, 3.2, s.z] }];
+    return [{ t: 0, p: [0, 3, 34], l: [0, 24, 0] }, { t: 3, p: [-18, 10, 22], l: [0, 11, 0] }, { t: 6, p: [14, 6, 24], l: [0, 9, 0] }, { t: 8.2, p: back, l: [s.x, 3.2, s.z] }];
+  }
+  function playIntro(first) {
+    return new Promise(res => {
+      const L = game.L, t = $('cineTxt'); $('cineBar').classList.add('on'); $('hud').style.visibility = 'hidden'; $('skip').hidden = false;
+      t.innerHTML = first && L.n === 1 ? '<b>PARALLAX</b>The Laws of the Lost Universe' : '<b>' + L.title + '</b>' + L.world; t.classList.add('on');
+      setTimeout(() => { if (mode === 'play') { t.innerHTML = '<b>Level ' + L.n + '</b>' + L.intro; } }, 3200);
+      let done = false; const end = () => { if (done) return; done = true; t.classList.remove('on'); $('cineBar').classList.remove('on'); $('hud').style.visibility = ''; $('skip').hidden = true; world.skipCine(); toast(L.objective, '', 4200); res(); };
+      $('skip').onclick = () => { world.skipCine(); }; world.cine(introKeys(), 8.2, end);
+    });
+  }
+  const levelAct = () => world.LV.interactables;
+  function onAct(a) {                                              // the explorer's hand has reached the mechanism: apply the move
+    const r = game.act(a.a); const ev = r.ev || [];
+    if (!r.ok) { toast(r.msg || 'Nothing happens.', 'bad'); sound('blocked'); buzz(20); if (ev.includes('denied')) world.fx.burst(a.x, 2.4, a.z, 16, 0xff6070, 3); return; }
+    world.sync(ev); sound(a.kind === 'pillar' ? 'key' : a.kind === 'lock' ? 'door' : 'rot'); buzz(16);
+    if (a.kind === 'mirror' || a.kind === 'section') world.fx.burst(a.look[0], a.look[1] + .6, a.look[2], 10, 0x9fe8ff, 2.5);
+    if (ev.includes('allLit') || ev.includes('connected') || ev.includes('allOk')) { sound('plateOn'); toast(ev.includes('connected') ? 'The blue lights meet! Activate the lock.' : ev.includes('allOk') ? 'All receivers glow! Activate the console.' : 'All three symbols are revealed!', 'good'); }
+    else if (r.msg) toast(r.msg, ev.includes('pillarWrong') ? 'bad' : 'good', 3200);
+    if (ev.includes('wrongSymbol')) { toast('A receiver is lit by the wrong beam: match the symbols.', 'bad', 3000); sound('blocked'); }
+    if (ev.includes('pillarWrong')) sound('blocked');
+    if (ev.includes('pillar') && !ev.includes('complete')) world.fx.burst(a.x, 4.9, a.z, 22, 0xffe29a, 3);
+    if (ev.includes('lock')) { sound('stageDone'); world.setExitEnabled(true); world.runLockCine(() => { }); }
+    updateHud(); if (game.complete) finishLevel();
+  }
+  function onExit() { if (game.reachExit()) { world.sync([]); updateHud(); finishLevel(); } }
+  function finishLevel() {
+    if (finishing) return; finishing = true; world.setHint(null); $('hintCard').hidden = true; sound('complete'); A.setIntensity(.9);
+    const L = game.L, snd = L.kind === 'mirrors' ? 'door' : L.kind === 'energy' ? 'core' : 'fanfare'; setTimeout(() => sound(snd), 400);
+    $('cineBar').classList.add('on'); $('hud').style.visibility = 'hidden'; $('skip').hidden = false; $('skip').onclick = () => world.skipCine();
+    const t = $('cineTxt'); t.innerHTML = '<b>' + L.title + '</b>' + L.outro; t.classList.add('on');
+    world.runFinale(() => { $('skip').hidden = true; t.classList.remove('on'); $('cineBar').classList.remove('on'); $('hud').style.visibility = ''; showComplete(); });
+  }
+  function showComplete() {
+    const L = game.L, res = E.recordResult(save, game, picked); persist(); const last = L.n === E.LEVELS.length;
+    modal('<h2>' + (last ? 'THE UNIVERSE IS REVEALED' : 'LEVEL COMPLETED!') + '</h2><p>' + L.outro + '</p><div class="stars">' + stars(res.stars) + '</div><div class="stats"><div><b>' + game.moves + '</b>moves (par ' + L.par + ')</div><div><b>' + game.hints + '</b>hints</div><div><b>+' + res.pay + '</b>coins</div></div><p style="font-size:.8rem">★ Solved &nbsp; ★ Within par &nbsp; ★ No hints</p><div class="row">' + (last ? '' : '<button class="btn primary" id="cNext">Next level ▶</button>') + '<button class="btn' + (last ? ' primary' : '') + '" id="cAgain">Play again</button><button class="btn" id="cMenu">Main menu</button></div>');
+    if (!last) $('cNext').onclick = () => { closeModal(); startLevel(L.n + 1); }; $('cAgain').onclick = () => { closeModal(); startLevel(L.n); }; $('cMenu').onclick = () => { closeModal(); toMenu(); };
+    if (last) $('cAgain').textContent = 'Replay level 3';
+  }
+  function restart() { if (!game) return; game.restart(); picked = []; runCoins = 0; finishing = false; world.load(game, { picked }); sound('reset'); hideHint(); updateHud(true); toast('Room restarted.'); }
+  function undo() { if (!game || !game.undo()) return; world.sync([], false); sound('undo'); updateHud(); }
+  function hideHint() { hintOpen = false; $('hintCard').hidden = true; world && world.setHint(null); }
+  function hint() {
+    if (!game || game.complete) return; const h = game.useHint(); sound('hint'); hintOpen = true; $('hintCard').hidden = false; $('hintTitle').textContent = 'Hint ' + h.n + ' of 3'; $('hintTxt').textContent = h.text;
+    if (h.n >= 2 && h.target) { const LV = world.LV; let a = LV.interactables.find(x => x.id === h.target.id); if (!a && h.target.t === 'exit' && LV.exitZone) a = { x: LV.exitZone.x, z: LV.exitZone.z, kind: 'exit' }; world.setHint(a || null); }
+    updateHud();
+  }
+  function updateHud(full) {
+    if (!game) return; const L = game.L, p = game.progress();
+    if (full) { $('tWorld').textContent = L.world; $('tName').textContent = 'Level ' + L.n + ' · ' + L.title; $('objTxt').textContent = L.objective; }
+    $('progBar').style.width = Math.round(p.done / p.total * 100) + '%'; $('progTxt').textContent = p.label; $('hintN').textContent = Math.max(0, 3 - game.hints);
+    $('undoBtn').disabled = !game.canUndo(); $('coinN').textContent = save.coins + runCoins;
+  }
+  function onFocus(a) {
+    const b = $('actBtn'); if (!a) { b.classList.add('off'); $('actLbl').textContent = 'Move close'; return; } b.classList.remove('off'); $('actLbl').textContent = a.label; if (S.haptics) buzz(6);
+  }
+  function onCoin(i) { picked.push(i); runCoins += 10; sound('relic'); buzz(12); $('coinN').textContent = save.coins + runCoins; }
+
+  /* ---------- input ---------- */
+  const joy = { id: null, ox: 0, oy: 0 }, looks = new Map(); let pinch = null, tapInfo = null;
+  function setJoy(x, y) { world && world.setStick(x, y); }
+  const stage = $('app');
+  function relevant(e) { return mode === 'play' && !$('hud').hidden && $('modal').hidden && !world.busy(); }
+  $('joyZone').addEventListener('pointerdown', e => {
+    if (!relevant(e)) return; A.init(); e.preventDefault(); try { $('joyZone').setPointerCapture(e.pointerId); } catch (x) { } joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY; world.cancelWalk();
+    const b = $('joyBase'), k = $('joyKnob'); b.style.left = k.style.left = e.clientX + 'px'; b.style.top = k.style.top = e.clientY + 'px'; b.style.opacity = k.style.opacity = 1; $('joyHint').style.opacity = 0;
+  });
+  $('joyZone').addEventListener('pointermove', e => {
+    if (e.pointerId !== joy.id) return; let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy; const R = 58, d = Math.hypot(dx, dy); if (d > R) { dx *= R / d; dy *= R / d; }
+    const k = $('joyKnob'); k.style.left = joy.ox + dx + 'px'; k.style.top = joy.oy + dy + 'px'; const m = Math.min(1, d / R), dz = m < .12 ? 0 : m; setJoy(dx / R * (dz ? 1 : 0), -dy / R * (dz ? 1 : 0));
+  });
+  const endJoy = e => { if (e.pointerId !== joy.id) return; joy.id = null; setJoy(0, 0); $('joyBase').style.opacity = $('joyKnob').style.opacity = 0; $('joyHint').style.opacity = .75; };
+  $('joyZone').addEventListener('pointerup', endJoy); $('joyZone').addEventListener('pointercancel', endJoy); $('joyZone').addEventListener('lostpointercapture', endJoy);
+  // everything else on the canvas: drag to look, tap an object or the ground to walk, two fingers pinch to zoom (zoom only: the viewing angle never tilts)
+  const cv = $('c');
+  cv.addEventListener('pointerdown', e => {
+    if (!relevant(e)) return; A.init(); try { cv.setPointerCapture(e.pointerId); } catch (x) { } if (e.isPrimary) { looks.clear(); pinch = null; }
+    looks.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (looks.size >= 2) { const [a, b] = [...looks.values()]; pinch = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)); tapInfo = null; return; }
+    tapInfo = { x: e.clientX, y: e.clientY, t: performance.now(), moved: false };
+  });
+  cv.addEventListener('pointermove', e => {
+    const p = looks.get(e.pointerId); if (!p || !world) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (looks.size >= 2 && pinch) { const [a, b] = [...looks.values()], d = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)); world.zoom(pinch / d); pinch = d; return; }
+    if (tapInfo && Math.hypot(e.clientX - tapInfo.x, e.clientY - tapInfo.y) > 9) tapInfo.moved = true;
+    if (tapInfo && tapInfo.moved) world.look(dx * S.sens, e.pointerType === 'touch' ? 0 : dy * S.sens);     // on a phone only turn sideways; tilt has its own buttons
+  });
+  const endLook = e => {
+    const had = looks.delete(e.pointerId); if (!had) return; if (looks.size < 2) pinch = null;
+    if (tapInfo && !tapInfo.moved && performance.now() - tapInfo.t < 450 && relevant(e)) tapAt(e.clientX, e.clientY); tapInfo = null;
+  };
+  cv.addEventListener('pointerup', endLook); cv.addEventListener('pointercancel', e => { looks.delete(e.pointerId); pinch = null; tapInfo = null; }); cv.addEventListener('lostpointercapture', e => { looks.delete(e.pointerId); });
+  function tapAt(x, y) {
+    const a = world.pickAct(x, y); if (a) { world.walkToAct(a, () => { world.focus === a || Math.hypot(a.x - world.avatar.root.position.x, a.z - world.avatar.root.position.z) <= a.range ? world.interact(a) : toast('Move a little closer.'); }); return; }
+    const g = world.groundPoint(x, y); if (g && world.LV.groundAt(g.x, g.z) != null) { world.walkTo(g.x, g.z); }
+  }
+  cv.addEventListener('wheel', e => { if (mode !== 'play') return; e.preventDefault(); world.zoom(e.deltaY > 0 ? 1.08 : .925); }, { passive: false });
+  let lastTap = 0; $('camBtn').onclick = () => { world.resetCam(); };
+  const hold = (id, fn) => { const el = $(id); let iv = null; const stop = () => { clearInterval(iv); iv = null; }; el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); iv = setInterval(fn, 60); }); ['pointerup', 'pointerleave', 'pointercancel'].forEach(n => el.addEventListener(n, stop)); };
+  hold('zIn', () => world.zoom(.96)); hold('zOut', () => world.zoom(1.04)); hold('cL', () => world.turn(.05)); hold('cR', () => world.turn(-.05)); hold('cU', () => world.tilt(.02)); hold('cD', () => world.tilt(-.02));
+  $('actBtn').addEventListener('click', () => { if (!relevant()) return; A.init(); if (world.focus) world.interact(); else toast('Walk up to something glowing first.'); });
+  $('jumpBtn').addEventListener('click', () => { if (relevant()) world.jump(); });
+  $('hintBtn').onclick = hint; $('hintX').onclick = hideHint; $('undoBtn').onclick = undo; $('restartBtn').onclick = () => { if (!game) return; modal('<h2>Restart this room?</h2><p>Your mechanisms return to their first positions.</p><div class="row"><button class="btn primary" id="yRes">Restart</button><button class="btn" id="nRes">Keep playing</button></div>'); $('yRes').onclick = () => { closeModal(); restart(); }; $('nRes').onclick = closeModal; };
+  $('pauseBtn').onclick = () => { if (mode === 'play' && $('modal').hidden) openPause(); };
+  const keys = {}; const upd = () => { world && world.setKeys((keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0), (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0)); };
+  window.addEventListener('keydown', e => {
+    if (mode !== 'play') return; const k = e.key.toLowerCase(); if (!$('modal').hidden) { if (k === 'escape') closeModal(); return; }
+    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys[k] = 1; upd(); e.preventDefault(); if (world.busy() === false) world.cancelWalk(); }
+    else if (k === 'e' || k === 'f' || k === 'enter') { if (world.focus) world.interact(); } else if (k === ' ') { e.preventDefault(); world.jump(); } else if (k === 'h') hint(); else if (k === 'z') undo(); else if (k === 'r') $('restartBtn').click(); else if (k === 'escape') $('pauseBtn').click(); else if (k === 'q') world.turn(.25); else if (k === 'c') world.turn(-.25);
+  });
+  window.addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (keys[k]) { keys[k] = 0; upd(); } }); window.addEventListener('blur', () => { for (const k in keys) keys[k] = 0; upd(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) A.pause(); else A.resume(); });
+  window.__androidBack = function () {
+    if (!$('modal').hidden) { closeModal(); return true; } if (mode === 'play') { if (world && world.busy()) { world.skipCine(); return true; } $('pauseBtn').click(); return true; } if (mode === 'menu') { showZone(); return true; } return false;
+  };
+
+  /* ---------- boot ---------- */
+  function bootWorld() {
+    if (world) return true;
+    try { world = MV.createParallax($('c'), { quality: qualityFor(S.quality), preserve: /[?&]shot/.test(location.search), onSfx: n => sound({ jump: 'step', land: 'step', reach: 'slide', finale: 'stageDone' }[n] || n), onAct, onFocus, onCoin, onExit }); }
+    catch (e) { console.error(e); $('nogl').hidden = false; $('splash').hidden = true; return false; }
+    const fit = () => { world.setSize(innerWidth, innerHeight); }; fit(); addEventListener('resize', fit); return true;
+  }
+  let last = performance.now(); function loop(now) { requestAnimationFrame(loop); const dt = Math.min(.1 * (window.__ts || 1), (now - last) / 1000 * (window.__ts || 1)); last = now; if (world && world.LV) { world.update(dt); world.render(); } }
+  function backdrop() {                                           // the temple island slowly turning behind the menus
+    const g0 = E.createGame(0); world.load(g0, {}); world.cine([{ t: 0, p: [30, 15, 36], l: [0, 8, -18] }, { t: 40, p: [-26, 11, 30], l: [0, 9, -22] }, { t: 80, p: [30, 15, 36], l: [0, 8, -18] }], 1e6);
+  }
+  function wire() {
+    buildZone(); $('mPlay').onclick = () => { A.init(); sound('tap'); const n = Math.min(3, Math.max(1, save.last || 1)); startLevel(n, { firstTime: !Object.keys(save.levels).length }); };
+    $('mLevels').onclick = () => { A.init(); openLevels(); }; $('mProg').onclick = openProgress; $('mHow').onclick = openHow; $('mSet').onclick = () => openSettings(false); $('mZone').onclick = showZone;
+  }
+  function boot() {
+    const still = /[?&]splash=still/.test(location.search), img = document.querySelector('.rv-brand-badge img'), cvs = $('splashCv'); if (still) document.body.classList.add('still');
+    const ready = new Promise(r => { if (!img || (img.complete && img.naturalWidth)) r(); else { img.onload = img.onerror = r; setTimeout(r, 1200); } });
+    ready.then(() => {
+      let sp = null; const fit = () => { const r = cvs.getBoundingClientRect(); sp && sp.resize(Math.max(2, Math.floor(r.width)), Math.max(2, Math.floor(r.height))); };
+      try { sp = MV.splash.create(cvs, { logoImg: img, preserve: still, dpr: still ? 2 : 1.5 }); fit(); addEventListener('resize', fit); } catch (e) { console.warn('splash off', e); }
+      if (still) { sp.still(2.6); window.__splashReady = true; return; }
+      sp && sp.start(); const t0 = performance.now(), bar = $('splBar'), txt = $('splTxt'); bar.style.width = '30%'; wire();
+      setTimeout(() => { txt.textContent = 'Opening the Game Zone'; bar.style.width = '70%'; setTimeout(() => {
+        if (!bootWorld()) return; backdrop(); bar.style.width = '100%'; txt.textContent = 'Ready'; show('zone'); requestAnimationFrame(loop);
+        window.__px = { E, get game() { return game; }, get world() { return world; }, get save() { return save; }, get mode() { return mode; }, startLevel, onAct, hint, undo, restart, showZone, showMenu, picked: () => picked };
+        const q = new URLSearchParams(location.search); if (q.get('level')) startLevel(+q.get('level'));
+        const wait = Math.max(300, (/[?&]fast/.test(location.search) ? 0 : 3000) - (performance.now() - t0));
+        setTimeout(() => { $('splash').classList.add('gone'); setTimeout(() => { sp && sp.dispose(); $('splash').hidden = true; }, 800); }, wait);
+      }, 60); }, 420);
+    });
+  }
+  boot();
+})();
+</script>
+<script src="common.js"></script>
+</body>
+</html>

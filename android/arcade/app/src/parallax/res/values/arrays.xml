@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="ob_emoji">
+        <item>🌌</item>
+        <item>🕹️</item>
+        <item>💡</item>
+        <item>🪙</item>
+    </string-array>
+    <string-array name="ob_titles">
+        <item>Welcome to PARALLAX</item>
+        <item>Walk, look, use</item>
+        <item>Stuck? Ask for a hint</item>
+        <item>Three grand levels</item>
+    </string-array>
+    <string-array name="ob_bodies">
+        <item>Explore floating temples as a real animated explorer. Every puzzle is solved by walking up to the mechanism and using it.</item>
+        <item>Drag the joystick on the left to walk, drag on the right to look around and pinch to zoom. Press the gold hand button when something glows, or just tap an object and your explorer walks there.</item>
+        <item>The light bulb gives three friendly hints: look, try, then clear directions. Undo and restart are always free.</item>
+        <item>Mirrors and sunlight, a rotating bridge, and an ancient energy core. Earn up to three stars and collect coins in every level. Your progress is saved on this device.</item>
+    </string-array>
+    <string-array name="about_headings">
+        <item>About this game</item>
+        <item>Features</item>
+        <item>How to play</item>
+        <item>Stars and coins</item>
+    </string-array>
+    <string-array name="about_bodies">
+        <item>PARALLAX: The Laws of the Lost Universe is a cinematic 3D puzzle adventure from Rovatics Game Zone. You play a fully animated explorer in grand floating temples with sunlight, clouds, waterfalls and glowing machines.</item>
+        <item>• Three complete 3D levels with cinematic introductions and finales
+• A human explorer with walking, running, reaching, turning, pulling and celebrating animations
+• Touch joystick, camera drag, pinch to zoom and tap-to-walk
+• Three-step hint system, undo and restart
+• Coins, stars and automatic saving, fully offline</item>
+        <item>1. Drag the left side of the screen to walk.
+2. Drag the right side to look, pinch to zoom.
+3. Press the gold hand button when an object glows.
+4. Tap the light bulb if you are stuck.</item>
+        <item>Finish a level for one star, finish within the move limit for the second, and use no hints for the third. Collect the gold coins on the way. Replay any unlocked level to improve.</item>
+    </string-array>
+</resources>

@@ -30,6 +30,8 @@ const GAMES = {
   sceneblocks: { page: 'scene-blocks.html',    extra: [],                                      common: true },
   mindverse: { page: 'mindverse.html', common: true,
     extra: ['mindverse-engine.js', 'mindverse-levels.js', 'mindverse-levels-extra.js', 'mindverse-gfx.js', 'mindverse-props.js', 'mindverse-looks.js', 'mindverse-world.js', 'mindverse-audio.js', 'mindverse-splash.js', 'vendor/three.min.js'] },
+  parallax: { page: 'parallax.html', common: true,
+    extra: ['parallax-engine.js', 'mindverse-gfx.js', 'parallax-avatar.js', 'parallax-env.js', 'parallax-env-b.js', 'parallax-world.js', 'mindverse-audio.js', 'mindverse-splash.js', 'vendor/three.min.js'] },
   cardclash: {
     page: 'cardclash.html', extra: ['cardclash-engine.js', 'cardclash-data.js', 'open-in-app.js', 'turn-config.js'], common: false,
     vendor: ['peerjs.min.js'],

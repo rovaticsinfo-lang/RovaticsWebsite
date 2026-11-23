@@ -28,6 +28,7 @@ android {
         beambots { dimension 'game'; applicationId 'com.rovatics.beambots'; manifestPlaceholders = [linkPath: '/games/beambots.html'] }
         sceneblocks { dimension 'game'; applicationId 'com.rovatics.sceneblocks'; manifestPlaceholders = [linkPath: '/games/scene-blocks.html'] }
         mindverse { dimension 'game'; applicationId 'com.rovatics.mindverse'; manifestPlaceholders = [linkPath: '/games/mindverse.html'] }
+        parallax { dimension 'game'; applicationId 'com.rovatics.parallax'; manifestPlaceholders = [linkPath: '/games/parallax.html'] }
     }
 
     signingConfigs {

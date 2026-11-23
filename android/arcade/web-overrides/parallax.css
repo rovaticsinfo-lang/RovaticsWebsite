@@ -1,0 +1,5 @@
+/* PARALLAX in the Android app: the floating About button sits bottom-left. The game's controls keep clear of it with --reserve,
+   common.css must not add body padding, and the website-only link is hidden. */
+:root { --reserve: 56px; }
+body { padding-bottom: 0; }
+#menu a.btn, #cards a.gcard { display: none; }   /* the other games are web pages that are not bundled in this app */
