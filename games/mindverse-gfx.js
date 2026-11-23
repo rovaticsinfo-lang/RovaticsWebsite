@@ -289,6 +289,7 @@
       for (let i = 0; i < 2; i++) { quad.material = blur; blur.uniforms.t.value = A.texture; blur.uniforms.d.value.set(1 / A.width * (1 + i), 0); renderer.setRenderTarget(B); renderer.render(scn, cam); blur.uniforms.t.value = B.texture; blur.uniforms.d.value.set(0, 1 / A.height * (1 + i)); renderer.setRenderTarget(A); renderer.render(scn, cam); }
       quad.material = comp; comp.uniforms.t.value = main.texture; comp.uniforms.b.value = A.texture; comp.uniforms.time.value = time || 0; renderer.setRenderTarget(null); renderer.render(scn, cam);
     };
+    P.setBloom = a => { comp.uniforms.amt.value = a; }; P.setExposure = e => { comp.uniforms.ex.value = e; };
     P.dispose = function () { main.dispose(); A.dispose(); B.dispose(); };
     return P;
   };
