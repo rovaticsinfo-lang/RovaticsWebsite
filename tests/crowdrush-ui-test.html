@@ -76,6 +76,15 @@ document.getElementById('f').onload=async()=>{try{
  const noJ=await run(false), withJ=await run(true);
  ok(withJ>noJ,'jumping over the blades keeps more people ('+withJ+' vs '+noJ+' of 40 without)');
 
+ // ---- tester feedback: hurdles grow, gift box is not coin-coloured, avatars, road choice, no dark or grid roads ----
+ const hz=n=>{ C.loadLevel(n); return G.lvl.hazards.length; };
+ const h5=hz(5),h12=hz(12),h24=hz(24); ok(h12>h5&&h24>h12,'more hurdles as levels rise (level 5: '+h5+', 12: '+h12+', 24: '+h24+')');
+ C.loadLevel(2); const bm=C.world.boxMesh.material, cm=C.world.coinMesh.material;
+ ok(bm.emissive.getHex()!==cm.emissive.getHex()&&Math.abs(bm.emissive.r-cm.emissive.r)>0.3,'gift box glow is a different colour from the coin glow');
+ ok(C.AVATARS.length>=8&&C.AVATARS[0].cost===0&&new Set(C.AVATARS.map(a=>a.id)).size===C.AVATARS.length&&C.AVATARS.slice(1).every(a=>a.cost>0),'8 avatars, the first is free, the rest cost coins');
+ const sv=C.save; const road0=sv.road; sv.road=5; C.loadLevel(1); ok(C.world.theme.id==='airport','a chosen road is used instead of the rotation (picked airport, got '+C.world.theme.id+')');
+ sv.road=-1; C.loadLevel(1); ok(C.world.theme.id==='city','Auto keeps the level rotation'); sv.road=road0;
+
  // ---- boss win flow still works ----
  C.loadLevel(1); C.startRun(); const P5=G.player; P5.setCount(120); P5.z=G.boss.z+60; G.lvl.gates.forEach(g=>g.done=true); G.lvl.enemies.forEach(e=>e.done=true);
  for(let i=0;i<1600&&G.state!=='result';i++) await wait(250);

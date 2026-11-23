@@ -66,6 +66,60 @@ export function genLevel(n, startN) {
   };
 
   let z = -38, seg = 0;
+  /* Obstacles get denser as levels rise: the gaps between them shrink and, from level 3, extra hurdles are slipped
+     in between the gates. Blades, rollers and walls also gain extra pieces in later levels. */
+  const gap = base => Math.max(base * 0.6, base - n * 0.5);
+  const extraP = n < 3 ? 0 : Math.min(0.92, 0.18 + (n - 3) * 0.06);
+  const HURDLES = ['saw', 'spikes', 'wall', 'roller'].filter(k => KINDS.some(x => x.k === k));
+  const placeKind = (kind) => {
+    if (kind === 'enemy') {
+      const size = Math.max(3, Math.round(est * (0.14 + 0.22 * diff + 0.1 * r())));
+      lvl.enemies.push({ z, x: (r() - 0.5) * 3, count: size });
+      est = Math.max(2, est - size);
+      z -= gap(42);
+    } else if (kind === 'saw') {
+      const sp = 1.5 + r() * 0.7, ph = r() * 6;
+      lvl.hazards.push({ type: 'saw', z, cx: -1.9, amp: 1.7, sp, ph, x: -1.9, cd: 0 });
+      lvl.hazards.push({ type: 'saw', z, cx: 1.9, amp: 1.7, sp, ph: ph + Math.PI, x: 1.9, cd: 0 });
+      if (n >= 9) lvl.hazards.push({ type: 'saw', z: z - 6, cx: 0, amp: 2.4, sp: sp * 0.8, ph: ph + 1.7, x: 0, cd: 0 });   // a third blade sweeping the middle
+      airArc(z, 0, 11, 2.6); z -= gap(36);
+    } else if (kind === 'spikes') {
+      const mode = r();
+      if (mode < 0.34) lvl.hazards.push({ type: 'spikes', z, x0: -4, x1: -0.9, cd: 0 });
+      else if (mode < 0.67) lvl.hazards.push({ type: 'spikes', z, x0: 0.9, x1: 4, cd: 0 });
+      else { lvl.hazards.push({ type: 'spikes', z, x0: -4, x1: -1.3, cd: 0 }); lvl.hazards.push({ type: 'spikes', z, x0: 1.3, x1: 4, cd: 0 }); }
+      if (n >= 12 && r() < 0.5) lvl.hazards.push({ type: 'spikes', z: z - 7, x0: mode < 0.5 ? 0.9 : -4, x1: mode < 0.5 ? 4 : -0.9, cd: 0 });   // a second strip on the other side
+      airArc(z, 0, 11, 2.6); z -= gap(36);
+    } else if (kind === 'wall') {
+      /* a barrier across the road: squeeze through the gap or jump over it */
+      const gx = (r() - 0.5) * 4.4, gw = Math.max(2.2, 3.2 - diff * 1.0);
+      lvl.hazards.push({ type: 'wall', z, gx, gw, cd: 0 });
+      if (n >= 10 && r() < 0.5) lvl.hazards.push({ type: 'wall', z: z - 8, gx: -gx, gw, cd: 0 });   // a second wall with the gap on the far side
+      airArc(z, gx, 10, 2.8); z -= gap(36);
+    } else if (kind === 'roller') {
+      const sp = 1.1 + r() * 0.8, ph = r() * 6;
+      lvl.hazards.push({ type: 'roller', z, cx: 0, amp: 2.9, sp, ph, x: 0, cd: 0 });
+      lvl.hazards.push({ type: 'roller', z: z - 9, cx: 0, amp: 2.9, sp: sp * 0.9, ph: ph + 2.4, x: 0, cd: 0 });
+      if (n >= 14) lvl.hazards.push({ type: 'roller', z: z - 18, cx: 0, amp: 2.9, sp: sp * 1.1, ph: ph + 4.1, x: 0, cd: 0 });
+      airArc(z - 4, 0, 16, 2.7); z -= gap(n >= 14 ? 52 : 42);
+    } else if (kind === 'pad') {
+      /* a jump pad launches the crowd high into a sky full of treasure */
+      const px = (r() - 0.5) * 3;
+      lvl.pads.push({ x: px, z, used: false, glow: 0 });
+      airArc(z - 10, px, 17, 4.6);
+      lvl.boxes.push({ x: px, y: 5.0, z: z - 12, taken: false, ph: r() * 6, reward: r() < 0.5 ? { t: 'crowd', v: Math.max(4, Math.round(est * 0.12) + 2) } : { t: 'coins', v: 25 + Math.floor(r() * 26) } });
+      z -= 40;
+    } else if (kind === 'speed') {
+      lvl.strips.push({ x: 0, z, used: false, glow: 0 });
+      for (let i = 0; i < 12; i++) lvl.coins.push({ x: Math.sin(i * 0.8) * 1.6, z: z - 6 - i * 2.4, y: 0.95, taken: false, ph: i * 0.5 });
+      z -= 42;
+    } else {
+      const count = Math.max(2, Math.round(est * 0.08) + 1);
+      lvl.recruits.push({ z, x: (r() - 0.5) * 4.2, count });
+      est += count * 0.6;
+      z -= 32;
+    }
+  };
   while (-z < lvl.length - 20) {
     if (seg % 2 === 0) {
       const a = good();
@@ -75,52 +129,15 @@ export function genLevel(n, startN) {
       const flip = r() < 0.5;
       lvl.gates.push({ z, l: flip ? b : a, r: flip ? a : b, done: false });
       est = Math.max(apply(a, est), apply(b, est));
-      z -= 30;
+      z -= Math.max(22, 30 - n * 0.25);
+      /* an extra hurdle right after the gates (more of them, and more often, in higher levels) */
+      if (HURDLES.length && -z < lvl.length - 60 && r() < extraP) {
+        const hk = HURDLES[Math.floor(r() * HURDLES.length)];
+        if (hk !== 'roller' || n >= 8) { placeKind(hk); if (n >= 16 && r() < 0.35) { const hk2 = HURDLES[Math.floor(r() * HURDLES.length)]; if (hk2 !== 'roller') placeKind(hk2); } }
+      }
     } else {
       const kind = pickKind(); lastKind = kind;
-      if (kind === 'enemy') {
-        const size = Math.max(3, Math.round(est * (0.14 + 0.22 * diff + 0.1 * r())));
-        lvl.enemies.push({ z, x: (r() - 0.5) * 3, count: size });
-        est = Math.max(2, est - size);
-        z -= 42;
-      } else if (kind === 'saw') {
-        const sp = 1.5 + r() * 0.7, ph = r() * 6;
-        lvl.hazards.push({ type: 'saw', z, cx: -1.9, amp: 1.7, sp, ph, x: -1.9, cd: 0 });
-        lvl.hazards.push({ type: 'saw', z, cx: 1.9, amp: 1.7, sp, ph: ph + Math.PI, x: 1.9, cd: 0 });
-        airArc(z, 0, 11, 2.6); z -= 36;
-      } else if (kind === 'spikes') {
-        const mode = r();
-        if (mode < 0.34) lvl.hazards.push({ type: 'spikes', z, x0: -4, x1: -0.9, cd: 0 });
-        else if (mode < 0.67) lvl.hazards.push({ type: 'spikes', z, x0: 0.9, x1: 4, cd: 0 });
-        else { lvl.hazards.push({ type: 'spikes', z, x0: -4, x1: -1.3, cd: 0 }); lvl.hazards.push({ type: 'spikes', z, x0: 1.3, x1: 4, cd: 0 }); }
-        airArc(z, 0, 11, 2.6); z -= 36;
-      } else if (kind === 'wall') {
-        /* a barrier across the road: squeeze through the gap or jump over it */
-        const gx = (r() - 0.5) * 4.4, gw = Math.max(2.4, 3.2 - diff * 0.8);
-        lvl.hazards.push({ type: 'wall', z, gx, gw, cd: 0 });
-        airArc(z, gx, 10, 2.8); z -= 36;
-      } else if (kind === 'roller') {
-        const sp = 1.1 + r() * 0.8, ph = r() * 6;
-        lvl.hazards.push({ type: 'roller', z, cx: 0, amp: 2.9, sp, ph, x: 0, cd: 0 });
-        lvl.hazards.push({ type: 'roller', z: z - 9, cx: 0, amp: 2.9, sp: sp * 0.9, ph: ph + 2.4, x: 0, cd: 0 });
-        airArc(z - 4, 0, 16, 2.7); z -= 42;
-      } else if (kind === 'pad') {
-        /* a jump pad launches the crowd high into a sky full of treasure */
-        const px = (r() - 0.5) * 3;
-        lvl.pads.push({ x: px, z, used: false, glow: 0 });
-        airArc(z - 10, px, 17, 4.6);
-        lvl.boxes.push({ x: px, y: 5.0, z: z - 12, taken: false, ph: r() * 6, reward: r() < 0.5 ? { t: 'crowd', v: Math.max(4, Math.round(est * 0.12) + 2) } : { t: 'coins', v: 25 + Math.floor(r() * 26) } });
-        z -= 40;
-      } else if (kind === 'speed') {
-        lvl.strips.push({ x: 0, z, used: false, glow: 0 });
-        for (let i = 0; i < 12; i++) lvl.coins.push({ x: Math.sin(i * 0.8) * 1.6, z: z - 6 - i * 2.4, y: 0.95, taken: false, ph: i * 0.5 });
-        z -= 42;
-      } else {
-        const count = Math.max(2, Math.round(est * 0.08) + 1);
-        lvl.recruits.push({ z, x: (r() - 0.5) * 4.2, count });
-        est += count * 0.6;
-        z -= 32;
-      }
+      placeKind(kind);
     }
     if (r() < 0.8) {
       const zc = z + 20, dir = r() < 0.5 ? -1 : 1, amp = 0.8 + r() * 1.6;

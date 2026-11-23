@@ -150,26 +150,20 @@ function makeGrid(xs, zs, fn) {
 }
 
 /* ---------- painted surfaces ---------- */
-const ROAD_BASE = { city: '#383b41', country: '#42454a', coast: '#6e6f73', highway: '#2f3136', rail: '#6d6a64', runway: '#3b3d42', night: '#1f2029', lava: '#2b2321' };
+/* mid-grey roads: nothing is near-black, so the road always reads clearly against the scenery */
+const ROAD_BASE = { city: '#6a6e76', country: '#74777b', coast: '#9a9b9f', highway: '#62656c', rail: '#8a8780', runway: '#6c6f75', night: '#8a92c0', lava: '#a8887a' };
 function paintRoad(kind, taxi) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 512; const g = c.getContext('2d'); const rnd = Math.random;
   const em = document.createElement('canvas'); em.width = 256; em.height = 512; const eg = em.getContext('2d'); eg.fillStyle = '#000'; eg.fillRect(0, 0, 256, 512);
   g.fillStyle = ROAD_BASE[kind]; g.fillRect(0, 0, 256, 512);
   if (kind === 'rail') {
     for (let i = 0; i < 12000; i++) { const v = 70 + rnd() * 90 | 0; g.fillStyle = `rgb(${v},${v - 4},${v - 10})`; const s = 2 + rnd() * 4; g.fillRect(rnd() * 256, rnd() * 512, s, s * (0.6 + rnd() * 0.6)); }
-    for (let j = 0; j < 24; j++) {
-      const y = j * 21.333; g.fillStyle = '#4a4036'; g.fillRect(34, y + 2, 188, 15); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(34, y + 2, 188, 3); g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(34, y + 15, 188, 2);
-    }
     for (const x of [84, 172]) {
       g.fillStyle = '#2b2d31'; g.fillRect(x - 6, 0, 12, 512); g.fillStyle = '#b8bec6'; g.fillRect(x - 4, 0, 8, 512); g.fillStyle = '#eef2f6'; g.fillRect(x - 3, 0, 2.5, 512); g.fillStyle = 'rgba(120,70,40,.4)'; g.fillRect(x + 1, 0, 3, 512);
-      for (let j = 0; j < 24; j++) { g.fillStyle = '#7a7f86'; g.fillRect(x - 8, j * 21.333 + 6, 16, 6); }
     }
   } else {
-    for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '255,255,255' : '0,0,0'},${0.03 + rnd() * 0.05})`; g.fillRect(rnd() * 256, rnd() * 512, 20 + rnd() * 90, 20 + rnd() * 110); }
+    for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '255,255,255' : '0,0,0'},${0.02 + rnd() * 0.03})`; g.fillRect(rnd() * 256, rnd() * 512, 20 + rnd() * 90, 20 + rnd() * 110); }
     for (let i = 0; i < 6500; i++) { const v = rnd() < 0.5 ? 255 : 0; g.fillStyle = `rgba(${v},${v},${v},${0.04 + rnd() * 0.14})`; const s = 1 + rnd() * 2; g.fillRect(rnd() * 256, rnd() * 512, s, s); }
-    g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(48, 0, 44, 512); g.fillRect(164, 0, 44, 512);
-    g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 1.5;
-    for (let i = 0; i < 5; i++) { g.beginPath(); let x = rnd() * 256, y = rnd() * 512; g.moveTo(x, y); for (let k = 0; k < 7; k++) { x += (rnd() - 0.5) * 24; y += 6 + rnd() * 18; g.lineTo(x, y); } g.stroke(); }
   }
   const dashes = (x, w, on, period, color, alpha = 1) => { g.fillStyle = color; g.globalAlpha = alpha; for (let y = 0; y < 512; y += period) g.fillRect(x, y + (period - on) / 2, w, on); g.globalAlpha = 1; };
   const solid = (x, w, color, alpha = 1) => { g.fillStyle = color; g.globalAlpha = alpha; g.fillRect(x, 0, w, 512); g.globalAlpha = 1; };
@@ -195,10 +189,8 @@ function paintRoad(kind, taxi) {
       for (let i = 0; i < 12; i++) { const gr = g.createRadialGradient(0, 0, 1, 0, 0, 60); const col = rnd() < 0.5 ? '0,240,255' : '255,79,216'; gr.addColorStop(0, `rgba(${col},.22)`); gr.addColorStop(1, `rgba(${col},0)`); g.save(); g.translate(rnd() * 256, rnd() * 512); g.scale(1, 0.5 + rnd() * 0.8); g.fillStyle = gr; g.fillRect(-60, -60, 120, 120); g.restore(); }
       eg.fillStyle = '#00f0ff'; eg.fillRect(12, 0, 6, 512); eg.fillStyle = '#ff4fd8'; eg.fillRect(238, 0, 6, 512); break;
     case 'lava':
-      g.strokeStyle = '#ff7a1a'; g.lineWidth = 3; eg.strokeStyle = '#ff7a1a'; eg.lineWidth = 3;
-      for (let i = 0; i <= 8; i++) for (const gg of [g, eg]) { gg.beginPath(); gg.moveTo(i * 32, 0); gg.lineTo(i * 32, 512); gg.stroke(); }
-      for (let j = 0; j <= 16; j++) for (const gg of [g, eg]) { gg.beginPath(); gg.moveTo(0, j * 32); gg.lineTo(256, j * 32); gg.stroke(); }
-      for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,120,30,${rnd() * 0.18})`; g.fillRect(rnd() * 256, rnd() * 512, 2, 2 + rnd() * 20); }
+      dashes(125, 6, 128, 256, '#ffb347'); solid(12, 6, '#ff7a1a', 0.95); solid(238, 6, '#ff7a1a', 0.95);
+      eg.fillStyle = '#ff7a1a'; eg.fillRect(12, 0, 6, 512); eg.fillRect(238, 0, 6, 512);
       break;
   }
   const mk = cv => { const t = new THREE.CanvasTexture(cv); t.wrapS = THREE.ClampToEdgeWrapping; t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
@@ -242,13 +234,15 @@ function bannerTexture(text, c1, c2) {
     g.fillStyle = '#fff'; g.fillText(text, w / 2, h / 2 + 4);
   });
 }
+/* the gift box is violet with a white and pink ribbon, clearly different from the gold coins */
 function mysteryTexture() {
   return textTex(128, 128, (g, w, h) => {
-    const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#ffe066'); gr.addColorStop(1, '#ff9a1a');
-    g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = '#a85a00'; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
-    g.fillStyle = '#fff3a8'; for (const [x, y] of [[16, 16], [112, 16], [16, 112], [112, 112]]) { g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
-    g.font = '900 92px "Arial Black",Impact,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineJoin = 'round'; g.lineWidth = 12; g.strokeStyle = '#7a3a00'; g.strokeText('?', w / 2, h / 2 + 6); g.fillStyle = '#fff'; g.fillText('?', w / 2, h / 2 + 6);
+    const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#d27bff'); gr.addColorStop(1, '#6a22d8');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = '#3d0f91'; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
+    g.fillStyle = '#f4ecff'; g.fillRect(w / 2 - 11, 0, 22, h); g.fillRect(0, h / 2 - 11, w, 22);
+    g.fillStyle = '#ff4fd8'; g.fillRect(w / 2 - 5, 0, 10, h); g.fillRect(0, h / 2 - 5, w, 10);
+    g.font = '900 56px "Arial Black",Impact,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round'; g.lineWidth = 9; g.strokeStyle = '#3d0f91'; g.strokeText('?', w / 2, h / 2 + 3); g.fillStyle = '#fff'; g.fillText('?', w / 2, h / 2 + 3);
   });
 }
 
@@ -357,7 +351,7 @@ export class World {
     const rt = this.track(paint.map); rt.repeat.set(1, roadLen / 16);
     const bump = this.bump.clone(); bump.repeat.set(1, roadLen / 16); bump.needsUpdate = true; this.track(bump);
     const wet = th.road === 'night';
-    const roadMat = new THREE.MeshStandardMaterial({ map: rt, bumpMap: bump, bumpScale: 1.2, roughness: wet ? 0.32 : (th.road === 'rail' ? 1 : 0.78), metalness: wet ? 0.25 : 0.02 });
+    const roadMat = new THREE.MeshStandardMaterial({ map: rt, bumpMap: bump, bumpScale: 1.2, roughness: wet ? 0.32 : (th.road === 'rail' ? 1 : 0.78), metalness: wet ? 0.08 : 0.02 });
     if (paint.emissive) { const et = this.track(paint.emissive); et.repeat.set(1, roadLen / 16); roadMat.emissiveMap = et; roadMat.emissive = new THREE.Color(0xffffff); roadMat.emissiveIntensity = th.road === 'lava' ? 1.6 : 1.1; }
     this.track(roadMat);
     const road = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, roadLen), roadMat);
@@ -394,7 +388,7 @@ export class World {
     buildKit(th.kit, ctx);
 
     /* start line */
-    const sl = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, 0.9), new THREE.MeshBasicMaterial({ map: this.track(textTex(256, 32, (cx) => { for (let i = 0; i < 16; i++) for (let j = 0; j < 2; j++) { cx.fillStyle = ((i + j) & 1) ? '#fff' : '#222'; cx.fillRect(i * 16, j * 16, 16, 16); } })), transparent: true, opacity: 0.92 }));
+    const sl = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, 0.9), new THREE.MeshBasicMaterial({ map: this.track(textTex(256, 32, (cx) => { cx.fillStyle = '#fff'; cx.fillRect(0, 0, 256, 32); })), transparent: true, opacity: 0.92 }));
     sl.rotation.x = -Math.PI / 2; sl.position.set(0, 0.04, -3); g.add(sl);
 
     this.gates = lvl.gates; lvl.gates.forEach(gt => this.buildGate(g, gt));
@@ -525,7 +519,7 @@ export class World {
 
   buildBoxes(g, boxes) {
     if (!boxes.length) { this.boxMesh = null; return; }
-    const mat = this.track(new THREE.MeshStandardMaterial({ map: this.mystery, emissive: '#ff9a1a', emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.3 }));
+    const mat = this.track(new THREE.MeshStandardMaterial({ map: this.mystery, emissive: '#7a2aff', emissiveIntensity: 0.55, roughness: 0.4, metalness: 0.3 }));
     this.boxMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1.35, 1.35, 1.35), mat, boxes.length);
     this.boxMesh.frustumCulled = false; this.boxMesh.castShadow = true; g.add(this.boxMesh);
     boxes.forEach((b, i) => { b.i = i; this.setBox(b, 0); });
@@ -544,7 +538,6 @@ export class World {
       cx.fillStyle = ROAD_BASE[th.road]; cx.fillRect(0, 0, w, h);
       cx.strokeStyle = th.edge; cx.lineWidth = 5; cx.globalAlpha = 0.9;
       for (let i = 1; i <= 4; i++) { cx.beginPath(); cx.arc(w / 2, h / 2, i * 28, 0, 7); cx.stroke(); }
-      cx.globalAlpha = 0.5; for (let a = 0; a < 12; a++) { cx.beginPath(); cx.moveTo(w / 2, h / 2); cx.lineTo(w / 2 + Math.cos(a / 12 * 6.283) * 120, h / 2 + Math.sin(a / 12 * 6.283) * 120); cx.stroke(); }
     })), roughness: 0.7 }));
     top.rotation.x = -Math.PI / 2; top.position.set(0, 0.01, bossZ - 2); top.receiveShadow = true; g.add(top);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(17, 0.28, 8, 64), new THREE.MeshBasicMaterial({ color: th.edge })); ring.rotation.x = Math.PI / 2; ring.position.set(0, 0.2, bossZ - 2); g.add(ring);

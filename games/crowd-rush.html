@@ -78,6 +78,30 @@
   .sw.sel{border-color:#fff;box-shadow:0 0 0 2px #ffd84a}
   .sw.lock::after{content:'🔒';position:absolute;inset:0;font-size:12px;display:flex;align-items:center;justify-content:center}
 
+  /* avatars and road choice */
+  #avCanvas{width:48px;height:56px}
+  .card #avName{font-size:13px;line-height:1.1}
+  .buy.alt2{background:linear-gradient(#b98bff,#7a3ef0);color:#fff;box-shadow:0 4px 0 #43209a;font-size:13px}
+  .roadrow{display:flex;align-items:center;gap:4px;width:100%;justify-content:space-between}
+  .roadrow b{flex:1;font-size:12px;line-height:1.15;min-height:28px;display:flex;align-items:center;justify-content:center}
+  .mini{width:26px;height:30px;border-radius:9px;background:linear-gradient(#5aa8ff,#2a64e0);box-shadow:0 3px 0 #1a3f99;font-size:12px}
+  .mini:active{transform:translateY(2px)}
+  .panel.wide{width:min(94vw,520px);max-height:92vh;overflow:auto}
+  .reward.small{font-size:22px;margin:0 0 10px}.reward.small .coin{width:22px;height:22px}
+  .avgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
+  .av{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);border-radius:14px;padding:6px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .av.on{border-color:#7cff8a;background:rgba(124,255,138,.12)}
+  .av canvas{width:60px;height:70px}
+  .avn{font-size:11px;line-height:1.1;min-height:24px;display:flex;align-items:center;text-align:center}
+  .avb{width:100%;padding:6px 2px;border-radius:9px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px}
+  .avb.buyit{background:linear-gradient(#ffd84a,#ffa51a);color:#4a2400;box-shadow:0 3px 0 #a8620a}
+  .avb.use{background:linear-gradient(#5aa8ff,#2a64e0);box-shadow:0 3px 0 #1a3f99}
+  .avb.eq{background:rgba(255,255,255,.2)}
+  .avb:disabled{filter:grayscale(.8) brightness(.7)}
+  .avb .coin{width:14px;height:14px}
+  @media (max-width:420px){.avgrid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-height:540px){.avgrid{grid-template-columns:repeat(4,1fr)}.av canvas{width:44px;height:52px}}
+
   /* in-game controls: jump + throttle */
   #ctrl{z-index:3}
   .pad{pointer-events:auto;touch-action:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -183,7 +207,9 @@
       <button class="buy" id="upStartBtn"><span class="coin"></span><span id="upStartCost">0</span></button></div>
     <div class="card"><div class="ic">💰</div>Gold Bonus<div class="lv" id="upGoldLv">+0%</div>
       <button class="buy" id="upGoldBtn"><span class="coin"></span><span id="upGoldCost">0</span></button></div>
-    <div class="card"><div class="ic">🎨</div>Team<div class="swatches" id="swatches"></div><div class="lv" id="skinCost"></div></div>
+    <div class="card"><canvas id="avCanvas" width="96" height="112"></canvas><span id="avName">Avatar</span><div class="lv" id="avSub"></div>
+      <button class="buy alt2" id="avBtn">🎭 WARDROBE</button></div>
+    <div class="card"><div class="ic">🛣️</div>Road<div class="roadrow"><button class="mini" id="roadPrev" aria-label="Previous road">◀</button><b id="roadName">Auto</b><button class="mini" id="roadNext" aria-label="Next road">▶</button></div><div class="lv" id="roadSub"></div></div>
   </div>
 </div>
 
@@ -203,6 +229,15 @@
     <div class="thrbar"><i id="thrFill"></i><b style="bottom:33%"></b></div>
     <div id="thrVal">1.0×</div>
     <button id="thrDn" class="pad" aria-label="Slow down">▼</button>
+  </div>
+</div>
+
+<div id="wardrobe" class="layer modal hide">
+  <div class="panel wide">
+    <h2>WARDROBE</h2>
+    <div class="reward small"><span class="coin"></span><span id="wdCoins">0</span></div>
+    <div class="avgrid" id="wdGrid"></div>
+    <button class="btn go" id="wdClose">DONE</button>
   </div>
 </div>
 

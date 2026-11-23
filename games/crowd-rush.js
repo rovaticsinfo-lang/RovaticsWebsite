@@ -40,16 +40,36 @@ const FORM_C = 0.38, PS = 1.15, GOLD = 2.39996;
 const JUMP_H = 3.4, JUMP_DUR = 1.3;            // a jump clears blades and reaches the coins and boxes in the air
 const SPEED_MIN = 0.4, SPEED_MAX = 2.2;
 const YAW0 = params.has('yaw') ? +params.get('yaw') : 0;   // the model natively faces -Z, the way we run
-const SKINS = [
-  { c: '#3b82ff', cost: 0 }, { c: '#ff9a2e', cost: 120 }, { c: '#2fd36b', cost: 120 },
-  { c: '#b061ff', cost: 250 }, { c: '#22d8d0', cost: 250 }, { c: '#ffd23a', cost: 400 }
+/* Avatars: each is a full costume (head, torso, arms, legs, boots, accent and pattern), bought once with coins.
+   pat: 0 plain, 1 torso stripes, 2 belt, 3 eye mask or visor band. c = the colour of the ring under each runner. */
+const AVATARS = [
+  { id: 'rookie', name: 'Blue Rookie', cost: 0, c: '#3b82ff', pat: 2, head: '#3b82ff', torso: '#3b82ff', arms: '#3b82ff', legs: '#24407f', boots: '#1d2a4a', acc: '#ffd23a' },
+  { id: 'ninja', name: 'Night Ninja', cost: 150, c: '#ff3a4a', pat: 3, head: '#30303e', torso: '#3d3d52', arms: '#3d3d52', legs: '#2c2c3e', boots: '#1e1e2a', acc: '#ff3a4a' },
+  { id: 'astro', name: 'Astronaut', cost: 250, c: '#ffa84a', pat: 2, head: '#f2f4f8', torso: '#f2f4f8', arms: '#e9edf3', legs: '#dfe4ec', boots: '#8b94a3', acc: '#ff8a1a' },
+  { id: 'pirate', name: 'Pirate', cost: 350, c: '#ff5a5a', pat: 1, head: '#c4222c', torso: '#f2efe8', arms: '#f2efe8', legs: '#2a2420', boots: '#4a2e1c', acc: '#2a2a35' },
+  { id: 'knight', name: 'Silver Knight', cost: 500, c: '#b8c4d8', pat: 3, head: '#cfd6e2', torso: '#aab4c4', arms: '#98a3b6', legs: '#7e8aa0', boots: '#d9b64a', acc: '#d9b64a' },
+  { id: 'hero', name: 'Super Hero', cost: 650, c: '#ff3a3a', pat: 3, head: '#e0262e', torso: '#e0262e', arms: '#e0262e', legs: '#2250d8', boots: '#ffd23a', acc: '#ffd23a' },
+  { id: 'robot', name: 'Robo Runner', cost: 800, c: '#22d8ff', pat: 1, head: '#7fe3ff', torso: '#9ab0c4', arms: '#7a8ea2', legs: '#556577', boots: '#2a3644', acc: '#22d8ff' },
+  { id: 'gold', name: 'Golden Legend', cost: 1200, c: '#ffd23a', pat: 3, head: '#ffcf33', torso: '#ffbf1a', arms: '#ffcf33', legs: '#d99a0a', boots: '#fff1a8', acc: '#fff8d0' }
 ];
+/* the player's colour for rings and labels is the avatar's c */
+function setCostume(mat, a) {
+  const k = mat.userData.cos; k.on.value = 1; k.pat.value = a.pat;
+  for (const z of ['head', 'torso', 'arms', 'legs', 'boots', 'acc']) k[z].value.set(a[z]);
+  mat.userData.uTeam.value.set(a.c); mat.emissive.set(a.c).multiplyScalar(0.03);
+}
 const TEAM_COL = { enemy: '#ff3a4a', neutral: '#ffe9a0' };
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'rovatics.crowdrush.v1';
-const save = { level: 1, coins: 0, upStart: 0, upGold: 0, skin: 0, skins: [1, 0, 0, 0, 0, 0], muted: false };
+const save = { level: 1, coins: 0, upStart: 0, upGold: 0, avatar: 0, avatars: [1, 0, 0, 0, 0, 0, 0, 0], road: -1, muted: false };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) { /* private mode */ }
+/* repair older or damaged saves: the avatar list must match, and the equipped avatar must be owned */
+if (!Array.isArray(save.avatars)) save.avatars = [];
+while (save.avatars.length < AVATARS.length) save.avatars.push(0);
+save.avatars[0] = 1;
+if (!(save.avatar >= 0 && save.avatar < AVATARS.length) || !save.avatars[save.avatar]) save.avatar = 0;
+if (!(save.road >= -1 && save.road < THEMES.length)) save.road = -1;
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignore */ } };
 const costStart = () => Math.round(40 * Math.pow(1.5, save.upStart));
 const costGold = () => Math.round(35 * Math.pow(1.55, save.upGold));
@@ -102,16 +122,36 @@ function teamMaterial(hex, mix, emissive) {
   m.roughness = 0.62; m.metalness = 0.05; m.envMapIntensity = 0.22;
   m.emissive = new THREE.Color(emissive || 0x000000);
   const uTeam = { value: new THREE.Color(hex) }, uMix = { value: mix };
-  m.userData.uTeam = uTeam;
+  /* costume: colours for the body zones (head, torso, arms, legs, boots) plus an accent and a pattern. Only the
+     player's crowd uses it (uCos = 1); rivals, neutrals and the boss keep one solid team colour. */
+  const cos = { on: { value: 0 }, pat: { value: 0 }, head: { value: new THREE.Color() }, torso: { value: new THREE.Color() }, arms: { value: new THREE.Color() },
+    legs: { value: new THREE.Color() }, boots: { value: new THREE.Color() }, acc: { value: new THREE.Color() } };
+  m.userData.uTeam = uTeam; m.userData.cos = cos;
   m.onBeforeCompile = sh => {
-    sh.uniforms.uTeam = uTeam; sh.uniforms.uMix = uMix;
+    sh.uniforms.uTeam = uTeam; sh.uniforms.uMix = uMix; sh.uniforms.uCos = cos.on; sh.uniforms.uPat = cos.pat;
+    sh.uniforms.uHead = cos.head; sh.uniforms.uTorso = cos.torso; sh.uniforms.uArms = cos.arms; sh.uniforms.uLegs = cos.legs; sh.uniforms.uBoots = cos.boots; sh.uniforms.uAcc = cos.acc;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvBP = position;');   // bind-pose position: x = across (arms), z = height 0..183
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform vec3 uTeam; uniform float uMix;')
+      .replace('#include <common>', '#include <common>\nuniform vec3 uTeam, uHead, uTorso, uArms, uLegs, uBoots, uAcc; uniform float uMix, uCos, uPat; varying vec3 vBP;')
       .replace('#include <map_fragment>', `
         #ifdef USE_MAP
           vec4 sampledDiffuseColor = texture2D( map, vMapUv );
           float lum = dot( sampledDiffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) );
-          float l2 = pow(clamp(lum * 1.5, 0.0, 1.0), 1.25); vec3 tc = uTeam * ( 0.1 + l2 * 1.05 ) + uTeam * uTeam * 0.12;
+          vec3 zc = uTeam;
+          if (uCos > 0.5) {
+            float hh = vBP.z / 183.0, ax = abs(vBP.x);
+            zc = hh > 0.5 ? uTorso : uLegs;
+            if (hh > 0.62 && ax > 26.0) zc = uArms;
+            if (hh < 0.075) zc = uBoots;
+            if (hh > 0.62 && ax > 74.0) zc = uBoots;
+            if (hh > 0.845) zc = uHead;
+            if (uPat > 0.5 && uPat < 1.5 && hh > 0.52 && hh < 0.83 && ax < 26.0 && mod(hh * 30.0, 2.0) < 1.0) zc = uAcc;
+            if (uPat > 1.5 && uPat < 2.5 && hh > 0.46 && hh < 0.53 && ax < 30.0) zc = uAcc;
+            if (uPat > 2.5 && hh > 0.875 && hh < 0.935) zc = uAcc;
+          }
+          float l2 = pow(clamp(lum * 1.5, 0.0, 1.0), 1.25); vec3 tc = zc * ( 0.1 + l2 * 1.05 ) + zc * zc * 0.12;
           diffuseColor.rgb = mix( sampledDiffuseColor.rgb, tc, uMix );
           diffuseColor.a *= sampledDiffuseColor.a;
         #endif`);
@@ -158,12 +198,12 @@ function initPeople() {
   const body = gltf.scene.getObjectByName('vanguard_Mesh');
   bodyGeo = body.geometry; baseMat = body.material; bodyGeoLow = clusterGeometry(bodyGeo, 3.6, 0.045);
   console.log('runner model triangles: full', bodyGeo.index.count / 3, 'light', bodyGeoLow.index.count / 3);
-  mats.player = teamMaterial(SKINS[save.skin].c, 0.8);
-  mats.player.emissive.set(SKINS[save.skin].c).multiplyScalar(0.03);
+  mats.player = teamMaterial(AVATARS[save.avatar].c, 0.8);
+  setCostume(mats.player, AVATARS[save.avatar]);
   mats.enemy = teamMaterial(TEAM_COL.enemy, 0.6, 0x200000);
   mats.neutral = teamMaterial(TEAM_COL.neutral, 0.3);
   mats.boss = teamMaterial('#7a1030', 0.7, 0x000000);
-  teamColors.player.set(SKINS[save.skin].c);
+  teamColors.player.set(AVATARS[save.avatar].c);
   for (let i = 0; i < RUN_N; i++) runMasters.push(makeMaster('run', i, RUN_N));
   for (let i = 0; i < IDLE_N; i++) idleMasters.push(makeMaster('idle', i, IDLE_N));
 
@@ -376,7 +416,7 @@ class Crowd {
     this.persons.length = 0; this.active = false; this.label.remove();
   }
 }
-function team_hex(team) { return team === 'player' ? SKINS[save.skin].c : TEAM_COL[team]; }
+function team_hex(team) { return team === 'player' ? AVATARS[save.avatar].c : TEAM_COL[team]; }
 /* Splash, fire or dust where someone lands after falling off the road. */
 function dropFx(x, z) {
   const y = world.drop.y, kind = world.drop.kind;
@@ -425,7 +465,7 @@ function clearLevel() {
 function loadLevel(n) {
   clearLevel();
   const startN = 4 + save.upStart * 2;
-  const lvl = genLevel(n, startN); G.lvl = lvl;
+  const lvl = genLevel(n, startN); if (save.road >= 0) lvl.theme = save.road; G.lvl = lvl;
   world.build(lvl);
   G.coinsRun = 0; G.t0 = 0; G.runT = 0; G.endT = 0; G.targetX = 0; G.shake = 0; G.fovKick = 0; G.bossBanner = false; hudCoins = hudProg = -1;
   G.jump.t = -1; G.jumpH = JUMP_H; G.jumpDur = JUMP_DUR; G.boost = 0; G.tsc = 1; G.endR = 0; G.cheered = false;
@@ -464,21 +504,65 @@ function refreshHud() {
   $('upGoldLv').textContent = '+' + save.upGold * 10 + '%'; $('upGoldCost').textContent = fmt(costGold());
   $('upStartBtn').disabled = save.coins < costStart() || save.upStart >= 15;
   $('upGoldBtn').disabled = save.coins < costGold() || save.upGold >= 20;
-  const sw = $('swatches'); sw.innerHTML = '';
-  SKINS.forEach((s, i) => {
-    const d = document.createElement('div');
-    d.className = 'sw' + (save.skin === i ? ' sel' : '') + (save.skins[i] ? '' : ' lock'); d.style.background = s.c;
-    d.addEventListener('click', () => pickSkin(i)); sw.appendChild(d);
-  });
-  $('skinCost').textContent = '';
+  refreshAvatarCard(); refreshRoadCard();
 }
-function pickSkin(i) {
+function refreshRoadCard() {
+  $('roadName').textContent = save.road < 0 ? 'Auto' : THEMES[save.road].name;
+  $('roadSub').textContent = save.road < 0 ? 'changes every level' : 'your choice';
+}
+function stepRoad(d) {
   Snd.init(); Snd.sfx.click();
-  if (!save.skins[i]) {
-    if (save.coins < SKINS[i].cost) { $('skinCost').textContent = 'Need ' + (SKINS[i].cost - save.coins) + ' more'; return; }
-    save.coins -= SKINS[i].cost; save.skins[i] = 1;
-  }
-  save.skin = i; mats.player.userData.uTeam.value.set(SKINS[i].c); mats.player.emissive.set(SKINS[i].c).multiplyScalar(0.03); teamColors.player.set(SKINS[i].c); persist(); refreshHud();
+  let i = save.road + d; if (i < -1) i = THEMES.length - 1; if (i >= THEMES.length) i = -1;
+  save.road = i; persist(); loadLevel(save.level); refreshRoadCard();
+}
+
+/* ---------- avatars: costumes bought with coins ---------- */
+function drawAvatar(cv, a) {
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height; g.clearRect(0, 0, w, h);
+  const u = h / 100, cx = w / 2, shade = (x, y, ww, hh, col, r = 3 * u) => { g.fillStyle = col; g.beginPath(); if (g.roundRect) g.roundRect(x, y, ww, hh, r); else g.rect(x, y, ww, hh); g.fill(); };
+  const lg = (x0, y0, x1, y1, col) => { const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, 'rgba(255,255,255,.38)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(0,0,0,.28)'); g.fillStyle = gr; g.fillRect(x0, y0, x1 - x0, y1 - y0); };
+  g.save(); g.translate(0, 4 * u);
+  shade(cx - 13 * u, 58 * u, 11 * u, 30 * u, a.legs); shade(cx + 2 * u, 58 * u, 11 * u, 30 * u, a.legs);
+  shade(cx - 14 * u, 84 * u, 13 * u, 7 * u, a.boots); shade(cx + 1 * u, 84 * u, 13 * u, 7 * u, a.boots);
+  shade(cx - 29 * u, 28 * u, 9 * u, 30 * u, a.arms); shade(cx + 20 * u, 28 * u, 9 * u, 30 * u, a.arms);
+  shade(cx - 20 * u, 26 * u, 40 * u, 36 * u, a.torso, 6 * u);
+  if (a.pat === 1) { g.fillStyle = a.acc; for (let k = 0; k < 4; k++) g.fillRect(cx - 20 * u, (30 + k * 9) * u, 40 * u, 4.5 * u); }
+  if (a.pat === 2) { g.fillStyle = a.acc; g.fillRect(cx - 20 * u, 54 * u, 40 * u, 5 * u); }
+  g.beginPath(); g.arc(cx, 16 * u, 13 * u, 0, 7); g.fillStyle = a.head; g.fill();
+  if (a.pat === 3) { g.fillStyle = a.acc; g.fillRect(cx - 13 * u, 12 * u, 26 * u, 6 * u); }
+  g.globalCompositeOperation = 'source-atop'; lg(0, 0, w, h * 0.9, '#fff'); g.restore();
+}
+function refreshAvatarCard() {
+  const a = AVATARS[save.avatar]; $('avName').textContent = a.name; drawAvatar($('avCanvas'), a);
+  const owned = save.avatars.filter(Boolean).length; $('avSub').textContent = owned + ' of ' + AVATARS.length + ' owned';
+}
+function openWardrobe() {
+  Snd.init(); Snd.sfx.click(); buildWardrobe(); layer('wardrobe', true);
+}
+function closeWardrobe() { Snd.sfx.click(); layer('wardrobe', false); refreshHud(); }
+function buildWardrobe() {
+  $('wdCoins').textContent = fmt(save.coins);
+  const grid = $('wdGrid'); grid.innerHTML = '';
+  AVATARS.forEach((a, i) => {
+    const own = !!save.avatars[i], on = save.avatar === i;
+    const d = document.createElement('div'); d.className = 'av' + (on ? ' on' : '');
+    const cv = document.createElement('canvas'); cv.width = 96; cv.height = 112; drawAvatar(cv, a); d.appendChild(cv);
+    const nm = document.createElement('div'); nm.className = 'avn'; nm.textContent = a.name; d.appendChild(nm);
+    const b = document.createElement('button'); b.className = 'avb' + (own ? (on ? ' eq' : ' use') : ' buyit');
+    if (on) { b.textContent = 'EQUIPPED'; b.disabled = true; }
+    else if (own) { b.textContent = 'USE'; }
+    else { b.innerHTML = '<span class="coin"></span> ' + fmt(a.cost); b.disabled = save.coins < a.cost; }
+    b.addEventListener('click', () => pickAvatar(i)); d.appendChild(b); grid.appendChild(d);
+  });
+}
+function pickAvatar(i) {
+  Snd.init(); const a = AVATARS[i];
+  if (!save.avatars[i]) {
+    if (save.coins < a.cost) { Snd.sfx.click(); return; }
+    save.coins -= a.cost; save.avatars[i] = 1; Snd.sfx.recruit();
+  } else Snd.sfx.click();
+  save.avatar = i; setCostume(mats.player, a); teamColors.player.set(a.c);
+  persist(); buildWardrobe(); $('coinsH').textContent = fmt(save.coins); refreshAvatarCard();
 }
 
 /* ---------- layers ---------- */
@@ -658,8 +742,8 @@ function updateCollect(dt) {
     if (b.taken || Math.abs(b.z - P.z) > 2.8) continue;
     if (Math.abs(b.x - P.x) < P.radius * 0.9 + 1.1 && b.y >= P.jy + 0.4 && b.y <= P.jy + 3.0) {
       b.taken = true; world.hideBox(b);
-      sparks.emit(b.x, b.y, b.z, '#ffd24a', 40, 9, 0.4, 1.0, -6, 0.8, 1); sparks.emit(b.x, b.y, b.z, '#ffffff', 16, 6, 0.25, 0.7, -4, 0.8, 0.5);
-      Snd.sfx.box(); haptic('success'); flashScreen('#ffe9a0', 0.2);
+      sparks.emit(b.x, b.y, b.z, '#c46bff', 40, 9, 0.4, 1.0, -6, 0.8, 1); sparks.emit(b.x, b.y, b.z, '#ff7ae8', 16, 6, 0.25, 0.7, -4, 0.8, 0.5);
+      Snd.sfx.box(); haptic('success'); flashScreen('#e3c2ff', 0.2);
       if (b.reward.t === 'crowd') { P.setCount(P.count + b.reward.v); floatText('🎁 +' + b.reward.v, '#7cff8a', P.x, 3.2, P.z); showTip('🎁 +' + b.reward.v + ' PEOPLE!'); }
       else { G.coinsRun += b.reward.v; floatText('🎁 +' + b.reward.v + ' 🪙', '#ffd23a', P.x, 3.2, P.z); showTip('🎁 +' + b.reward.v + ' COINS!'); }
     }
@@ -1029,6 +1113,8 @@ $('muteBtn').addEventListener('click', () => {
 $('upStartBtn').addEventListener('click', () => {
   if (save.coins < costStart()) return; save.coins -= costStart(); save.upStart++; persist(); Snd.init(); Snd.sfx.recruit(); loadLevel(save.level);
 });
+$('avBtn').addEventListener('click', openWardrobe); $('wdClose').addEventListener('click', closeWardrobe);
+$('roadPrev').addEventListener('click', () => stepRoad(-1)); $('roadNext').addEventListener('click', () => stepRoad(1));
 $('upGoldBtn').addEventListener('click', () => {
   if (save.coins < costGold()) return; save.coins -= costGold(); save.upGold++; persist(); Snd.init(); Snd.sfx.coin(); refreshHud();
 });
@@ -1065,5 +1151,5 @@ async function boot() {
 }
 function applyQualityInit() { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, QUAL[Q].pr)); }
 
-window.__cr = { G, world, scene, camera, renderer, loadLevel, startRun, finish, save, get bossObj() { return bossObj; }, jumpNow, showTip, get Q() { return Q; }, runMasters, pool };
+window.__cr = { G, world, scene, camera, renderer, loadLevel, startRun, finish, save, AVATARS, THEMES, mats, get bossObj() { return bossObj; }, jumpNow, showTip, get Q() { return Q; }, runMasters, pool };
 boot();
